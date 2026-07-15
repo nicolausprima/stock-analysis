@@ -1,0 +1,10 @@
+yfinance
+pandas
+ta
+xgboost
+scikit-learn
+fastapi
+uvicorn
+mlflow
+beautifulsoup4
+requests
