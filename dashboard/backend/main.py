@@ -10,8 +10,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 # Import routers
-from routes.predict import router as predict_router
-from routes.chart import router as chart_router
+from dashboard.backend.routes.predict import router as predict_router
+from dashboard.backend.routes.chart import router as chart_router
 
 app = FastAPI(title="AI Screener Backend")
 
