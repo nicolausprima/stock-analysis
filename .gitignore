@@ -1,0 +1,53 @@
+# ── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+
+# ── Jupyter ──────────────────────────────────────────────
+.ipynb_checkpoints/
+*.ipynb
+
+# ── Data & Models (bisa besar, jangan di-push ke GitHub) ─
+data/raw/
+data/processed/
+models/*.pkl
+models/*.joblib
+models/*.model
+models/*.json
+!models/.gitkeep
+
+# ── Logs & Airflow ───────────────────────────────────────
+logs/
+*.log
+airflow.cfg
+airflow.db
+airflow-webserver.pid
+
+# ── Environment / Secrets ────────────────────────────────
+.env
+.env.*
+*.env
+secrets.yaml
+
+# ── OS & Editor ─────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# ── Docker ───────────────────────────────────────────────
+# (docker-compose.yml dan Dockerfile tetap di-track)
+
+# ── Lightweight Charts (file besar, pakai CDN atau ambil manual) ─
+# Uncomment baris di bawah jika ingin exclude library lokal:
+# dashboard/frontend/js/lightweight-charts.js
