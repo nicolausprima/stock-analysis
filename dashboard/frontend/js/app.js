@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const rsiColor = r => r < 40 ? 'green' : r > 65 ? 'red' : 'amber';
     const rsiW     = r => Math.min(Math.max(r, 0), 100);
 
+    // Initial load: render IHSG chart
+    renderIHSGChart(1);
+
     scanBtn.addEventListener('click', async () => {
         // Disable button, show loader
         scanBtn.disabled = true;
