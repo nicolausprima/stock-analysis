@@ -4,6 +4,8 @@ services:
     container_name: stock-ai-dashboard
     ports:
       - "8000:8000"
+    env_file:
+      - .env
     volumes:
       - .:/app
     environment:

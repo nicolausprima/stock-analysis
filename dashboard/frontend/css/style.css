@@ -635,6 +635,54 @@ strong { font-weight: 600; }
     margin-bottom: 4px;
 }
 
+/* AI News Button & Result Box */
+.ai-news-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px;
+    background: linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(139,92,246,0.1) 100%);
+    border: 1px solid rgba(139,92,246,0.2);
+    border-radius: var(--radius-sm);
+    color: var(--c-navy);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.ai-news-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(59,130,246,0.15) 0%, rgba(139,92,246,0.15) 100%);
+    border-color: rgba(139,92,246,0.4);
+}
+.ai-news-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.ai-result-box {
+    margin-top: 10px;
+    padding: 12px;
+    background: rgba(255,255,255,0.8);
+    border: 1px solid rgba(139,92,246,0.15);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--c-navy);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+.ai-loading {
+    font-style: italic;
+    color: var(--c-faint);
+    animation: pulse 1.5s infinite ease-in-out;
+}
+@keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
 /* ── Risk Banner ─────────────────────────────────────────── */
 .risk-banner {
     display: flex;
