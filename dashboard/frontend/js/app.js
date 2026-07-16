@@ -171,7 +171,102 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="dc-reason-lbl">Alasan AI</span>
                     ${s.reason}
                 </div>
+
+                <!-- NEW: Tombol AI -->
+                <button class="ai-news-btn" data-ticker="${s.ticker.replace('.JK', '')}">
+                    <span class="ai-icon">✨</span> Analisis Berita dengan AI
+                </button>
+                <div class="ai-result-box hidden" id="ai-box-${s.ticker.replace('.JK', '')}">
+                    <div class="ai-loading hidden">Mengumpulkan berita terbaru...</div>
+                    <div class="ai-content"></div>
+                </div>
             `;
+            
+            // Event listener untuk tombol AI
+            const aiBtn = card.querySelector('.ai-news-btn');
+            const aiBox = card.querySelector('.ai-result-box');
+            const aiLoading = card.querySelector('.ai-loading');
+            const aiContent = card.querySelector('.ai-content');
+
+            aiBtn.addEventListener('click', async () => {
+                const cleanTicker = s.ticker.replace('.JK', '');
+                
+                // Toggle UI state
+                aiBtn.disabled = true;
+                aiBox.classList.remove('hidden');
+                aiLoading.classList.remove('hidden');
+                aiContent.innerHTML = '';
+
+                try {
+                    // 1. Ambil berita mentah dari backend kita (hanya fetch text)
+                    const newsRes = await fetch('/api/news', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ticker: cleanTicker })
+                    });
+                    const newsData = await newsRes.json();
+                    if (!newsRes.ok) throw new Error(newsData.detail || 'Gagal mengambil berita.');
+
+                    // 2. Siapkan prompt
+                    const prompt = `
+Kamu adalah analis finansial senior di pasar modal Indonesia (BEI).
+Berikut adalah berita terbaru mengenai saham ${cleanTicker}:
+
+${newsData.raw_news}
+
+Berdasarkan berita di atas:
+1. Tentukan sentimen beritanya: [POSITIF], [NEGATIF], atau [NETRAL].
+2. Jelaskan alasannya dalam 2-3 kalimat singkat berbahasa Indonesia yang profesional.
+
+Format jawaban harus selalu seperti ini:
+[SENTIMEN]
+Alasan berita...
+`;
+
+                    // 3. Panggil OpenCode 9router secara LOKAL langsung dari browser! (Bypass Docker network)
+                    aiLoading.textContent = "Menganalisis sentimen menggunakan AI...";
+                    const llmRes = await fetch('http://127.0.0.1:20128/v1/chat/completions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: 'oc/deepseek-v4-flash-free',
+                            messages: [{ role: 'user', content: prompt }],
+                            temperature: 0
+                        })
+                    });
+                    
+                    // Ambil teks murni untuk menghindari error JSON dari bug 9router (ada sisa 'data: [DONE]' di belakang teks)
+                    const llmText = await llmRes.text();
+                    
+                    let llmData;
+                    try {
+                        // Bersihkan teks kotor dari OpenCode sebelum parsing
+                        const cleanText = llmText.replace(/data:\s*\[DONE\]/gi, '').trim();
+                        llmData = JSON.parse(cleanText);
+                    } catch (err) {
+                        throw new Error("Gagal membaca format JSON dari AI: " + err.message);
+                    }
+
+                    if (!llmRes.ok) throw new Error(llmData.error?.message || llmData.error || 'Gagal menghubungi AI lokal (9router).');
+
+                    const analysisText = llmData.choices[0].message.content;
+                    
+                    // Format output
+                    let formattedText = analysisText.replace(/\n/g, '<br/>').replace(/\[(POSITIF|NEGATIF|NETRAL)\]/g, (match, p1) => {
+                        let color = p1 === 'POSITIF' ? 'var(--c-green-dk)' : (p1 === 'NEGATIF' ? 'var(--c-red)' : 'var(--c-amber)');
+                        return `<strong style="color: ${color}">[${p1}]</strong>`;
+                    });
+
+                    aiContent.innerHTML = formattedText;
+                } catch (error) {
+                    aiContent.innerHTML = `<span style="color: var(--c-red)">Error: ${error.message}</span>`;
+                } finally {
+                    aiLoading.classList.add('hidden');
+                    aiLoading.textContent = "Mengumpulkan berita terbaru...";
+                    aiBtn.disabled = false;
+                }
+            });
+
             cardsGrid.appendChild(card);
         });
     }
