@@ -14,7 +14,7 @@ This project analyzes stocks using a combination of price action (RSI, MACD, Vol
 
 This web application analyzes **99 selected stocks** from the Indonesia Stock Exchange (IDX / BEI) every day. It uses an **XGBoost** machine learning model trained on 20+ technical indicators to recommend the **Top 10** stocks with the strongest buy signals for day trading, augmented with real-time AI news sentiment.
 
-![StockAI Dashboard](dashboard/frontend/dashboard-preview.png)
+![StockAI Dashboard](dashboard/dashboard.png)
 
 ---
 
