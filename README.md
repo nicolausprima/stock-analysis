@@ -5,14 +5,15 @@
 ---
 
 ## 🚧 Current Status
-**V2 (Technical Analysis + AI News Sentiment)**
-This project analyzes stocks using a combination of price action (RSI, MACD, Volume) via XGBoost ML, AND fundamental catalysts using generative AI (DeepSeek-v4 via OpenCode).
+**V3 (Enterprise Architecture: Chart Embeddings + XGBoost + 300+ BEI Universe + Auto-Audit Track Record)**
+
+This project analyzes stocks using a combination of price action, technical indicators, **Chart Feature Embeddings** via XGBoost ML, real-time AI news sentiment filtering, and an automated **Win/Loss Track Record Audit Engine**.
 
 ---
 
 ## 📊 Demo
 
-This web application analyzes **99 selected stocks** from the Indonesia Stock Exchange (IDX / BEI) every day. It uses an **XGBoost** machine learning model trained on 20+ technical indicators to recommend the **Top 10** stocks with the strongest buy signals for day trading, augmented with real-time AI news sentiment.
+This web application analyzes **300+ liquid stocks** from the Indonesia Stock Exchange (IDX / BEI) every day. It uses an upgraded **XGBoost** model trained on 5 years of historical BEI price data (2020–2026) using **Feature Embeddings** to recommend the **Top 10** stocks with the strongest buy signals (+3.0% Target Profit / -1.5% Stop Loss), augmented with real-time AI news sentiment filtering and automated audit tracking.
 
 ![StockAI Dashboard](dashboard/dashboard.png)
 
@@ -22,96 +23,71 @@ This web application analyzes **99 selected stocks** from the Indonesia Stock Ex
 
 | Feature | Description |
 |---|---|
-| 🤖 **XGBoost Model** | Trained on 5 years of historical data using Optuna for hyperparameter tuning. |
-| 📰 **AI News Sentiment** | Uses generative AI (OpenCode DeepSeek) to fetch and summarize daily news catalysts instantly (Positive/Negative/Neutral). |
-| 📈 **20+ Indicators** | Calculates RSI, MACD, Bollinger Bands, OBV, ATR, VWAP, SMA, and Bandarmologi (accumulation). |
-| 📊 **Interactive Charts** | IHSG & individual stock charts (1D Intraday / 60D Historical) powered by TradingView Lightweight Charts. |
-| 🔄 **Real-time Data** | Fetches the latest live market data from Yahoo Finance upon every scan. |
-| 🎨 **Liquid Glass UI** | A modern, frosted glassmorphism design system with smooth micro-animations. |
-| 🐳 **Docker Ready** | Single-command deployment utilizing Docker & Docker Compose. |
+| 🤖 **Feature Embedding + XGBoost Model** | Replaces static One-Hot ticker encoding with dense feature embeddings (volatility, momentum, curve shape, return velocity). Generalizes to 300+ BEI stocks without needing retraining for new ticker names. |
+| 📊 **300+ BEI Ticker Universe** | Scans over 300 active, liquid stocks from LQ45, Kompas100, ISSI, and IDX80. |
+| 🎯 **Target Profit +3.0%** | Precise day trading risk management (+3.0% Take Profit / -1.5% Stop Loss). |
+| 📜 **Automated Win/Loss Track Record Audit** | Tracks signal performance in SQLite (`signals_audit.db`) and audits daily high prices automatically (`WIN` / `LOSS` / `PENDING`). |
+| ⚡ **Sub-5ms UI Response & JSON Cache** | Runs a background scheduler at **16:05 WIB** after market close to pre-compute recommendations for instant dashboard loads (< 5ms). |
+| 🛡️ **Rate-Limit Safe Batch Downloader** | Fetches market data in 50-ticker chunks with 2-second sleep delays to prevent Yahoo Finance IP bans (100% free data pipeline). |
+| 🛡️ **Asymmetric AI Sentiment Filter** | Applies strict VETO (downgrade high-risk negative news) and BOOSTER (+4% probability boost for positive catalysts) rules. |
+| 📰 **Unified AI Narrative Layer** | Generates detailed Indonesian analysis narratives summarizing technical & news catalysts. |
+| 📈 **20+ Indicators & Interactive Charts** | Calculates RSI, MACD, BB, OBV, ATR, VWAP, SMA, and renders TradingView Lightweight Charts. |
+| 🎨 **Liquid Glass UI** | Modern frosted glassmorphism design with smooth micro-animations. |
 
 ---
 
 ## ⚙️ How It Works
 
-The core philosophy of this screener revolves around spotting short-term momentum and oversold bounces. 
-
 ```text
-1. Data Pipeline → 2. Feature Engineering → 3. ML Scoring → 4. AI Catalyst Check → 5. Recommendation
+1. 16:05 WIB Scheduler → 2. Rate-Limit Safe Batch Download → 3. SQLite Storage → 4. Feature Embeddings → 5. XGBoost Inference → 6. Asymmetric Risk Filter → 7. Instant JSON Cache (< 5ms)
 ```
 
-1. **Data Pipeline:** When you click "Scan", the backend fetches the latest price data for 99 top Indonesian stocks via the `yfinance` API.
-2. **Feature Engineering:** The raw price/volume data is mathematically transformed into 20+ technical indicators (e.g., measuring momentum via RSI, trend via MACD, volatility via ATR).
-3. **ML Scoring:** The XGBoost model (previously trained on historical patterns) evaluates these current technical features and assigns a "Buy Probability" score from 0 to 100%.
-4. **AI Catalyst Check:** For the selected top stocks, users can click a button to trigger an LLM (running locally via 9router) that fetches live news from Yahoo Finance and outputs a sentiment summary.
-5. **Recommendation:** The system filters out the noise and presents the top 10 stocks with the highest probability of an intraday upward move, including predefined profit targets (+1.5%) and stop losses (-1.5%).
-
----
-
-## ⚖️ Pros and Cons
-
-### ✅ Pros (Strengths)
-- **Emotionless Trading:** Removes human bias and FOMO by relying strictly on mathematical probabilities.
-- **Fundamental + Technical:** Merges the power of quantitative ML with qualitative LLM news analysis.
-- **Time-Saving:** Scans 99 stocks in seconds, a task that would take a human hours to do manually.
-- **Dynamic Adaptability:** The inclusion of the overall IHSG trend helps the model avoid buying during severe market crashes.
-
-### ❌ Cons (Limitations)
-- **Intraday Noise:** Short-term market movements in the Indonesian market can be highly volatile and manipulated by market makers (Bandar).
-- **Yahoo Finance Delay:** Depending on the API, there might be a slight delay in price action compared to direct broker feeds.
+1. **Automated 16:05 WIB Scheduler:** Runs after BEI market close to process daily price data.
+2. **Batch Downloader:** Fetches 300+ tickers in 50-stock chunks with 2-second sleep delays.
+3. **SQLite Database Storage:** Stores daily OHLCV and indicator values in `data/stock_market.db`.
+4. **Feature & Chart Embeddings:** Computes normalized curve ratios, volatility, momentum, and return velocity embeddings.
+5. **XGBoost Inference:** Scores buy probabilities (calibrated between 55% - 81% based on 5 years of historical BEI training).
+6. **Asymmetric Risk Filter:** Applies VETO rules for high-risk news and probability boosts for positive catalysts.
+7. **Instant JSON Cache:** Saves final Top 10 recommendations to `data/latest_recommendations.json` for sub-5ms dashboard loading.
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Backend:** Python · FastAPI · yfinance · XGBoost · scikit-learn · pandas
-- **AI Agent:** OpenCode (9router local proxy) · DeepSeek-v4
+- **Backend:** Python · FastAPI · SQLite · yfinance · XGBoost · scikit-learn · pandas
+- **AI Narrative / Sentiment:** OpenCode (9router local proxy) · DeepSeek-v4
 - **Frontend:** Vanilla HTML/CSS/JS · TradingView Lightweight Charts
-- **Pipeline / Orchestration:** Apache Airflow (Template Ready)
+- **Storage & Caching:** SQLite (`stock_market.db` & `signals_audit.db`) · JSON Cache
 - **Containerization:** Docker · Docker Compose
 
 ---
 
-## 🚀 Step-by-Step Setup Guide
+## 🚀 Setup & Execution Guide
 
 ### Prerequisites
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
-- Git installed on your machine.
-- [OpenCode / 9router](https://opencode.ai/) installed and running locally for AI features.
+- Python 3.10+ or [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- [OpenCode / 9router](https://opencode.ai/) running locally on `127.0.0.1:20128`
 
-### Installation Steps
+### Quick Start (Local Python)
 
-**Step 1: Clone the repository**
+**Step 1: Install Dependencies**
 ```bash
-git clone https://github.com/yourusername/stock-analysis.git
-cd stock-analysis
+pip install -r requirements.txt
 ```
 
-**Step 2: Provide the Trained Model**
-Since ML model files (`*.pkl`) are often too large for GitHub, they are ignored by `.gitignore`. You must place your trained models inside the `models/` folder:
-- `models/best_xgboost_optuna.pkl`
-- `models/standard_scaler.pkl`
-*(Note: You can generate these by running the Jupyter notebooks or `src/train.py` locally).*
-
-**Step 3: Setup Environment Variables**
-Copy the `.env.example` file and configure your AI local proxy settings:
+**Step 2: Train Model & Generate Initial Cache**
 ```bash
-cp .env.example .env
+python scripts/train_real_embedding_model.py
+python -c "from src.scheduler.daily_scheduler import run_daily_after_market_job; run_daily_after_market_job()"
 ```
-Ensure your `OPENAI_API_KEY` matches the Remote API access key set in your 9router dashboard.
 
-**Step 4: Run with Docker Compose**
-Start the entire stack (FastAPI backend and HTML frontend) using Docker:
+**Step 3: Launch FastAPI Backend Server**
 ```bash
-docker compose up --build -d
+python -m uvicorn dashboard.backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-**Step 5: Access the Dashboard**
-Open your web browser and navigate to:
-```text
-http://localhost:8000
-```
-Click the **"Pindai Pasar Sekarang"** (Scan Market) button to initiate the live AI analysis. To analyze news, ensure your 9router is running and click the **✨ Analisis Berita dengan AI** button on any stock card.
+**Step 4: Open Dashboard**
+Navigate to `http://127.0.0.1:8000` in your web browser.
 
 ---
 
@@ -121,24 +97,34 @@ Click the **"Pindai Pasar Sekarang"** (Scan Market) button to initiate the live 
 stock-analysis/
 ├── dashboard/
 │   ├── backend/
-│   │   ├── main.py              # FastAPI app & router registry
-│   │   └── routes/              # Modular API endpoints (predict, chart, news_agent)
+│   │   ├── main.py                    # FastAPI application & startup event
+│   │   └── routes/                    # Modular API endpoints (predict, chart, narasi, audit)
 │   └── frontend/
-│       ├── index.html           # Main UI
-│       ├── css/style.css        # Liquid glass design system
-│       └── js/app.js            # Chart rendering + API calls + AI integration
-├── dags/
-│   └── stock_pipeline_dag.py    # Airflow DAG template for automation
+│       ├── index.html                 # Liquid Glass UI layout
+│       ├── css/style.css              # Design system & tokens
+│       └── js/app.js                  # Frontend logic & chart integration
+├── data/
+│   ├── tickers.txt                    # List of 300+ BEI stock tickers
+│   ├── stock_market.db                # SQLite database for daily OHLCV prices
+│   ├── signals_audit.db               # SQLite database for Win/Loss audit tracking
+│   └── latest_recommendations.json    # JSON cache for sub-5ms UI responses
+├── notebooks/
+│   ├── 01_EDA.ipynb                   # Exploratory Data Analysis
+│   ├── 02_Preprocessing.ipynb         # Feature Embeddings & Target definition (+3.0%)
+│   └── 03_Modelling.ipynb             # XGBoost model training & evaluation
+├── scripts/
+│   ├── train_real_embedding_model.py # Training script on 5-year BEI dataset
+│   └── update_notebooks.py           # Programmatic notebook update tool
 ├── src/
-│   ├── config.py                # List of 99 BEI stock tickers
-│   ├── features.py              # Feature engineering (20+ indicators)
-│   └── train.py                 # Training script for XGBoost + Optuna
-├── models/                      # Trained models (*.pkl) — NOT tracked by Git
-├── Dockerfile                   # Backend container definition
-├── docker-compose.yml           # Multi-container orchestration
-├── .env                         # API keys & Configuration (NOT tracked by Git)
-├── .env.example                 # Example environment variables
-└── requirements.txt             # Python dependencies
+│   ├── collector/batch_collector.py  # Rate-limit safe multi-ticker downloader
+│   ├── database/market_db.py         # SQLite market data manager
+│   ├── features/embedding.py         # Feature & Chart Pattern Embedding layer
+│   ├── scheduler/daily_scheduler.py   # 16:05 WIB after-market routine
+│   └── config.py                     # Configuration & parameters
+├── models/                           # Saved XGBoost & Scaler models (*.pkl)
+├── Dockerfile                         # Backend container definition
+├── docker-compose.yml                 # Container orchestration
+└── requirements.txt                   # Python dependencies
 ```
 
 ---
@@ -146,7 +132,3 @@ stock-analysis/
 ## 📝 License
 
 Distributed under the MIT License. See `LICENSE` for more information.
-
----
-
-*Market Data provided by [Yahoo Finance](https://finance.yahoo.com/). Interactive charts powered by [Lightweight Charts™](https://github.com/tradingview/lightweight-charts) by TradingView (Apache 2.0).*
