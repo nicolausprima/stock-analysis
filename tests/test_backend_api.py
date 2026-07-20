@@ -1,8 +1,11 @@
-import pytest
-import json
-from fastapi.testclient import TestClient
-from pathlib import Path
+import os
 import sys
+import json
+import pytest
+from pathlib import Path
+from fastapi.testclient import TestClient
+
+os.environ["TESTING"] = "true"
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -12,6 +15,8 @@ from src.config import CACHE_FILE, DATA_DIR
 from dashboard.backend.main import app
 
 client = TestClient(app)
+
+
 
 @pytest.fixture(autouse=True)
 def prepare_test_environment():
