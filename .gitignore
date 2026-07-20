@@ -15,10 +15,13 @@ env/
 # ── Jupyter ──────────────────────────────────────────────
 .ipynb_checkpoints/
 *.ipynb
+!notebooks/*.ipynb
 
 # ── Data & Models (bisa besar, jangan di-push ke GitHub) ─
 data/raw/
 data/processed/
+data/*.db
+data/*.json
 models/*.pkl
 models/*.joblib
 models/*.model
