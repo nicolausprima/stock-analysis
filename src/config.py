@@ -22,6 +22,16 @@ PROFIT_THRESHOLD = 0.03  # Target Profit +3.0%
 BATCH_SIZE = 50          # Batch size for rate-limit safe downloading
 BATCH_DELAY_SECONDS = 2  # Sleep delay between HTTP batch requests
 
+# --- TELEGRAM BOT CONFIGURATION ---
+try:
+    from dotenv import load_dotenv
+    load_dotenv(PROJECT_ROOT / ".env")
+except ImportError:
+    pass
+
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8992155301:AAEUgsN223ZPDnDd22649k316tuhZMuiLCA")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
+
 def get_tickers():
     """Read tickers from the tickers.txt file."""
     if not TICKER_LIST_FILE.exists():
@@ -31,3 +41,4 @@ def get_tickers():
     return tickers
 
 TICKERS = get_tickers()
+
