@@ -36,9 +36,13 @@ if frontend_dir.exists():
 @app.on_event("startup")
 def startup_event():
     """Jalankan scheduler harian 16:05 WIB di background thread."""
+    if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
+        print("[INFO] Mode testing terdeteksi. Background scheduler dilewati.")
+        return
     try:
         from src.scheduler.daily_scheduler import start_background_scheduler
         start_background_scheduler()
         print("[SUCCESS] Scheduler harian (16:05 WIB) berhasil diaktifkan di background thread.")
     except Exception as e:
         print(f"[ERROR] Gagal memulai scheduler: {str(e)}")
+

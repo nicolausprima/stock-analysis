@@ -32,10 +32,7 @@ def run_daily_after_market_job():
     """
     print("[SCHEDULER 16:05 WIB] Memulai proses rutin harian...")
     
-    # 1. Batch download data harian
-    download_universe_in_batches()
-    
-    # 2. Muat Model & Scaler
+    # 1. Muat Model & Scaler terlebih dahulu
     model_path = PROJECT_ROOT / 'models' / 'best_xgboost_optuna.pkl'
     scaler_path = PROJECT_ROOT / 'models' / 'standard_scaler.pkl'
     
@@ -46,6 +43,10 @@ def run_daily_after_market_job():
     model = joblib.load(model_path)
     scaler = joblib.load(scaler_path)
     expected_cols = list(scaler.feature_names_in_)
+
+    # 2. Batch download data harian (hanya jika model sudah ada)
+    download_universe_in_batches()
+
 
     # Download data IHSG
     try:
