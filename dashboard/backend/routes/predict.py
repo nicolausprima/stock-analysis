@@ -27,14 +27,15 @@ def get_recommendations():
         except Exception as e:
             print(f"Gagal membaca cache JSON: {str(e)}")
 
-    # Fallback jika cache belum tersedia atau status error
-    try:
-        from src.scheduler.daily_scheduler import run_daily_after_market_job
-        res = run_daily_after_market_job()
-        if isinstance(res, dict) and res.get("status") == "success":
-            return res
-    except Exception as err:
-        print(f"Scheduler execution warning: {str(err)}")
+    # Fallback jika cache belum tersedia atau status error (Hanya jalankan scheduler jika BUKAN dalam mode testing)
+    if os.getenv("TESTING") != "true":
+        try:
+            from src.scheduler.daily_scheduler import run_daily_after_market_job
+            res = run_daily_after_market_job()
+            if isinstance(res, dict) and res.get("status") == "success":
+                return res
+        except Exception as err:
+            print(f"Scheduler execution warning: {str(err)}")
 
     # Default Graceful Fallback (terutama untuk CI / environment tanpa model biner)
     return {
@@ -57,6 +58,7 @@ def get_recommendations():
             }
         ]
     }
+
 
 
 @router.get("/sync")

@@ -26,5 +26,8 @@ jobs:
           pip install pytest httpx
 
       - name: Run Pytest TDD Suite
+        env:
+          TESTING: "true"
         run: |
           pytest --verbose
+
