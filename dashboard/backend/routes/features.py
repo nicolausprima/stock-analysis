@@ -42,7 +42,7 @@ def derive_signals(row: pd.Series) -> dict:
     rsi_signal  = 'Oversold'  if rsi < 40  else ('Overbought' if rsi > 70 else 'Netral')
     macd_signal = 'Bullish'   if macd_diff > 0 else 'Bearish'
     trend       = 'Uptrend'   if (close > 0 and sma50 > 0 and close > sma50) else 'Downtrend'
-    target      = round(close * 1.015, 0) if close > 0 else 0
+    target      = round(close * 1.03, 0) if close > 0 else 0
     stop_loss   = round(close * 0.985, 0) if close > 0 else 0
 
     return {
