@@ -31,9 +31,9 @@ def prepare_test_environment():
                 "ticker": "BBCA.JK",
                 "probability": 78.5,
                 "signal": 1,
-                "close_price": 9800,
-                "target_price": 10094,
-                "stop_loss": 9653,
+                "close_price": 6475,
+                "target_price": 6669,
+                "stop_loss": 6378,
                 "rsi": 55,
                 "rsi_signal": "NETRAL",
                 "macd_signal": "BULLISH",
@@ -42,6 +42,7 @@ def prepare_test_environment():
                 "sentiment_status": "POSITIF",
                 "sentiment_impact": "BOOSTER (+3%)"
             }
+
         ]
     }
     with open(CACHE_FILE, "w") as f:
