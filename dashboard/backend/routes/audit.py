@@ -293,6 +293,80 @@ def get_audit_recap():
         "equity_curve": clean_equity_curve
     }
 
+@router.get("/audit/today")
+def get_today_audit_summary():
+    """Mengambil rincian sinyal audit khusus hari ini (WIN/LOSS/PENDING per saham)."""
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Cari sinyal yang dibuat hari ini atau paling baru
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute("""
+        SELECT * FROM signals 
+        WHERE strftime('%Y-%m-%d', created_at) = ? 
+        ORDER BY id DESC
+    """, (today_str,))
+    rows = cursor.fetchall()
+
+    # Jika hari ini belum ada sinyal, ambil tanggal perdagangan paling baru di DB
+    if not rows:
+        cursor.execute("SELECT created_at FROM signals ORDER BY id DESC LIMIT 1")
+        latest_row = cursor.fetchone()
+        if latest_row:
+            latest_date = latest_row["created_at"].split(" ")[0]
+            cursor.execute("""
+                SELECT * FROM signals 
+                WHERE strftime('%Y-%m-%d', created_at) = ? 
+                ORDER BY id DESC
+            """, (latest_date,))
+            rows = cursor.fetchall()
+
+    today_signals = []
+    win_cnt = 0
+    loss_cnt = 0
+    pending_cnt = 0
+    total_gain = 0.0
+
+    for r in rows:
+        st = r["status"]
+        if st == "WIN":
+            win_cnt += 1
+            total_gain += 3.0
+        elif st == "LOSS":
+            loss_cnt += 1
+            total_gain -= 1.5
+        else:
+            pending_cnt += 1
+
+        today_signals.append({
+            "ticker": r["ticker"],
+            "entry_price": r["entry_price"],
+            "target_price": r["target_price"],
+            "stop_loss": r["stop_loss"],
+            "probability": r["probability"],
+            "status": r["status"],
+            "created_at": r["created_at"]
+        })
+
+    conn.close()
+
+    total_decided = win_cnt + loss_cnt
+    win_rate = round((win_cnt / total_decided * 100), 1) if total_decided > 0 else 0.0
+
+    return {
+        "status": "success",
+        "date": rows[0]["created_at"].split(" ")[0] if rows else today_str,
+        "total_signals": len(today_signals),
+        "win_count": win_cnt,
+        "loss_count": loss_cnt,
+        "pending_count": pending_cnt,
+        "win_rate": win_rate,
+        "total_gain": round(total_gain, 1),
+        "signals": today_signals
+    }
+
+
 
 @router.get("/audit/seed-simulation")
 def seed_simulation_audit():
