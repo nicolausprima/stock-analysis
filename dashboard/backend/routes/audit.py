@@ -297,64 +297,108 @@ def get_audit_recap():
 @router.get("/audit/seed-simulation")
 def seed_simulation_audit():
     """
-    Menghasilkan data simulasi historis sinyal audit selama 6 bulan terakhir (Februari - Juli 2026).
-    Memungkinkan visualisasi instan untuk Grafik Kurva Ekuitas dan Rekapitulasi Performa Bulanan.
+    Menjalankan Backtest Historis Nyata (Real Historical Backtest Engine) 6 bulan terakhir.
+    Mengunduh data OHLCV asli dari Yahoo Finance untuk saham-saham BEI, menyimulasikan
+    sinyal teknikal riil, dan mengevaluasi hasil pergerakan harga sesungguhnya (Target +3% vs Stop Loss -1.5%).
     """
-    import random
-
     conn = sqlite3.connect(str(DB_PATH))
+
     cursor = conn.cursor()
 
-    # Hapus data simulasi lama jika ingin bersih
+    # Hapus data lama agar terisi dengan data historis otentik
     cursor.execute("DELETE FROM signals")
 
-    sample_stocks = [
-        ("BBCA", 9800), ("BBRI", 5400), ("BMRI", 6800), ("BBNI", 5200),
-        ("TLKM", 3850), ("ASII", 5150), ("AMMN", 11200), ("PTBA", 2650),
-        ("ADRO", 2720), ("MEDC", 1350), ("BRIS", 2450), ("PGAS", 1550),
-        ("KLBF", 1480), ("UNVR", 2850), ("ICBP", 10900), ("GOTO", 84)
+    tickers_to_backtest = [
+        "BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "TLKM.JK",
+        "ASII.JK", "AMMN.JK", "PGAS.JK", "UNVR.JK", "ADRO.JK"
     ]
 
-    # Generate sinyal harian dari 2026-02-01 sampai 2026-07-20
-    start_dt = datetime(2026, 2, 1)
-    end_dt = datetime(2026, 7, 20)
-    current = start_dt
+    real_records = []
 
-    random.seed(42) # Seed tetap agar konsisten
-    simulated_records = []
+    print("[BACKTEST] Memulai pengunduhan data historis asli dari Yahoo Finance...")
+    try:
+        data = yf.download(tickers_to_backtest, period="6mo", interval="1d", group_by="ticker", progress=False)
 
-    while current <= end_dt:
-        # Hanya hari kerja bursa (Senin-Jumat)
-        if current.weekday() < 5:
-            # 1-3 sinyal per hari bursa
-            num_signals = random.choice([1, 2, 2, 3])
-            daily_tickers = random.sample(sample_stocks, k=num_signals)
 
-            for ticker, base_price in daily_tickers:
-                variance = random.uniform(-0.05, 0.05)
-                entry_p = round(base_price * (1 + variance))
-                target_p = round(entry_p * 1.03)
-                stop_p = round(entry_p * 0.985)
-                prob = round(random.uniform(62.0, 79.5), 1)
+        for ticker in tickers_to_backtest:
+            clean_ticker = ticker.replace(".JK", "")
+            try:
+                if isinstance(data.columns, pd.MultiIndex):
+                    df_stock = data[ticker].dropna().copy()
+                else:
+                    df_stock = data.dropna().copy()
 
-                # Probabilitas win ~74%
-                status = "WIN" if random.random() < 0.74 else "LOSS"
-                date_str = current.strftime("%Y-%m-%d 16:05:00")
+                if len(df_stock) < 30:
+                    continue
 
-                simulated_records.append((ticker, entry_p, target_p, stop_p, prob, status, date_str, date_str))
+                # Hitung Indikator Teknikal Asli
+                # RSI 14
+                delta = df_stock['Close'].diff()
+                gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+                loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+                rs = gain / (loss + 1e-9)
+                df_stock['RSI_14'] = 100 - (100 / (1 + rs))
 
-        current += timedelta(days=1)
+                # MACD
+                ema12 = df_stock['Close'].ewm(span=12, adjust=False).mean()
+                ema26 = df_stock['Close'].ewm(span=26, adjust=False).mean()
+                df_stock['MACD'] = ema12 - ema26
+                df_stock['MACD_Signal'] = df_stock['MACD'].ewm(span=9, adjust=False).mean()
 
-    cursor.executemany("""
-        INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, simulated_records)
+                # Loop historical days (sisakan 5 hari terakhir untuk audit pergerakan harga H+5)
+                for i in range(20, len(df_stock) - 5):
+                    row = df_stock.iloc[i]
+                    rsi_val = row['RSI_14']
+                    macd_val = row['MACD']
+                    macd_sig = row['MACD_Signal']
+
+                    # Kondisi Sinyal Beli Teknikal Riil
+                    if pd.notna(rsi_val) and rsi_val < 62 and macd_val > macd_sig:
+                        entry_price = float(row['Close'])
+                        target_price = round(entry_price * 1.03)
+                        stop_loss = round(entry_price * 0.985)
+
+                        # Cek pergerakan harga riil H+1 s/d H+5
+                        future_window = df_stock.iloc[i+1 : i+6]
+                        max_high = float(future_window['High'].max())
+                        min_low = float(future_window['Low'].min())
+
+                        status = "PENDING"
+                        if max_high >= target_price:
+                            status = "WIN"
+                        elif min_low <= stop_loss:
+                            status = "LOSS"
+                        else:
+                            last_close = float(future_window['Close'].iloc[-1])
+                            status = "WIN" if last_close >= entry_price else "LOSS"
+
+                        # Estimasi AI Score (65% - 85%)
+                        prob = round(min(85.0, max(65.0, 50.0 + (62.0 - rsi_val) * 0.5 + (macd_val - macd_sig) * 0.1)), 1)
+                        date_dt = df_stock.index[i]
+                        date_str = date_dt.strftime("%Y-%m-%d 16:05:00")
+
+                        real_records.append((
+                            clean_ticker, entry_price, target_price, stop_loss,
+                            prob, status, date_str, date_str
+                        ))
+            except Exception as se:
+                print(f"[BACKTEST] Error processing {ticker}: {str(se)}")
+
+    except Exception as e:
+        print(f"[BACKTEST] Error downloading historical data: {str(e)}")
+
+    if real_records:
+        cursor.executemany("""
+            INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, real_records)
 
     conn.commit()
     conn.close()
 
     return {
         "status": "success",
-        "message": f"Berhasil membuat {len(simulated_records)} sinyal simulasi historis 6 bulan terakhir!"
+        "message": f"Berhasil menjalankan Real Backtest Engine! Menghasilkan {len(real_records)} sinyal otentik dari data pasar BEI."
     }
+
 
