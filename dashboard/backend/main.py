@@ -15,6 +15,7 @@ from dashboard.backend.routes.chart import router as chart_router
 from dashboard.backend.routes.news_agent import router as news_router
 from dashboard.backend.routes.audit import router as audit_router
 from dashboard.backend.routes.narasi import router as narasi_router
+from dashboard.backend.routes.telegram import router as telegram_router
 
 app = FastAPI(title="AI Screener Backend")
 
@@ -24,6 +25,8 @@ app.include_router(chart_router, prefix="/api", tags=["Chart"])
 app.include_router(news_router, prefix="/api", tags=["News"])
 app.include_router(audit_router, prefix="/api", tags=["Audit"])
 app.include_router(narasi_router, prefix="/api", tags=["Narasi"])
+app.include_router(telegram_router, prefix="/api", tags=["Telegram"])
+
 
 # Serve static frontend
 frontend_dir = PROJECT_ROOT / 'dashboard' / 'frontend'

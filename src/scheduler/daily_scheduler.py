@@ -161,8 +161,16 @@ def run_daily_after_market_job():
     with open(CACHE_FILE, 'w') as f:
         json.dump(payload, f, indent=2)
 
-    print(f"[SUCCESS] [SCHEDULER] Selesai! Cache JSON tersimpan dengan {len(results)} rekomendasi terbaik.")
+    # Kirim siaran otomatis ke Telegram Bot
+    try:
+        from src.notifications.telegram_bot import send_daily_recommendations_broadcast
+        send_daily_recommendations_broadcast(results)
+    except Exception as te:
+        print(f"[TELEGRAM] Error sending scheduler broadcast: {str(te)}")
+
+    print(f"[SUCCESS] [SCHEDULER] Selesai! Cache JSON & Telegram Broadcast tersampaikan.")
     return payload
+
 
 def start_background_scheduler():
     """Menjalankan scheduler di background thread."""
