@@ -49,9 +49,9 @@ def get_recommendations():
                 "ticker": "BBCA.JK",
                 "probability": 75.0,
                 "signal": 1,
-                "close_price": 9800,
-                "target_price": 10094,
-                "stop_loss": 9653,
+                "close_price": 6475,
+                "target_price": 6669,
+                "stop_loss": 6378,
                 "rsi": 50.0,
                 "rsi_signal": "NETRAL",
                 "macd_signal": "BULLISH",
@@ -60,6 +60,7 @@ def get_recommendations():
             }
         ]
     }
+
 
 
 
