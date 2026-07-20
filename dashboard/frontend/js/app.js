@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load: render IHSG chart
     renderIHSGChart(1);
+    runAuditAndLoad();
 
     scanBtn.addEventListener('click', async () => {
         // Disable button, show loader
@@ -46,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
             buildCards(data.data);
             results.classList.remove('hidden');
             lastScan.textContent = 'Updated ' + new Date().toLocaleTimeString('id-ID');
+            loadTrackRecord();
 
             // Smooth scroll to results
             setTimeout(() => {
@@ -70,11 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildTable(stocks) {
         stocks.forEach((s, i) => {
-            const rc         = rsiColor(s.rsi);
-            const rw         = rsiW(s.rsi);
-            const macdClass  = s.macd_signal.toLowerCase();
-            const trendClass = s.trend.toLowerCase();
-            const isBuy      = s.signal === 1;
+            const rc             = rsiColor(s.rsi);
+            const rw             = rsiW(s.rsi);
+            const macdClass      = s.macd_signal.toLowerCase();
+            const trendClass     = s.trend.toLowerCase();
+            const isBuy          = s.signal === 1;
+            const sentStatus     = s.sentiment_status || 'NETRAL';
+            const sentImpact     = s.sentiment_impact || 'NETRAL';
+            const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
 
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -97,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </td>
                 <td><span class="badge ${macdClass}">${s.macd_signal}</span></td>
                 <td><span class="badge ${trendClass}">${s.trend}</span></td>
+                <td><span class="badge ${sentBadgeClass}">${sentImpact}</span></td>
                 <td>
                     <div class="score-cell">
                         <div class="score-track">
@@ -118,11 +124,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function buildCards(stocks) {
         stocks.forEach(s => {
-            const rc         = rsiColor(s.rsi);
-            const macdClass  = s.macd_signal.toLowerCase();
-            const trendClass = s.trend.toLowerCase();
-            const rsiClass   = rc === 'green' ? 'bullish' : rc === 'red' ? 'bearish' : 'uptrend';
-            const isBuy      = s.signal === 1;
+            const rc             = rsiColor(s.rsi);
+            const macdClass      = s.macd_signal.toLowerCase();
+            const trendClass     = s.trend.toLowerCase();
+            const rsiClass       = rc === 'green' ? 'bullish' : rc === 'red' ? 'bearish' : 'uptrend';
+            const isBuy          = s.signal === 1;
+            const sentStatus     = s.sentiment_status || 'NETRAL';
+            const sentImpact     = s.sentiment_impact || 'NETRAL';
+            const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
 
             const card = document.createElement('div');
             card.className = 'detail-card';
@@ -161,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="badge ${macdClass}">MACD ${s.macd_signal}</span>
                     <span class="badge ${trendClass}">${s.trend}</span>
                     <span class="badge ${rsiClass}">RSI ${s.rsi}</span>
+                    <span class="badge ${sentBadgeClass}">${sentImpact}</span>
                     <span class="sig-pill ${isBuy ? 'buy' : 'watch'}" style="font-size:10px;padding:2px 8px">
                         <span class="sig-dot ${isBuy ? 'green' : 'blue'}"></span>
                         ${isBuy ? 'BUY' : 'WATCH'}
@@ -168,106 +178,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div class="dc-reason">
-                    <span class="dc-reason-lbl">Alasan AI</span>
-                    ${s.reason}
-                </div>
-
-                <!-- NEW: Tombol AI -->
-                <button class="ai-news-btn" data-ticker="${s.ticker.replace('.JK', '')}">
-                    <span class="ai-icon">✨</span> Analisis Berita dengan AI
-                </button>
-                <div class="ai-result-box hidden" id="ai-box-${s.ticker.replace('.JK', '')}">
-                    <div class="ai-loading hidden">Mengumpulkan berita terbaru...</div>
-                    <div class="ai-content"></div>
+                    <span class="dc-reason-lbl">Analisis AI Terpadu (Teknikal & Berita)</span>
+                    <div id="narasi-${s.ticker.replace('.JK', '')}">
+                        <div class="ai-loading">Menganalisis teknikal & sentimen dengan AI...</div>
+                    </div>
                 </div>
             `;
-            
-            // Event listener untuk tombol AI
-            const aiBtn = card.querySelector('.ai-news-btn');
-            const aiBox = card.querySelector('.ai-result-box');
-            const aiLoading = card.querySelector('.ai-loading');
-            const aiContent = card.querySelector('.ai-content');
-
-            aiBtn.addEventListener('click', async () => {
-                const cleanTicker = s.ticker.replace('.JK', '');
-                
-                // Toggle UI state
-                aiBtn.disabled = true;
-                aiBox.classList.remove('hidden');
-                aiLoading.classList.remove('hidden');
-                aiContent.innerHTML = '';
-
-                try {
-                    // 1. Ambil berita mentah dari backend kita (hanya fetch text)
-                    const newsRes = await fetch('/api/news', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ ticker: cleanTicker })
-                    });
-                    const newsData = await newsRes.json();
-                    if (!newsRes.ok) throw new Error(newsData.detail || 'Gagal mengambil berita.');
-
-                    // 2. Siapkan prompt
-                    const prompt = `
-Kamu adalah analis finansial senior di pasar modal Indonesia (BEI).
-Berikut adalah berita terbaru mengenai saham ${cleanTicker}:
-
-${newsData.raw_news}
-
-Berdasarkan berita di atas:
-1. Tentukan sentimen beritanya: [POSITIF], [NEGATIF], atau [NETRAL].
-2. Jelaskan alasannya dalam 2-3 kalimat singkat berbahasa Indonesia yang profesional.
-
-Format jawaban harus selalu seperti ini:
-[SENTIMEN]
-Alasan berita...
-`;
-
-                    // 3. Panggil OpenCode 9router secara LOKAL langsung dari browser! (Bypass Docker network)
-                    aiLoading.textContent = "Menganalisis sentimen menggunakan AI...";
-                    const llmRes = await fetch('http://127.0.0.1:20128/v1/chat/completions', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            model: 'oc/deepseek-v4-flash-free',
-                            messages: [{ role: 'user', content: prompt }],
-                            temperature: 0
-                        })
-                    });
-                    
-                    // Ambil teks murni untuk menghindari error JSON dari bug 9router (ada sisa 'data: [DONE]' di belakang teks)
-                    const llmText = await llmRes.text();
-                    
-                    let llmData;
-                    try {
-                        // Bersihkan teks kotor dari OpenCode sebelum parsing
-                        const cleanText = llmText.replace(/data:\s*\[DONE\]/gi, '').trim();
-                        llmData = JSON.parse(cleanText);
-                    } catch (err) {
-                        throw new Error("Gagal membaca format JSON dari AI: " + err.message);
-                    }
-
-                    if (!llmRes.ok) throw new Error(llmData.error?.message || llmData.error || 'Gagal menghubungi AI lokal (9router).');
-
-                    const analysisText = llmData.choices[0].message.content;
-                    
-                    // Format output
-                    let formattedText = analysisText.replace(/\n/g, '<br/>').replace(/\[(POSITIF|NEGATIF|NETRAL)\]/g, (match, p1) => {
-                        let color = p1 === 'POSITIF' ? 'var(--c-green-dk)' : (p1 === 'NEGATIF' ? 'var(--c-red)' : 'var(--c-amber)');
-                        return `<strong style="color: ${color}">[${p1}]</strong>`;
-                    });
-
-                    aiContent.innerHTML = formattedText;
-                } catch (error) {
-                    aiContent.innerHTML = `<span style="color: var(--c-red)">Error: ${error.message}</span>`;
-                } finally {
-                    aiLoading.classList.add('hidden');
-                    aiLoading.textContent = "Mengumpulkan berita terbaru...";
-                    aiBtn.disabled = false;
-                }
-            });
 
             cardsGrid.appendChild(card);
+            fetchNarrative(s, card);
         });
     }
 
@@ -314,14 +233,18 @@ Alasan berita...
         const firstPrice = data[0].value;
         const isUp = lastPrice >= firstPrice;
         ihsgPriceVal.textContent = new Intl.NumberFormat('id-ID', {style:'currency', currency:'IDR', minimumFractionDigits:0}).format(lastPrice);
-        ihsgPriceVal.style.color = isUp ? 'var(--c-green-dk)' : 'var(--c-red)';
+        ihsgPriceVal.style.color = isUp ? 'var(--c-charcoal)' : 'var(--c-red)';
 
         try {
             const chart = LightweightCharts.createChart(ihsgChartDiv, {
                 width: ihsgChartDiv.clientWidth || 600,
                 height: 200,
-                layout: { background: { type: 'solid', color: 'transparent' }, textColor: '#64748b' },
-                grid: { vertLines: { visible: false }, horzLines: { color: '#f1f5f9' } },
+                layout: { 
+                    background: { type: 'solid', color: 'transparent' }, 
+                    textColor: '#1C1C1C',
+                    fontFamily: 'Epilogue, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                },
+                grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(0, 0, 0, 0.05)' } },
                 rightPriceScale: { borderVisible: false },
                 timeScale: {
                     borderVisible: false,
@@ -334,8 +257,8 @@ Alasan berita...
             });
 
             const areaSeries = chart.addAreaSeries({
-                lineColor: isUp ? '#10b981' : '#ef4444',
-                topColor: isUp ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)',
+                lineColor: isUp ? '#1C1C1C' : '#B85C66',
+                topColor: isUp ? 'rgba(28, 28, 28, 0.15)' : 'rgba(184, 92, 102, 0.15)',
                 bottomColor: 'rgba(0,0,0,0)',
                 lineWidth: 2,
             });
@@ -347,7 +270,7 @@ Alasan berita...
                 if (ihsgChartDiv.clientWidth > 0) chart.resize(ihsgChartDiv.clientWidth, 200);
             });
         } catch (e) {
-            ihsgChartDiv.innerHTML = '<p style="color:#ef4444;font-size:12px;padding:8px">Chart error: ' + (e.message || e) + '</p>';
+            ihsgChartDiv.innerHTML = '<p style="color:var(--c-red);font-size:12px;padding:8px">Chart error: ' + (e.message || e) + '</p>';
             ihsgPriceVal.textContent = 'Error';
             console.error('IHSG Chart Error:', e);
         }
@@ -367,33 +290,45 @@ Alasan berita...
 
             const { data } = await fetchChartData(cleanTicker, 60);
             if (!data || data.length === 0) {
-                container.innerHTML = '<span style="font-size:10px;color:#94a3b8">No chart data</span>';
+                container.innerHTML = '<span style="font-size:10px;color:var(--c-muted)">No chart data</span>';
                 continue;
             }
 
             const isUp = s.trend.toLowerCase() === 'uptrend' || (data[data.length - 1].value >= data[0].value);
+            const isBuy = s.signal === 1;
+
+            // Soft B&W rules for BUY (charcoal/rose), soft dark gray for WATCH
+            const lineColor = isBuy 
+                ? (isUp ? '#1C1C1C' : '#B85C66') 
+                : '#4A4A4A';
+            const topColor = isBuy 
+                ? (isUp ? 'rgba(28, 28, 28, 0.1)' : 'rgba(184, 92, 102, 0.1)') 
+                : 'rgba(74, 74, 74, 0.1)';
 
             try {
                 const chart = LightweightCharts.createChart(container, {
                     width: container.clientWidth || 240,
                     height: 80,
-                    layout: { background: { type: 'solid', color: 'transparent' } },
+                    layout: { 
+                        background: { type: 'solid', color: 'transparent' },
+                        fontFamily: 'Epilogue, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                    },
                     grid: { vertLines: { visible: false }, horzLines: { visible: false } },
                     rightPriceScale: { visible: false },
                     leftPriceScale: { visible: false },
                     timeScale: { visible: false },
                     crosshair: {
                         horzLine: { visible: false, labelVisible: false },
-                        vertLine: { visible: true, style: 3, width: 1, color: '#94a3b8', labelVisible: false }
+                        vertLine: { visible: true, style: 3, width: 1, color: lineColor, labelVisible: false }
                     },
                     handleScroll: false,
                     handleScale: false
                 });
 
                 const areaSeries = chart.addAreaSeries({
-                    lineColor: isUp ? '#10b981' : '#ef4444',
-                    topColor: isUp ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)',
-                    bottomColor: isUp ? 'rgba(16, 185, 129, 0.0)' : 'rgba(239, 68, 68, 0.0)',
+                    lineColor: lineColor,
+                    topColor: topColor,
+                    bottomColor: 'rgba(0, 0, 0, 0)',
                     lineWidth: 2,
                     crosshairMarkerVisible: true
                 });
@@ -401,9 +336,95 @@ Alasan berita...
                 areaSeries.setData(data);
                 chart.timeScale().fitContent();
             } catch (e) {
-                container.innerHTML = '<span style="font-size:10px;color:red">Chart Error</span>';
+                container.innerHTML = '<span style="font-size:10px;color:var(--c-red)">Chart Error</span>';
                 console.error(e);
             }
         }
     }
-});
+
+    async function fetchNarrative(s, card) {
+        const cleanTicker = s.ticker.replace('.JK', '');
+        const container = card.querySelector(`#narasi-${cleanTicker}`);
+        if (!container) return;
+
+        try {
+            const res = await fetch('/api/narasi', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ticker: s.ticker,
+                    close_price: s.close_price,
+                    target_price: s.target_price,
+                    stop_loss: s.stop_loss,
+                    rsi: s.rsi,
+                    macd_signal: s.macd_signal,
+                    trend: s.trend,
+                    probability: s.probability,
+                    sentiment_status: s.sentiment_status || 'NETRAL',
+                    sentiment_impact: s.sentiment_impact || 'NETRAL'
+                })
+            });
+            const data = await res.json();
+            if (res.ok && data.status === 'success') {
+                container.innerHTML = data.narasi;
+            } else {
+                container.innerHTML = `<span style="color:var(--c-red);font-size:13px">Gagal memuat narasi: ${data.detail || 'Error'}</span>`;
+            }
+        } catch (err) {
+            container.innerHTML = `<span style="color:var(--c-red);font-size:13px">Gagal memuat narasi: ${err.message}</span>`;
+        }
+    }
+
+        async function runAuditAndLoad() {
+            try {
+                await fetch('/api/audit/run');
+            } catch (e) {
+                console.error('Failed to run audit:', e);
+            }
+            await loadTrackRecord();
+        }
+
+        async function loadTrackRecord() {
+            const body = document.getElementById('audit-table-body');
+            if (!body) return;
+
+            try {
+                const res = await fetch('/api/audit/track-record');
+                const data = await res.json();
+
+                if (res.ok && data.status === 'success' && data.data?.length > 0) {
+                    body.innerHTML = '';
+                    data.data.forEach(s => {
+                        const row = document.createElement('tr');
+                        const statusClass = s.status.toLowerCase();
+                        row.innerHTML = `
+                            <td>${s.created_at.split(' ')[0]}</td>
+                            <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
+                            <td>${fmtPrice(s.entry_price)}</td>
+                            <td style="color: var(--c-charcoal)">${fmtPrice(s.target_price)}</td>
+                            <td style="color: var(--c-red)">${fmtPrice(s.stop_loss)}</td>
+                            <td>${s.probability.toFixed(1)}%</td>
+                            <td><span class="badge ${statusClass}">${s.status}</span></td>
+                        `;
+                        body.appendChild(row);
+                    });
+                } else {
+                    body.innerHTML = `
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-soft-gray); font-size: 14px;">
+                                Belum ada riwayat sinyal di database.
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (err) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-red); font-size: 14px;">
+                            Gagal memuat track record: ${err.message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    });

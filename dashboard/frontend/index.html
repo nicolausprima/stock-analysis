@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StockAI — AI-Powered Day Trading Screener</title>
     <meta name="description" content="AI stock screener for Indonesian market — 99 BEI stocks analyzed daily with XGBoost">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap" rel="stylesheet">
     <script src="js/lightweight-charts.js"></script>
-    <link rel="stylesheet" href="css/style.css?v=9">
+    <link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
 
@@ -45,11 +45,11 @@
                 dengan 20+ indikator teknikal.
             </p>
             <div class="hero-stats">
-                <div class="hstat"><span class="hstat-n">99</span><span class="hstat-l">Saham</span></div>
+                <div class="hstat"><span class="hstat-n">300+</span><span class="hstat-l">Saham</span></div>
                 <div class="hstat-div"></div>
                 <div class="hstat"><span class="hstat-n">20+</span><span class="hstat-l">Indikator</span></div>
                 <div class="hstat-div"></div>
-                <div class="hstat"><span class="hstat-n">±1.5%</span><span class="hstat-l">Target/Hari</span></div>
+                <div class="hstat"><span class="hstat-n">+3.0%</span><span class="hstat-l">Target/Hari</span></div>
             </div>
             <button id="scan-btn" class="btn-scan" aria-label="Pindai pasar dan dapatkan rekomendasi saham">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -90,7 +90,7 @@
         <div class="loader-box glass-card">
             <div class="spin-ring" aria-hidden="true"><div></div><div></div><div></div></div>
             <p class="loader-title">Menganalisis pasar...</p>
-            <p class="loader-sub">Mengunduh 99 saham &amp; menjalankan model AI</p>
+            <p class="loader-sub">Memproses 300+ saham BEI &amp; Feature Embedding</p>
         </div>
     </div>
 
@@ -105,28 +105,28 @@
         <p class="es-label">Cara kerja StockAI</p>
         <div class="feat-grid">
             <div class="feat-card glass-card">
-                <div class="feat-icon" style="background:rgba(16,185,129,0.1);color:#059669">
+                <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 </div>
                 <h3>Data Real-time</h3>
                 <p>Harga terkini langsung dari Yahoo Finance setiap scan.</p>
             </div>
             <div class="feat-card glass-card">
-                <div class="feat-icon" style="background:rgba(37,99,235,0.1);color:#1d4ed8">
+                <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 </div>
                 <h3>20+ Indikator</h3>
                 <p>RSI, MACD, BB, OBV, ATR, VWAP, SMA &amp; Bandarmologi.</p>
             </div>
             <div class="feat-card glass-card">
-                <div class="feat-icon" style="background:rgba(124,58,237,0.1);color:#7c3aed">
+                <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                 </div>
                 <h3>Model XGBoost</h3>
                 <p>Dilatih 5 tahun historis dengan Optuna tuning.</p>
             </div>
             <div class="feat-card glass-card">
-                <div class="feat-icon" style="background:rgba(245,158,11,0.1);color:#b45309">
+                <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 </div>
                 <h3>Top 10 Transparan</h3>
@@ -146,7 +146,7 @@
             </div>
             <p class="section-note">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                Beli Open esok · Target +1.5% · Stop Loss -1.5%
+                Beli Open esok · Target +3.0% · Stop Loss -1.5%
             </p>
         </div>
 
@@ -159,11 +159,12 @@
                             <th scope="col">#</th>
                             <th scope="col">Saham</th>
                             <th scope="col">Harga</th>
-                            <th scope="col">Target +1.5%</th>
+                            <th scope="col">Target +3.0%</th>
                             <th scope="col">Stop Loss -1.5%</th>
                             <th scope="col">RSI (14)</th>
                             <th scope="col">MACD</th>
                             <th scope="col">Tren</th>
+                            <th scope="col">Sentimen</th>
                             <th scope="col">AI Score</th>
                             <th scope="col">Sinyal</th>
                         </tr>
@@ -180,6 +181,36 @@
         </div>
         <div class="cards-grid" id="cards-grid" role="list" aria-label="Kartu analisis saham"></div>
 
+        <!-- Track Record Audit -->
+        <div class="cards-hd" style="margin-top: var(--sp-10);">
+            <h3>Track Record Sinyal AI</h3>
+            <p>Hasil audit keberhasilan sinyal (Target +3.0% / Stop Loss -1.5%) secara otomatis</p>
+        </div>
+        <div class="table-card glass-card" style="margin-bottom: var(--sp-8);">
+            <div class="table-scroll" role="region" aria-label="Tabel track record sinyal" tabindex="0">
+                <table class="stock-table" id="audit-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Tanggal</th>
+                            <th scope="col">Saham</th>
+                            <th scope="col">Harga Entry</th>
+                            <th scope="col">Target (+3.0%)</th>
+                            <th scope="col">Stop Loss (-1.5%)</th>
+                            <th scope="col">AI Score</th>
+                            <th scope="col">Status Audit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="audit-table-body">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-soft-gray);">
+                                Memuat data track record...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Risk -->
         <div class="risk-banner glass-card" role="note">
             <div class="risk-icon" aria-hidden="true">
@@ -191,7 +222,7 @@
                 <div class="risk-pills">
                     <span class="rpill"><span class="rpill-lbl">BELI</span> Harga Open esok</span>
                     <span class="rpill"><span class="rpill-lbl red">STOP LOSS</span> –1.5%</span>
-                    <span class="rpill"><span class="rpill-lbl green">TAKE PROFIT</span> +1.5%</span>
+                    <span class="rpill"><span class="rpill-lbl green">TAKE PROFIT</span> +3.0%</span>
                 </div>
             </div>
         </div>
@@ -204,6 +235,6 @@
     <p class="footer-note">For Educational Purpose</p>
 </footer>
 
-<script src="js/app.js?v=12"></script>
+<script src="js/app.js?v=24"></script>
 </body>
 </html>
