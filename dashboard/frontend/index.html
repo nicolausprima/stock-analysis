@@ -181,10 +181,92 @@
         </div>
         <div class="cards-grid" id="cards-grid" role="list" aria-label="Kartu analisis saham"></div>
 
-        <!-- Track Record Audit -->
-        <div class="cards-hd" style="margin-top: var(--sp-10);">
-            <h3>Track Record Sinyal AI</h3>
-            <p>Hasil audit keberhasilan sinyal (Target +3.0% / Stop Loss -1.5%) secara otomatis</p>
+    </div>
+
+    <!-- Permanent Track Record Audit & Monthly Recap Section -->
+    <section class="audit-section" style="margin-top: var(--sp-10);">
+        <div class="cards-hd" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
+            <div>
+                <h3>Performa &amp; Audit Track Record</h3>
+                <p>Statistik harian, grafik pertumbuhan modal (Equity Curve), dan rekapitulasi per bulan</p>
+            </div>
+            <button id="seed-sim-btn" class="btn-scan" style="padding: 8px 16px; font-size: 13px; background: rgba(28, 28, 28, 0.08); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12);" onclick="runAuditSimulationSeed()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                Simulasi Performance 6 Bulan
+            </button>
+        </div>
+
+        <!-- Audit Summary Cards -->
+        <div class="audit-stats-grid" id="audit-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="glass-card" style="padding: 16px; border-radius: 12px;">
+                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Overall Win Rate</div>
+                <div id="stat-win-rate" style="font-family: var(--font-accent); font-size: 28px; font-weight: 700; color: var(--c-charcoal); margin-top: 4px;">—</div>
+                <div style="font-size: 11px; color: var(--c-green); margin-top: 2px;">Target Profit +3.0% / SL -1.5%</div>
+            </div>
+            <div class="glass-card" style="padding: 16px; border-radius: 12px;">
+                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Total WIN / LOSS</div>
+                <div id="stat-win-loss" style="font-family: var(--font-accent); font-size: 24px; font-weight: 700; color: var(--c-charcoal); margin-top: 4px;">—</div>
+                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Sinyal Terkonfirmasi Audit</div>
+            </div>
+            <div class="glass-card" style="padding: 16px; border-radius: 12px;">
+                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Kumulatif Profit (%)</div>
+                <div id="stat-total-profit" style="font-family: var(--font-accent); font-size: 28px; font-weight: 700; color: var(--c-green); margin-top: 4px;">—</div>
+                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Tanpa Compound Multiplier</div>
+            </div>
+        </div>
+
+        <!-- Equity Curve Chart -->
+        <div class="table-card glass-card" style="padding: 20px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h4 style="font-family: var(--font-accent); font-size: 16px; font-weight: 600; color: var(--c-charcoal); margin:0;">Grafik Pertumbuhan Ekuitas (Equity Curve %)</h4>
+                <span style="font-size: 12px; color: var(--c-soft-gray);">Aktivitas Sinyal Historis</span>
+            </div>
+            <div id="audit-equity-chart" style="width: 100%; height: 220px;"></div>
+        </div>
+
+        <!-- Monthly Recap Table -->
+        <div class="cards-hd" style="margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <h3>Rekapitulasi Performa Per Bulan</h3>
+                <p>Rincian akurasi sinyal dan imbal hasil bulanan</p>
+            </div>
+            <button id="toggle-monthly-btn" class="btn-scan" style="padding: 6px 14px; font-size: 12px; background: rgba(0,0,0,0.04); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12); display: none;" onclick="toggleMonthlyRecap()">
+                Lihat Selengkapnya ↓
+            </button>
+        </div>
+        <div class="table-card glass-card" style="margin-bottom: 24px;">
+            <div class="table-scroll" role="region" aria-label="Tabel rekap bulanan" tabindex="0">
+                <table class="stock-table" id="monthly-recap-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Bulan</th>
+                            <th scope="col">Total Sinyal</th>
+                            <th scope="col">WIN</th>
+                            <th scope="col">LOSS</th>
+                            <th scope="col">Win Rate (%)</th>
+                            <th scope="col">Return Bulanan (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="monthly-recap-body">
+                        <tr>
+                            <td colspan="6" style="text-align: center; padding: 20px; color: var(--c-soft-gray);">
+                                Memuat rekapitulasi bulanan...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Daily Signal Audit Table -->
+        <div class="cards-hd" style="margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
+            <div>
+                <h3>Log Detail Sinyal Harian</h3>
+                <p>Riwayat individual sinyal yang terdaftar dan diaudit oleh sistem</p>
+            </div>
+            <button id="toggle-audit-btn" class="btn-scan" style="padding: 6px 14px; font-size: 12px; background: rgba(0,0,0,0.04); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12); display: none;" onclick="toggleAuditLog()">
+                Lihat Selengkapnya ↓
+            </button>
         </div>
         <div class="table-card glass-card" style="margin-bottom: var(--sp-8);">
             <div class="table-scroll" role="region" aria-label="Tabel track record sinyal" tabindex="0">
@@ -211,6 +293,7 @@
             </div>
         </div>
 
+
         <!-- Risk -->
         <div class="risk-banner glass-card" role="note">
             <div class="risk-icon" aria-hidden="true">
@@ -226,8 +309,7 @@
                 </div>
             </div>
         </div>
-
-    </div>
+    </section>
 </main>
 
 <!-- FOOTER -->

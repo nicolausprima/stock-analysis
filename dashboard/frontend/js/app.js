@@ -375,6 +375,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+        // Audit & Monthly Recap State
+        let allMonthlyData = [];
+        let isMonthlyExpanded = false;
+        let allAuditData = [];
+        let isAuditExpanded = false;
+
         async function runAuditAndLoad() {
             try {
                 await fetch('/api/audit/run');
@@ -382,6 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('Failed to run audit:', e);
             }
             await loadTrackRecord();
+            await loadAuditRecapAndChart();
         }
 
         async function loadTrackRecord() {
@@ -393,26 +400,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
 
                 if (res.ok && data.status === 'success' && data.data?.length > 0) {
-                    body.innerHTML = '';
-                    data.data.forEach(s => {
-                        const row = document.createElement('tr');
-                        const statusClass = s.status.toLowerCase();
-                        row.innerHTML = `
-                            <td>${s.created_at.split(' ')[0]}</td>
-                            <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
-                            <td>${fmtPrice(s.entry_price)}</td>
-                            <td style="color: var(--c-charcoal)">${fmtPrice(s.target_price)}</td>
-                            <td style="color: var(--c-red)">${fmtPrice(s.stop_loss)}</td>
-                            <td>${s.probability.toFixed(1)}%</td>
-                            <td><span class="badge ${statusClass}">${s.status}</span></td>
-                        `;
-                        body.appendChild(row);
-                    });
+                    allAuditData = data.data;
+                    renderAuditTable();
                 } else {
+                    allAuditData = [];
                     body.innerHTML = `
                         <tr>
                             <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-soft-gray); font-size: 14px;">
-                                Belum ada riwayat sinyal di database.
+                                Belum ada riwayat sinyal di database. Klik <strong>Simulasi Performance 6 Bulan</strong> untuk uji coba.
                             </td>
                         </tr>
                     `;
@@ -427,4 +422,194 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
         }
+
+        function renderAuditTable() {
+            const body = document.getElementById('audit-table-body');
+            const toggleBtn = document.getElementById('toggle-audit-btn');
+            if (!body) return;
+
+            if (allAuditData.length === 0) {
+                if (toggleBtn) toggleBtn.style.display = 'none';
+                return;
+            }
+
+            const visibleRows = isAuditExpanded ? allAuditData : allAuditData.slice(0, 5);
+            body.innerHTML = '';
+
+            visibleRows.forEach(s => {
+                const row = document.createElement('tr');
+                const statusClass = s.status.toLowerCase();
+                row.innerHTML = `
+                    <td>${s.created_at.split(' ')[0]}</td>
+                    <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
+                    <td>${fmtPrice(s.entry_price)}</td>
+                    <td style="color: var(--c-charcoal)">${fmtPrice(s.target_price)}</td>
+                    <td style="color: var(--c-red)">${fmtPrice(s.stop_loss)}</td>
+                    <td>${s.probability.toFixed(1)}%</td>
+                    <td><span class="badge ${statusClass}">${s.status}</span></td>
+                `;
+                body.appendChild(row);
+            });
+
+            if (toggleBtn) {
+                if (allAuditData.length > 5) {
+                    toggleBtn.style.display = 'inline-block';
+                    toggleBtn.textContent = isAuditExpanded 
+                        ? 'Sembunyikan ↑' 
+                        : `Lihat Selengkapnya (${allAuditData.length - 5} Sinyal Lagi) ↓`;
+                } else {
+                    toggleBtn.style.display = 'none';
+                }
+            }
+        }
+
+        async function loadAuditRecapAndChart() {
+            const winRateEl = document.getElementById('stat-win-rate');
+            const winLossEl = document.getElementById('stat-win-loss');
+            const profitEl = document.getElementById('stat-total-profit');
+            const monthlyBody = document.getElementById('monthly-recap-body');
+            const chartDiv = document.getElementById('audit-equity-chart');
+
+            if (!winRateEl || !monthlyBody) return;
+
+            try {
+                const res = await fetch('/api/audit/recap');
+                const data = await res.json();
+
+                if (res.ok && data.status === 'success') {
+                    const s = data.summary;
+                    winRateEl.textContent = s.win_rate > 0 ? `${s.win_rate.toFixed(1)}%` : '0.0%';
+                    winLossEl.textContent = `${s.win_count} WIN / ${s.loss_count} LOSS`;
+                    profitEl.textContent = `${s.total_profit_pct >= 0 ? '+' : ''}${s.total_profit_pct.toFixed(1)}%`;
+                    profitEl.style.color = s.total_profit_pct >= 0 ? 'var(--c-green)' : 'var(--c-red)';
+
+                    // Save monthly data & render table
+                    allMonthlyData = data.monthly_breakdown || [];
+                    renderMonthlyTable();
+
+                    // Render Equity Curve Chart
+                    if (chartDiv && typeof LightweightCharts !== 'undefined' && data.equity_curve?.length > 0) {
+                        chartDiv.innerHTML = '';
+                        try {
+                            const chart = LightweightCharts.createChart(chartDiv, {
+                                width: chartDiv.clientWidth || 600,
+                                height: 220,
+                                layout: {
+                                    background: { type: 'solid', color: 'transparent' },
+                                    textColor: '#1C1C1C',
+                                    fontFamily: 'Epilogue, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                                },
+                                grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(0, 0, 0, 0.05)' } },
+                                rightPriceScale: { borderVisible: false },
+                                timeScale: { borderVisible: false, secondsVisible: false },
+                                crosshair: { mode: 0 },
+                                handleScroll: false,
+                                handleScale: false
+                            });
+
+                            const areaSeries = chart.addAreaSeries({
+                                lineColor: '#10B981',
+                                topColor: 'rgba(16, 185, 129, 0.25)',
+                                bottomColor: 'rgba(16, 185, 129, 0.0)',
+                                lineWidth: 2,
+                            });
+
+                            areaSeries.setData(data.equity_curve);
+                            chart.timeScale().fitContent();
+
+                            window.addEventListener('resize', () => {
+                                if (chartDiv.clientWidth > 0) chart.resize(chartDiv.clientWidth, 220);
+                            });
+                        } catch (ce) {
+                            console.error('Equity chart error:', ce);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load audit recap:', err);
+            }
+        }
+
+        function renderMonthlyTable() {
+            const monthlyBody = document.getElementById('monthly-recap-body');
+            const toggleBtn = document.getElementById('toggle-monthly-btn');
+            if (!monthlyBody) return;
+
+            if (allMonthlyData.length === 0) {
+                monthlyBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px; color: var(--c-soft-gray);">
+                            Belum ada data rekapitulasi bulanan.
+                        </td>
+                    </tr>
+                `;
+                if (toggleBtn) toggleBtn.style.display = 'none';
+                return;
+            }
+
+            const visibleRows = isMonthlyExpanded ? allMonthlyData : allMonthlyData.slice(0, 3);
+            monthlyBody.innerHTML = '';
+
+            visibleRows.forEach(m => {
+                const row = document.createElement('tr');
+                const isPos = m.monthly_profit_pct >= 0;
+                row.innerHTML = `
+                    <td style="font-family: var(--font-accent); font-weight:600;">${m.month_name}</td>
+                    <td>${m.total_signals} Sinyal</td>
+                    <td style="color: var(--c-green); font-weight:600;">${m.win_count} WIN</td>
+                    <td style="color: var(--c-red); font-weight:600;">${m.loss_count} LOSS</td>
+                    <td><span class="badge ${m.win_rate >= 60 ? 'uptrend' : 'bearish'}">${m.win_rate.toFixed(1)}%</span></td>
+                    <td style="font-weight:700; color: ${isPos ? 'var(--c-green)' : 'var(--c-red)'}">${isPos ? '+' : ''}${m.monthly_profit_pct.toFixed(1)}%</td>
+                `;
+                monthlyBody.appendChild(row);
+            });
+
+            if (toggleBtn) {
+                if (allMonthlyData.length > 3) {
+                    toggleBtn.style.display = 'inline-block';
+                    toggleBtn.textContent = isMonthlyExpanded 
+                        ? 'Sembunyikan ↑' 
+                        : `Lihat Selengkapnya (${allMonthlyData.length - 3} Bulan Lagi) ↓`;
+                } else {
+                    toggleBtn.style.display = 'none';
+                }
+            }
+        }
+
+        window.toggleMonthlyRecap = function() {
+            isMonthlyExpanded = !isMonthlyExpanded;
+            renderMonthlyTable();
+        };
+
+        window.toggleAuditLog = function() {
+            isAuditExpanded = !isAuditExpanded;
+            renderAuditTable();
+        };
+
+        window.runAuditSimulationSeed = async function() {
+            const btn = document.getElementById('seed-sim-btn');
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Menghasilkan simulasi...';
+            }
+
+            try {
+                const res = await fetch('/api/audit/seed-simulation');
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    await runAuditAndLoad();
+                } else {
+                    alert('Gagal menghasilkan simulasi: ' + (data.message || 'Error'));
+                }
+            } catch (err) {
+                alert('Error simulasi: ' + err.message);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Simulasi Performance 6 Bulan`;
+                }
+            }
+        };
     });
+
+

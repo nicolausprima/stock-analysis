@@ -183,3 +183,178 @@ def run_audit():
     conn.close()
     
     return {"status": "success", "updated_count": updated_count}
+
+@router.get("/audit/recap")
+def get_audit_recap():
+    """
+    Mengambil statistik rekapitulasi performa audit:
+    - Ringkasan Win Rate, Total Win/Loss, Kumulatif Profit %
+    - Breakdown performa per bulan
+    - Data kurva ekuitas kumulatif (Equity Curve Chart)
+    """
+    conn = sqlite3.connect(str(DB_PATH))
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM signals ORDER BY created_at ASC")
+    rows = cursor.fetchall()
+    conn.close()
+
+    total_signals = len(rows)
+    win_count = sum(1 for r in rows if r["status"] == "WIN")
+    loss_count = sum(1 for r in rows if r["status"] == "LOSS")
+    pending_count = sum(1 for r in rows if r["status"] == "PENDING")
+
+    decided = win_count + loss_count
+    win_rate = round((win_count / decided * 100), 1) if decided > 0 else 0.0
+    total_profit_pct = round((win_count * 3.0) - (loss_count * 1.5), 1)
+
+    # Monthly Grouping
+    MONTH_NAMES = {
+        "01": "Januari", "02": "Februari", "03": "Maret", "04": "April",
+        "05": "Mei", "06": "Juni", "07": "Juli", "08": "Agustus",
+        "09": "September", "10": "Oktober", "11": "November", "12": "Desember"
+    }
+
+    monthly_dict = {}
+    cum_return = 0.0
+    equity_curve = []
+
+    for r in rows:
+        created_str = str(r["created_at"])
+        date_part = created_str.split(" ")[0] if " " in created_str else created_str
+        month_key = date_part[:7] if len(date_part) >= 7 else "Unknown"
+
+        if month_key not in monthly_dict:
+            year, m_num = month_key.split("-") if "-" in month_key else ("2026", "01")
+            m_name = f"{MONTH_NAMES.get(m_num, m_num)} {year}"
+            monthly_dict[month_key] = {
+                "month_key": month_key,
+                "month_name": m_name,
+                "total_signals": 0,
+                "win_count": 0,
+                "loss_count": 0,
+                "pending_count": 0,
+                "monthly_profit_pct": 0.0
+            }
+
+        m_data = monthly_dict[month_key]
+        m_data["total_signals"] += 1
+        st = r["status"]
+
+        if st == "WIN":
+            m_data["win_count"] += 1
+            m_data["monthly_profit_pct"] += 3.0
+            cum_return += 3.0
+        elif st == "LOSS":
+            m_data["loss_count"] += 1
+            m_data["monthly_profit_pct"] -= 1.5
+            cum_return -= 1.5
+        else:
+            m_data["pending_count"] += 1
+
+        m_data["monthly_profit_pct"] = round(m_data["monthly_profit_pct"], 1)
+
+        # Track cumulative return per unique date for LightweightCharts
+        if st in ["WIN", "LOSS"]:
+            equity_curve.append({
+                "time": date_part,
+                "value": round(cum_return, 1)
+            })
+
+    # Deduplicate equity curve by unique date (keep latest cumulative return per day)
+    daily_equity_dict = {}
+    for pt in equity_curve:
+        daily_equity_dict[pt["time"]] = pt["value"]
+
+    clean_equity_curve = [
+        {"time": dt, "value": val}
+        for dt, val in sorted(daily_equity_dict.items())
+    ]
+
+    monthly_breakdown = []
+    for k in sorted(monthly_dict.keys(), reverse=True):
+        m = monthly_dict[k]
+        m_decided = m["win_count"] + m["loss_count"]
+        m["win_rate"] = round((m["win_count"] / m_decided * 100), 1) if m_decided > 0 else 0.0
+        monthly_breakdown.append(m)
+
+    return {
+        "status": "success",
+        "summary": {
+            "total_signals": total_signals,
+            "win_count": win_count,
+            "loss_count": loss_count,
+            "pending_count": pending_count,
+            "win_rate": win_rate,
+            "total_profit_pct": total_profit_pct
+        },
+        "monthly_breakdown": monthly_breakdown,
+        "equity_curve": clean_equity_curve
+    }
+
+
+@router.get("/audit/seed-simulation")
+def seed_simulation_audit():
+    """
+    Menghasilkan data simulasi historis sinyal audit selama 6 bulan terakhir (Februari - Juli 2026).
+    Memungkinkan visualisasi instan untuk Grafik Kurva Ekuitas dan Rekapitulasi Performa Bulanan.
+    """
+    import random
+
+    conn = sqlite3.connect(str(DB_PATH))
+    cursor = conn.cursor()
+
+    # Hapus data simulasi lama jika ingin bersih
+    cursor.execute("DELETE FROM signals")
+
+    sample_stocks = [
+        ("BBCA", 9800), ("BBRI", 5400), ("BMRI", 6800), ("BBNI", 5200),
+        ("TLKM", 3850), ("ASII", 5150), ("AMMN", 11200), ("PTBA", 2650),
+        ("ADRO", 2720), ("MEDC", 1350), ("BRIS", 2450), ("PGAS", 1550),
+        ("KLBF", 1480), ("UNVR", 2850), ("ICBP", 10900), ("GOTO", 84)
+    ]
+
+    # Generate sinyal harian dari 2026-02-01 sampai 2026-07-20
+    start_dt = datetime(2026, 2, 1)
+    end_dt = datetime(2026, 7, 20)
+    current = start_dt
+
+    random.seed(42) # Seed tetap agar konsisten
+    simulated_records = []
+
+    while current <= end_dt:
+        # Hanya hari kerja bursa (Senin-Jumat)
+        if current.weekday() < 5:
+            # 1-3 sinyal per hari bursa
+            num_signals = random.choice([1, 2, 2, 3])
+            daily_tickers = random.sample(sample_stocks, k=num_signals)
+
+            for ticker, base_price in daily_tickers:
+                variance = random.uniform(-0.05, 0.05)
+                entry_p = round(base_price * (1 + variance))
+                target_p = round(entry_p * 1.03)
+                stop_p = round(entry_p * 0.985)
+                prob = round(random.uniform(62.0, 79.5), 1)
+
+                # Probabilitas win ~74%
+                status = "WIN" if random.random() < 0.74 else "LOSS"
+                date_str = current.strftime("%Y-%m-%d 16:05:00")
+
+                simulated_records.append((ticker, entry_p, target_p, stop_p, prob, status, date_str, date_str))
+
+        current += timedelta(days=1)
+
+    cursor.executemany("""
+        INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    """, simulated_records)
+
+    conn.commit()
+    conn.close()
+
+    return {
+        "status": "success",
+        "message": f"Berhasil membuat {len(simulated_records)} sinyal simulasi historis 6 bulan terakhir!"
+    }
+
