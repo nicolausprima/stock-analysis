@@ -175,6 +175,10 @@ def run_daily_after_market_job():
 
 def start_background_scheduler():
     """Menjalankan scheduler di background thread."""
+    if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
+        print("[INFO] Mode testing terdeteksi. Background scheduler dilewati.")
+        return
+
     def loop():
         while True:
             current_time = time.strftime("%H:%M")
@@ -189,3 +193,4 @@ def start_background_scheduler():
             
     thread = threading.Thread(target=loop, daemon=True)
     thread.start()
+
