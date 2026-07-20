@@ -164,13 +164,14 @@ def run_daily_after_market_job():
 
     # Kirim siaran otomatis ke Telegram Bot (After-Market Audit & Sync)
     try:
-        from dashboard.backend.routes.audit import run_signals_audit, get_audit_recap
-        run_signals_audit()
+        from dashboard.backend.routes.audit import run_audit, get_audit_recap
+        run_audit()
         recap = get_audit_recap()
         from src.notifications.telegram_bot import send_after_market_audit_broadcast
         send_after_market_audit_broadcast(recap)
     except Exception as te:
         print(f"[TELEGRAM] Error sending scheduler broadcast: {str(te)}")
+
 
     print(f"[SUCCESS] [SCHEDULER 16:05 WIB] Selesai! Data disinkronkan, sinyal di-audit & Telegram Broadcast tersampaikan.")
     return payload
