@@ -140,30 +140,98 @@ def send_morning_radar_broadcast(recommendations: list[dict]) -> dict:
 def send_after_market_audit_broadcast(recap_data: dict) -> dict:
     """
     [FASE 2: 16:05 WIB - AFTER-MARKET AUDIT & RECAP]
-    Mengirimkan ringkasan audit hasil trading hari ini dan pembaruan data pasar.
+    Mengirimkan ringkasan audit hasil trading KHUSUS HARI INI + Total Track Record.
     """
     summary = recap_data.get("summary", {})
-    win_rate = summary.get("win_rate", 0.0)
-    win_count = summary.get("win_count", 0)
-    loss_count = summary.get("loss_count", 0)
+    win_rate_total = summary.get("win_rate", 0.0)
+    win_count_total = summary.get("win_count", 0)
+    loss_count_total = summary.get("loss_count", 0)
     total_profit = summary.get("total_profit_pct", 0.0)
     total_signals = summary.get("total_signals", 0)
 
     today_str = time.strftime("%Y-%m-%d")
 
+    # Ambil rincian sinyal khusus hari ini dari API audit
+    today_info = {}
+    try:
+        from dashboard.backend.routes.audit import get_today_audit_summary
+        today_info = get_today_audit_summary()
+    except Exception as e:
+        print(f"[TELEGRAM] Error fetching today audit summary: {str(e)}")
+
     msg = f"<b>📊 STOCKAI AFTER-MARKET AUDIT & SYNC 🇮🇩</b>\n"
     msg += f"<i>📅 {today_str} | ⏰ 16:05 WIB (Pasar Tutup)</i>\n"
     msg += f"───────────────────────\n\n"
-    msg += f"<b>🏆 LAPORAN PERFORMA TRADING AUDIT:</b>\n"
-    msg += f"• 🎯 <b>Win Rate Akumulasi:</b> <code>{win_rate:.1f}%</code>\n"
-    msg += f"• 📊 <b>Hasil Sinyal:</b> {win_count} WIN ✅ / {loss_count} LOSS ❌\n"
-    msg += f"• 📈 <b>Total Estimasi Profit:</b> <code>{'+' if total_profit >= 0 else ''}{total_profit:.1f}%</code>\n"
-    msg += f"• 🔢 <b>Total Sinyal Di-audit:</b> {total_signals} Sinyal\n\n"
+
+    # --- SECTION 1: KHUSUS HARI INI ---
+    if today_info and today_info.get("signals"):
+        t_win = today_info.get("win_count", 0)
+        t_loss = today_info.get("loss_count", 0)
+        t_pending = today_info.get("pending_count", 0)
+        t_win_rate = today_info.get("win_rate", 0.0)
+        t_gain = today_info.get("total_gain", 0.0)
+        t_date = today_info.get("date", today_str)
+
+        msg += f"<b>🔥 HASIL AUDIT TRADING HARI INI ({t_date}):</b>\n"
+        msg += f"• 📊 <b>Hasil Sinyal:</b> {t_win} WIN ✅ / {t_loss} LOSS ❌"
+        if t_pending > 0:
+            msg += f" / {t_pending} PENDING ⏳"
+        msg += f"\n• 🎯 <b>Win Rate Hari Ini:</b> <code>{t_win_rate:.1f}%</code>\n"
+        msg += f"• 📈 <b>Gain Harian:</b> <code>{'+' if t_gain >= 0 else ''}{t_gain:.1f}%</code>\n\n"
+
+        msg += f"<b>📜 DETAIL SAHAM HARI INI:</b>\n"
+        for idx, s in enumerate(today_info["signals"][:10], start=1):
+            st = s["status"]
+            badge = "WIN ✅" if st == "WIN" else ("LOSS ❌" if st == "LOSS" else "PENDING ⏳")
+            entry_p = format_idr(s["entry_price"])
+            target_p = format_idr(s["target_price"])
+            msg += f"{idx}. <b>{s['ticker']}</b>: {badge} (Entry {entry_p} → TP {target_p})\n"
+        msg += f"\n"
+
+    # --- SECTION 2: TOTAL TRACK RECORD AKUMULASI ---
+    msg += f"───────────────────────\n"
+    msg += f"<b>🏆 TOTAL TRACK RECORD AKUMULASI:</b>\n"
+    msg += f"• 🎯 <b>Win Rate Total:</b> <code>{win_rate_total:.1f}%</code>\n"
+    msg += f"• 📊 <b>Total Hasil:</b> {win_count_total} WIN ✅ / {loss_count_total} LOSS ❌\n"
+    msg += f"• 📈 <b>Total Estimasi Profit:</b> <code>{'+' if total_profit >= 0 else ''}{total_profit:.1f}%</code> ({total_signals} Sinyal)\n\n"
     
     msg += f"───────────────────────\n"
     msg += f"🚀 <i>Data 300+ saham BEI terbaru telah diunduh dari Yahoo Finance & dianalisis untuk rekomendasi esok hari!</i>"
 
     return send_telegram_message(msg)
+
+def process_telegram_incoming_commands():
+    """
+    Mengecek dan membalas perintah interaktif (/today, /audit, /start) dari pengguna Telegram.
+    """
+    token = TELEGRAM_BOT_TOKEN
+    if not token:
+        return
+
+    url = f"https://api.telegram.org/bot{token}/getUpdates"
+    try:
+        res = requests.get(url, timeout=5).json()
+        if res.get("ok") and res.get("result"):
+            for update in res["result"]:
+                msg = update.get("message")
+                if msg and "text" in msg and "chat" in msg:
+                    text = msg["text"].strip().lower()
+                    chat_id = str(msg["chat"]["id"])
+
+                    if text in ["/today", "/audit", "today", "audit"]:
+                        from dashboard.backend.routes.audit import get_today_audit_summary, get_audit_recap
+                        recap = get_audit_recap()
+                        send_after_market_audit_broadcast(recap)
+                    elif text in ["/start", "/help", "halo", "hi"]:
+                        send_telegram_message(
+                            "<b>🤖 StockAI Trading Bot Ready!</b>\n\n"
+                            "Ketik perintah berikut kapan saja:\n"
+                            "• <b>/today</b> atau <b>/audit</b> : Cek hasil audit WIN/LOSS hari ini.\n"
+                            "• <b>/start</b> : Cek status koneksi bot.",
+                            target_chat_id=chat_id
+                        )
+    except Exception as e:
+        print(f"[TELEGRAM] Error processing incoming commands: {str(e)}")
 
 # Alias untuk kompatibilitas
 send_daily_recommendations_broadcast = send_morning_radar_broadcast
@@ -173,4 +241,5 @@ if __name__ == "__main__":
     c_id = get_active_chat_id()
     print(f"Detected Chat ID: {c_id}")
     if c_id:
-        send_telegram_message("<b>🤖 StockAI Bot Ready!</b>\nDual Notifikasi Harian (08:30 WIB & 16:05 WIB) telah aktif.")
+        send_telegram_message("<b>🤖 StockAI Bot Ready!</b>\nDual Notifikasi Harian & Perintah Interaktif (/today) telah aktif.")
+
