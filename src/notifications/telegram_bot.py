@@ -2,8 +2,10 @@ import requests
 import json
 import time
 import os
+import threading
 from pathlib import Path
 import sys
+
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -200,38 +202,58 @@ def send_after_market_audit_broadcast(recap_data: dict) -> dict:
 
     return send_telegram_message(msg)
 
-def process_telegram_incoming_commands():
+def start_telegram_bot_listener():
     """
-    Mengecek dan membalas perintah interaktif (/today, /audit, /start) dari pengguna Telegram.
+    Menjalankan background thread polling yang secara kontinu mendengarkan
+    dan merespon pesan/perintah interaktif (/today, /audit, /start) dari Telegram.
     """
-    token = TELEGRAM_BOT_TOKEN
-    if not token:
+    if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
         return
 
-    url = f"https://api.telegram.org/bot{token}/getUpdates"
-    try:
-        res = requests.get(url, timeout=5).json()
-        if res.get("ok") and res.get("result"):
-            for update in res["result"]:
-                msg = update.get("message")
-                if msg and "text" in msg and "chat" in msg:
-                    text = msg["text"].strip().lower()
-                    chat_id = str(msg["chat"]["id"])
+    def listener_loop():
+        token = TELEGRAM_BOT_TOKEN
+        if not token:
+            print("[TELEGRAM] Token belum dikonfigurasi, polling listener dilewati.")
+            return
 
-                    if text in ["/today", "/audit", "today", "audit"]:
-                        from dashboard.backend.routes.audit import get_today_audit_summary, get_audit_recap
-                        recap = get_audit_recap()
-                        send_after_market_audit_broadcast(recap)
-                    elif text in ["/start", "/help", "halo", "hi"]:
-                        send_telegram_message(
-                            "<b>🤖 StockAI Trading Bot Ready!</b>\n\n"
-                            "Ketik perintah berikut kapan saja:\n"
-                            "• <b>/today</b> atau <b>/audit</b> : Cek hasil audit WIN/LOSS hari ini.\n"
-                            "• <b>/start</b> : Cek status koneksi bot.",
-                            target_chat_id=chat_id
-                        )
-    except Exception as e:
-        print(f"[TELEGRAM] Error processing incoming commands: {str(e)}")
+        print("[TELEGRAM] Background interactive listener aktif & siap menerima perintah (/today, /audit)...")
+        offset = None
+
+        while True:
+            try:
+                url = f"https://api.telegram.org/bot{token}/getUpdates?timeout=10"
+                if offset:
+                    url += f"&offset={offset}"
+
+                res = requests.get(url, timeout=15).json()
+                if res.get("ok") and res.get("result"):
+                    for update in res["result"]:
+                        offset = update["update_id"] + 1
+                        msg = update.get("message")
+                        if msg and "text" in msg and "chat" in msg:
+                            text = msg["text"].strip().lower()
+                            chat_id = str(msg["chat"]["id"])
+
+                            if text in ["/today", "/audit", "today", "audit"]:
+                                from dashboard.backend.routes.audit import get_audit_recap
+                                recap = get_audit_recap()
+                                send_after_market_audit_broadcast(recap)
+                            elif text in ["/start", "/help", "halo", "hi"]:
+                                send_telegram_message(
+                                    "<b>🤖 StockAI Trading Bot Ready!</b>\n\n"
+                                    "Ketik perintah berikut kapan saja:\n"
+                                    "• <b>/today</b> atau <b>/audit</b> : Cek hasil audit WIN/LOSS hari ini.\n"
+                                    "• <b>/start</b> : Cek status bot.",
+                                    target_chat_id=chat_id
+                                )
+            except Exception as e:
+                pass
+            time.sleep(2)
+
+    thread = threading.Thread(target=listener_loop, daemon=True)
+    thread.start()
+
+process_telegram_incoming_commands = start_telegram_bot_listener
 
 # Alias untuk kompatibilitas
 send_daily_recommendations_broadcast = send_morning_radar_broadcast
@@ -242,4 +264,5 @@ if __name__ == "__main__":
     print(f"Detected Chat ID: {c_id}")
     if c_id:
         send_telegram_message("<b>🤖 StockAI Bot Ready!</b>\nDual Notifikasi Harian & Perintah Interaktif (/today) telah aktif.")
+
 
