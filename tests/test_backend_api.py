@@ -20,33 +20,33 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def prepare_test_environment():
-    """Memastikan folder data dan cache file rekomendasi tersedia sebelum testing di CI."""
+    """Memastikan folder data dan cache file rekomendasi selalu terisi dengan data valid sebelum testing."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
-    if not CACHE_FILE.exists():
-        dummy_cache = {
-            "status": "success",
-            "timestamp": "2026-07-20 16:05:00",
-            "total_scanned": 300,
-            "data": [
-                {
-                    "ticker": "BBCA.JK",
-                    "probability": 78.5,
-                    "signal": 1,
-                    "close_price": 9800,
-                    "target_price": 10094,
-                    "stop_loss": 9653,
-                    "rsi": 55,
-                    "rsi_signal": "NETRAL",
-                    "macd_signal": "BULLISH",
-                    "trend": "UPTREND",
-                    "reason": "MACD Golden Cross",
-                    "sentiment_status": "POSITIF",
-                    "sentiment_impact": "BOOSTER (+3%)"
-                }
-            ]
-        }
-        with open(CACHE_FILE, "w") as f:
-            json.dump(dummy_cache, f, indent=2)
+    dummy_cache = {
+        "status": "success",
+        "timestamp": "2026-07-20 16:05:00",
+        "total_scanned": 300,
+        "data": [
+            {
+                "ticker": "BBCA.JK",
+                "probability": 78.5,
+                "signal": 1,
+                "close_price": 9800,
+                "target_price": 10094,
+                "stop_loss": 9653,
+                "rsi": 55,
+                "rsi_signal": "NETRAL",
+                "macd_signal": "BULLISH",
+                "trend": "UPTREND",
+                "reason": "MACD Golden Cross",
+                "sentiment_status": "POSITIF",
+                "sentiment_impact": "BOOSTER (+3%)"
+            }
+        ]
+    }
+    with open(CACHE_FILE, "w") as f:
+        json.dump(dummy_cache, f, indent=2)
+
 
 def test_api_recommendations_endpoint():
     response = client.get("/api/recommendations")
