@@ -29,5 +29,6 @@ jobs:
         env:
           TESTING: "true"
         run: |
-          pytest --verbose
+          pytest --verbose --tb=short
+
 
