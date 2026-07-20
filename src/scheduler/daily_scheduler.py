@@ -162,19 +162,44 @@ def run_daily_after_market_job():
     with open(CACHE_FILE, 'w') as f:
         json.dump(payload, f, indent=2)
 
-    # Kirim siaran otomatis ke Telegram Bot
+    # Kirim siaran otomatis ke Telegram Bot (After-Market Audit & Sync)
     try:
-        from src.notifications.telegram_bot import send_daily_recommendations_broadcast
-        send_daily_recommendations_broadcast(results)
+        from dashboard.backend.routes.audit import run_signals_audit, get_audit_recap
+        run_signals_audit()
+        recap = get_audit_recap()
+        from src.notifications.telegram_bot import send_after_market_audit_broadcast
+        send_after_market_audit_broadcast(recap)
     except Exception as te:
         print(f"[TELEGRAM] Error sending scheduler broadcast: {str(te)}")
 
-    print(f"[SUCCESS] [SCHEDULER] Selesai! Cache JSON & Telegram Broadcast tersampaikan.")
+    print(f"[SUCCESS] [SCHEDULER 16:05 WIB] Selesai! Data disinkronkan, sinyal di-audit & Telegram Broadcast tersampaikan.")
     return payload
 
+def run_morning_premarket_job():
+    """
+    [FASE 1: 08:30 WIB - PRE-MARKET RADAR]
+    Membaca hasil scan kemarin dari cache JSON dan mengirim notifikasi
+    rekomendasi beli ke Telegram 30 menit sebelum bursa BEI dibuka (09:00 WIB).
+    """
+    print("[SCHEDULER 08:30 WIB] Memulai pengiriman Morning Pre-Market Radar ke Telegram...")
+    if CACHE_FILE.exists():
+        try:
+            with open(CACHE_FILE, 'r') as f:
+                data = json.load(f)
+            stocks = data.get("data", [])
+            if stocks:
+                from src.notifications.telegram_bot import send_morning_radar_broadcast
+                res = send_morning_radar_broadcast(stocks)
+                print("[SUCCESS] [SCHEDULER 08:30 WIB] Morning Radar berhasil dikirim ke Telegram!")
+                return res
+        except Exception as e:
+            print(f"[ERROR] [SCHEDULER 08:30 WIB] Gagal membaca cache JSON: {str(e)}")
+
+    print("[WARNING] [SCHEDULER 08:30 WIB] Cache JSON rekomendasi belum tersedia.")
+    return {"status": "error", "message": "Cache not available"}
 
 def start_background_scheduler():
-    """Menjalankan scheduler di background thread."""
+    """Menjalankan scheduler di background thread (08:30 WIB & 16:05 WIB)."""
     if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
         print("[INFO] Mode testing terdeteksi. Background scheduler dilewati.")
         return
@@ -182,15 +207,23 @@ def start_background_scheduler():
     def loop():
         while True:
             current_time = time.strftime("%H:%M")
-            # Jalankan otomatis jam 16:05 WIB setiap hari
-            if current_time == "16:05":
+            # 1. Pagi (08:30 WIB): Pre-Market Radar Telegram Broadcast
+            if current_time == "08:30":
+                try:
+                    run_morning_premarket_job()
+                except Exception as e:
+                    print(f"Error morning scheduler: {str(e)}")
+                time.sleep(60)
+            # 2. Sore (16:05 WIB): After-Market Sync, Audit & Telegram Broadcast
+            elif current_time == "16:05":
                 try:
                     run_daily_after_market_job()
                 except Exception as e:
-                    print(f"Error scheduler: {str(e)}")
-                time.sleep(60) # Tunggu 1 menit agar tidak berulang di menit yang sama
+                    print(f"Error after-market scheduler: {str(e)}")
+                time.sleep(60)
             time.sleep(30)
             
     thread = threading.Thread(target=loop, daemon=True)
     thread.start()
+
 

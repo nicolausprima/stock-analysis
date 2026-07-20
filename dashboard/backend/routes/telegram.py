@@ -38,24 +38,29 @@ def send_test_telegram_notification(payload: TestMessage):
         raise HTTPException(status_code=400, detail=result.get("message"))
     return result
 
+@router.post("/telegram/broadcast-morning-test")
+def broadcast_morning_radar_telegram():
+    """[FASE 1: 08:30 WIB] Menguji pengiriman Morning Pre-Market Radar ke Telegram."""
+    from src.scheduler.daily_scheduler import run_morning_premarket_job
+    res = run_morning_premarket_job()
+    if res.get("status") == "error":
+        raise HTTPException(status_code=400, detail=res.get("message"))
+    return res
+
+@router.post("/telegram/broadcast-aftermarket-test")
+def broadcast_aftermarket_audit_telegram():
+    """[FASE 2: 16:05 WIB] Menguji pengiriman After-Market Audit & Performance Recap ke Telegram."""
+    from dashboard.backend.routes.audit import get_audit_recap
+    from src.notifications.telegram_bot import send_after_market_audit_broadcast
+    
+    recap = get_audit_recap()
+    res = send_after_market_audit_broadcast(recap)
+    if res.get("status") == "error":
+        raise HTTPException(status_code=400, detail=res.get("message"))
+    return res
+
 @router.post("/telegram/broadcast-test")
 def broadcast_latest_recommendations_telegram():
     """Menguji siaran rekomendasi terbaru ke Telegram Bot."""
-    import json
-    from src.config import CACHE_FILE
-    
-    if not CACHE_FILE.exists():
-        raise HTTPException(status_code=404, detail="Cache rekomendasi belum tersedia. Jalankan scan pasar terlebih dahulu.")
-        
-    with open(CACHE_FILE, 'r') as f:
-        cache_data = json.load(f)
-        
-    stocks = cache_data.get("data", [])
-    if not stocks:
-        raise HTTPException(status_code=400, detail="Tidak ada data rekomendasi saham untuk di-broadcast.")
-        
-    res = send_daily_recommendations_broadcast(stocks)
-    if res.get("status") == "error":
-        raise HTTPException(status_code=400, detail=res.get("message"))
-        
-    return res
+    return broadcast_morning_radar_telegram()
+
