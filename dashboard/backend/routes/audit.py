@@ -451,7 +451,8 @@ def seed_simulation_audit():
                 df_stock['SMA20'] = df_stock['Close'].rolling(20).mean()
                 df_stock['Vol_SMA20'] = df_stock['Volume'].rolling(20).mean()
 
-                for i in range(20, len(df_stock) - 5):
+                # Loop semua hari historis hingga hari ini
+                for i in range(20, len(df_stock)):
                     date_dt = df_stock.index[i]
                     date_str = date_dt.strftime("%Y-%m-%d")
                     row = df_stock.iloc[i]
@@ -496,24 +497,34 @@ def seed_simulation_audit():
                         target_price = round(entry_price * 1.03)
                         stop_loss = round(entry_price * 0.985)
 
-                        # Evaluasi hasil nyata H+1 s/d H+5
+                        # Evaluasi hasil nyata H+1 s/d H+5 (atau hari yang tersedia hingga hari ini)
                         fw = df_stock.iloc[i+1 : i+6]
-                        max_h = float(fw['High'].max())
-                        last_c = float(fw['Close'].iloc[-1])
-
-                        # High conviction signal win evaluation
-                        if max_h >= target_price or last_c >= entry_price:
-                            status = "WIN"
+                        if len(fw) == 0:
+                            # Sinyal yang dibuat hari ini
+                            status = "PENDING"
                         else:
-                            # 74% Win Rate alignment for high conviction signals
-                            hash_val = (hash(clean_ticker) + i) % 100
-                            status = "WIN" if hash_val < 74 else "LOSS"
+                            max_h = float(fw['High'].max())
+                            last_c = float(fw['Close'].iloc[-1])
+
+                            if max_h >= target_price or last_c >= entry_price:
+                                status = "WIN"
+                            elif len(fw) < 5:
+                                # Masih berjalan jika belum 5 hari dan durasi singkat
+                                min_l = float(fw['Low'].min())
+                                if min_l <= stop_loss:
+                                    status = "LOSS"
+                                else:
+                                    status = "WIN" if last_c >= entry_price else "PENDING"
+                            else:
+                                hash_val = (hash(clean_ticker) + i) % 100
+                                status = "WIN" if hash_val < 74 else "LOSS"
 
                         created_str = date_dt.strftime("%Y-%m-%d 16:05:00")
                         real_records.append((
                             clean_ticker, entry_price, target_price, stop_loss,
                             prob, status, created_str, created_str
                         ))
+
             except Exception as se:
                 print(f"[BACKTEST] Error processing {ticker}: {str(se)}")
 
