@@ -202,6 +202,16 @@ def send_after_market_audit_broadcast(recap_data: dict) -> dict:
 
     return send_telegram_message(msg)
 
+def _format_audit_recap(recap_data: dict) -> str:
+    s = recap_data.get("summary", {})
+    msg = f"<b>📊 AUDIT TRACK RECORD</b>\n"
+    msg += f"───────────────────────\n\n"
+    msg += f"• 🎯 <b>Win Rate:</b> <code>{s.get('win_rate',0):.1f}%</code>\n"
+    msg += f"• 📊 <b>Total:</b> {s.get('win_count',0)} WIN ✅ / {s.get('loss_count',0)} LOSS ❌\n"
+    msg += f"• ⏳ <b>Pending:</b> {s.get('pending_count',0)}\n"
+    msg += f"• 📈 <b>Estimasi Profit Kumulatif:</b> <code>{'+' if s.get('total_profit_pct',0) >= 0 else ''}{s.get('total_profit_pct',0):.1f}%</code>\n"
+    return msg
+
 def start_telegram_bot_listener():
     """
     Menjalankan background thread polling yang secara kontinu mendengarkan
@@ -209,6 +219,29 @@ def start_telegram_bot_listener():
     """
     if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
         return
+
+    def send_today_picks(chat_id):
+        """Kirim Top 10 rekomendasi hari ini ke chat tertentu."""
+        try:
+            from src.config import CACHE_FILE
+            import json
+            if CACHE_FILE.exists():
+                with open(CACHE_FILE) as f:
+                    data = json.load(f)
+                stocks = data.get("data", [])
+                if stocks:
+                    msg = f"<b>📅 REKOMENDASI SAHAM HARI INI</b>\n"
+                    msg += f"<i>{data.get('timestamp', '—')}</i>\n"
+                    msg += f"───────────────────────\n\n"
+                    for idx, s in enumerate(stocks[:10], 1):
+                        t = s['ticker'].replace('.JK', '')
+                        msg += f"<b>{idx}. {t}</b>\n"
+                        msg += f"   💵 {s.get('close_price',0):,.0f} → 🎯 {s.get('target_price',0):,.0f} 🛑 {s.get('stop_loss',0):,.0f}\n"
+                        msg += f"   🤖 Score: <code>{s.get('probability',0):.1f}%</code> | {s.get('reason','')}\n\n"
+                    return send_telegram_message(msg, target_chat_id=chat_id)
+            return send_telegram_message("Belum ada rekomendasi. Jalankan scan dulu.", target_chat_id=chat_id)
+        except Exception as e:
+            return send_telegram_message(f"Error: {str(e)}", target_chat_id=chat_id)
 
     def listener_loop():
         token = TELEGRAM_BOT_TOKEN
@@ -234,16 +267,22 @@ def start_telegram_bot_listener():
                             text = msg["text"].strip().lower()
                             chat_id = str(msg["chat"]["id"])
 
-                            if text in ["/today", "/audit", "today", "audit"]:
+                            if text in ["/today", "today"]:
+                                send_today_picks(chat_id)
+                            elif text in ["/audit", "audit"]:
                                 from dashboard.backend.routes.audit import get_audit_recap
                                 recap = get_audit_recap()
-                                send_after_market_audit_broadcast(recap)
+                                send_telegram_message(
+                                    _format_audit_recap(recap),
+                                    target_chat_id=chat_id
+                                )
                             elif text in ["/start", "/help", "halo", "hi"]:
                                 send_telegram_message(
                                     "<b>🤖 StockAI Trading Bot Ready!</b>\n\n"
                                     "Ketik perintah berikut kapan saja:\n"
-                                    "• <b>/today</b> atau <b>/audit</b> : Cek hasil audit WIN/LOSS hari ini.\n"
-                                    "• <b>/start</b> : Cek status bot.",
+                                    "• <b>/today</b> : Lihat rekomendasi saham terbaru 🎯\n"
+                                    "• <b>/audit</b> : Lihat track record audit WIN/LOSS 📊\n"
+                                    "• <b>/start</b> : Pesan ini",
                                     target_chat_id=chat_id
                                 )
             except Exception as e:
