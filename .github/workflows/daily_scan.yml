@@ -1,0 +1,85 @@
+name: StockAI Daily Scan & Broadcast
+
+on:
+  schedule:
+    # 01:30 UTC = 08:30 WIB (Senin - Jumat) - Pre-market Telegram Radar
+    - cron: '30 1 * * 1-5'
+    # 09:05 UTC = 16:05 WIB (Senin - Jumat) - After-market Sync & Scan
+    - cron: '5 9 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      job_type:
+        description: 'Pilih tipe pekerjaan yang akan dijalankan'
+        required: true
+        default: 'afternoon'
+        type: choice
+        options:
+          - afternoon
+          - morning
+
+permissions:
+  contents: write
+
+jobs:
+  run-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Determine Job Type
+        id: determine_job
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            if [ "${{ github.event.schedule }}" = "30 1 * * 1-5" ]; then
+              echo "JOB_TYPE=morning" >> $GITHUB_ENV
+            else
+              echo "JOB_TYPE=afternoon" >> $GITHUB_ENV
+            fi
+          else
+            echo "JOB_TYPE=${{ github.event.inputs.job_type }}" >> $GITHUB_ENV
+          fi
+
+      - name: Run Morning Pre-market Job
+        if: env.JOB_TYPE == 'morning'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -c "from src.scheduler.daily_scheduler import run_morning_premarket_job; run_morning_premarket_job()"
+
+      - name: Run Afternoon Sync & Scan Job
+        if: env.JOB_TYPE == 'afternoon'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -c "from src.scheduler.daily_scheduler import run_daily_after_market_job; run_daily_after_market_job()"
+
+      - name: Auto-Commit and Push Changes
+        if: env.JOB_TYPE == 'afternoon'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Force add files since they are in .gitignore
+          git add -f data/signals_audit.db data/latest_recommendations.json
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes in database or cache. Skipping commit."
+          else
+            git commit -m "chore: auto-update daily audit DB and cache [skip ci]"
+            git push origin HEAD:${{ github.ref }}
+          fi
