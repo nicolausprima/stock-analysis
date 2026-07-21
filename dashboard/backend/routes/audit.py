@@ -129,8 +129,14 @@ def run_audit():
             created_dt = datetime.now() - timedelta(days=1)
             
         # Kita mulai check harga sejak H+1 dari tanggal pembuatan sinyal
-        start_date = (created_dt + timedelta(days=1)).strftime("%Y-%m-%d")
-        
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        start_dt_val = created_dt + timedelta(days=1)
+        start_date = start_dt_val.strftime("%Y-%m-%d")
+
+        # Jika start_date hari ini atau masa depan, belum ada data H+1 untuk di-audit
+        if start_date >= today_str:
+            continue
+
         # Tambahkan akhiran .JK jika belum ada untuk yfinance
         yf_ticker = f"{ticker}.JK" if not ticker.endswith(".JK") else ticker
         
