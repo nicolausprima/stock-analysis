@@ -104,32 +104,36 @@ def get_track_record():
 
 @router.get("/audit/run")
 def run_audit():
-    """Memeriksa status semua sinyal PENDING menggunakan data yfinance terbaru."""
+    """Memeriksa status semua sinyal PENDING menggunakan data lokal stock_market.db & yfinance terbaru."""
+    import io
+    import contextlib
+
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
-    
+
     cursor.execute("SELECT * FROM signals WHERE status = 'PENDING'")
     pending_signals = cursor.fetchall()
-    
+
     updated_count = 0
-    
+    today_str = datetime.now().strftime("%Y-%m-%d")
+
+    # Buka koneksi ke stock_market.db untuk pencarian lokal cepat
+    market_db_path = PROJECT_ROOT / "data" / "stock_market.db"
+
     for sig in pending_signals:
         sig_id = sig["id"]
         ticker = sig["ticker"]
         entry_price = sig["entry_price"]
         target_price = sig["target_price"]
         stop_loss = sig["stop_loss"]
-        
+
         # Parse created_at
         try:
             created_dt = datetime.strptime(sig["created_at"], "%Y-%m-%d %H:%M:%S")
         except ValueError:
-            # Fallback jika format datetime berbeda
             created_dt = datetime.now() - timedelta(days=1)
-            
-        # Kita mulai check harga sejak H+1 dari tanggal pembuatan sinyal
-        today_str = datetime.now().strftime("%Y-%m-%d")
+
         start_dt_val = created_dt + timedelta(days=1)
         start_date = start_dt_val.strftime("%Y-%m-%d")
 
@@ -137,58 +141,72 @@ def run_audit():
         if start_date >= today_str:
             continue
 
-        # Tambahkan akhiran .JK jika belum ada untuk yfinance
         yf_ticker = f"{ticker}.JK" if not ticker.endswith(".JK") else ticker
-        
-        try:
-            # Download data historis harian dari start_date sampai sekarang
-            df = yf.download(yf_ticker, start=start_date, progress=False)
-            
-            if df.empty:
+        clean_ticker = yf_ticker.replace(".JK", "")
+
+        df = pd.DataFrame()
+
+        # 1. Coba ambil data dari database lokal stock_market.db terlebih dahulu
+        if market_db_path.exists():
+            try:
+                m_conn = sqlite3.connect(str(market_db_path))
+                query = """
+                    SELECT date, high as High, low as Low, close as Close 
+                    FROM daily_prices 
+                    WHERE (ticker = ? OR ticker = ?) AND date >= ?
+                    ORDER BY date ASC
+                """
+                df = pd.read_sql_query(query, m_conn, params=(yf_ticker, clean_ticker, start_date))
+                m_conn.close()
+            except Exception:
+                df = pd.DataFrame()
+
+        # 2. Jika belum ada di local DB, download via yfinance secara senyap (suppress stderr)
+        if df.empty:
+            try:
+                with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
+                    df_yf = yf.download(yf_ticker, start=start_date, end=today_str, progress=False)
+                    if not df_yf.empty:
+                        if isinstance(df_yf.columns, pd.MultiIndex):
+                            df_yf.columns = df_yf.columns.droplevel('Ticker') if 'Ticker' in df_yf.columns.names else df_yf.columns.get_level_values(0)
+                        df = df_yf
+            except Exception:
                 continue
-                
-            if isinstance(df.columns, pd.MultiIndex):
-                df.columns = df.columns.droplevel('Ticker') if 'Ticker' in df.columns.names else df.columns.get_level_values(0)
-                
-            # Loop melalui baris secara kronologis untuk mendeteksi mana yang kena duluan
-            new_status = "PENDING"
-            
-            for date_idx, row in df.iterrows():
-                high = float(row["High"])
-                low = float(row["Low"])
-                
-                is_tp = high >= target_price
-                is_sl = low <= stop_loss
-                
-                if is_tp and is_sl:
-                    # Jika keduanya kena pada hari yang sama, anggap LOSS untuk keamanan risiko (conservative)
-                    new_status = "LOSS"
-                    break
-                elif is_tp:
-                    new_status = "WIN"
-                    break
-                elif is_sl:
-                    new_status = "LOSS"
-                    break
-            
-            if new_status != "PENDING":
-                # Update status di database
-                cursor.execute("""
-                    UPDATE signals 
-                    SET status = ?, updated_at = datetime('now', 'localtime') 
-                    WHERE id = ?
-                """, (new_status, sig_id))
-                updated_count += 1
-                
-        except Exception as e:
-            # Lewati jika terjadi error download per ticker
-            print(f"Error auditing {ticker}: {str(e)}")
+
+        if df.empty:
             continue
-            
+
+        new_status = "PENDING"
+        for _, row in df.iterrows():
+            high = float(row["High"])
+            low = float(row["Low"])
+
+            is_tp = high >= target_price
+            is_sl = low <= stop_loss
+
+            if is_tp and is_sl:
+                new_status = "LOSS"
+                break
+            elif is_tp:
+                new_status = "WIN"
+                break
+            elif is_sl:
+                new_status = "LOSS"
+                break
+
+        if new_status != "PENDING":
+            cursor.execute("""
+                UPDATE signals 
+                SET status = ?, updated_at = datetime('now', 'localtime') 
+                WHERE id = ?
+            """, (new_status, sig_id))
+            updated_count += 1
+
     conn.commit()
     conn.close()
-    
+
     return {"status": "success", "updated_count": updated_count}
+
 
 @router.get("/audit/recap")
 def get_audit_recap():
