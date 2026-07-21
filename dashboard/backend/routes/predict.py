@@ -15,31 +15,57 @@ from src.config import CACHE_FILE
 router = APIRouter()
 
 @router.get("/recommendations")
-def get_recommendations():
+def get_recommendations(force: bool = False):
     """
-    Mengembalikan rekomendasi Top 10 secara instan (< 5ms) dari cache JSON.
-    Jika cache belum tersedia atau error, berikan fallback rekomendasi yang valid.
+    Mengembalikan rekomendasi Top 10.
+    - Default (force=false): baca dari cache JSON untuk load instan.
+    - ?force=true: jalankan ulang scheduler untuk scan fresh.
     """
-    if CACHE_FILE.exists():
-        try:
-            with open(CACHE_FILE, 'r') as f:
-                data = json.load(f)
-            if isinstance(data, dict) and data.get("status") == "success":
-                return data
-        except Exception as e:
-            print(f"Gagal membaca cache JSON: {str(e)}")
+    # Mode fresh scan: bypass cache
+    if force:
+        return _run_fresh_scan()
 
-    # Fallback jika cache belum tersedia atau status error (Hanya jalankan scheduler jika BUKAN dalam mode testing)
-    if os.getenv("TESTING") != "true":
-        try:
-            from src.scheduler.daily_scheduler import run_daily_after_market_job
-            res = run_daily_after_market_job()
-            if isinstance(res, dict) and res.get("status") == "success":
-                return res
-        except Exception as err:
-            print(f"Scheduler execution warning: {str(err)}")
+    # Mode instan: baca cache jika ada dan valid
+    cache = _read_cache()
+    if cache is not None:
+        return cache
 
-    # Default Graceful Fallback (terutama untuk CI / environment tanpa model biner)
+    # Cache tidak tersedia: coba scan langsung
+    return _run_fresh_scan()
+
+
+def _read_cache():
+    """Baca cache JSON, return None jika tidak valid."""
+    if not CACHE_FILE.exists():
+        return None
+    try:
+        with open(CACHE_FILE, 'r') as f:
+            data = json.load(f)
+        if isinstance(data, dict) and data.get("status") == "success":
+            return data
+    except Exception as e:
+        print(f"Gagal membaca cache JSON: {str(e)}")
+    return None
+
+
+def _run_fresh_scan():
+    """Analisa ulang dari data SQLite yang ada (tanpa download yfinance)."""
+    if os.getenv("TESTING") == "true":
+        return _fallback_response()
+
+    try:
+        from src.scheduler.daily_scheduler import run_daily_after_market_job
+        res = run_daily_after_market_job(skip_download=True)
+        if isinstance(res, dict) and res.get("status") == "success":
+            return res
+    except Exception as err:
+        print(f"Scheduler execution warning: {str(err)}")
+
+    return _fallback_response()
+
+
+def _fallback_response():
+    """Graceful fallback untuk CI / environment tanpa model."""
     return {
         "status": "success",
         "timestamp": "Realtime Fallback",
