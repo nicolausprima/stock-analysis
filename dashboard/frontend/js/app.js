@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cardsGrid.innerHTML = '';
 
         try {
-            const res  = await fetch('/api/recommendations');
+            const res  = await fetch('/api/recommendations?force=true');
             const data = await res.json();
 
             if (!res.ok) throw new Error(data.detail || 'Server error');
