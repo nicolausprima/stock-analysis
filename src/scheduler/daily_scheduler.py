@@ -24,13 +24,16 @@ from dashboard.backend.routes.features import derive_signals, generate_reason
 from dashboard.backend.routes.sentiment_filter import apply_asymmetric_sentiment_filter
 from dashboard.backend.routes.audit import save_signals_to_db
 
-def run_daily_after_market_job():
+def run_daily_after_market_job(skip_download=False):
     """
     Rutin Scheduler Harian (16:05 WIB Setelah Pasar Tutup):
     1. Mengunduh data 700+ saham secara batch aman rate limit.
     2. Ekstraksi Feature Embedding & Indikator.
     3. Prediksi XGBoost + Asymmetric Sentiment Filter.
     4. Simpan ke database audit & cache JSON untuk UI instan (<5ms).
+
+    Args:
+        skip_download: Jika True, lewati download yfinance (pakai data DB yg ada).
     """
     print("[SCHEDULER 16:05 WIB] Memulai proses rutin harian...")
     
@@ -46,22 +49,24 @@ def run_daily_after_market_job():
     scaler = joblib.load(scaler_path)
     expected_cols = list(scaler.feature_names_in_)
 
-    # 2. Batch download data harian (hanya jika model sudah ada)
-    download_universe_in_batches()
+    # 2. Batch download data harian (lewati jika skip_download=True)
+    if not skip_download:
+        download_universe_in_batches()
 
-
-    # Download data IHSG
-    try:
-        ihsg = yf.download('^JKSE', period='100d', progress=False)
-        if isinstance(ihsg.columns, pd.MultiIndex):
-            ihsg_close = ihsg['Close'].iloc[:, 0]
-        else:
-            ihsg_close = ihsg['Close']
-        ihsg_returns = pd.DataFrame({'IHSG_Return': ihsg_close.pct_change()}, index=ihsg.index)
-        if ihsg_returns.index.tz is not None:
-            ihsg_returns.index = ihsg_returns.index.tz_localize(None)
-    except Exception:
-        ihsg_returns = pd.DataFrame()
+    # Download data IHSG (lewati jika skip_download=True)
+    ihsg_returns = pd.DataFrame()
+    if not skip_download:
+        try:
+            ihsg = yf.download('^JKSE', period='100d', progress=False)
+            if isinstance(ihsg.columns, pd.MultiIndex):
+                ihsg_close = ihsg['Close'].iloc[:, 0]
+            else:
+                ihsg_close = ihsg['Close']
+            ihsg_returns = pd.DataFrame({'IHSG_Return': ihsg_close.pct_change()}, index=ihsg.index)
+            if ihsg_returns.index.tz is not None:
+                ihsg_returns.index = ihsg_returns.index.tz_localize(None)
+        except Exception:
+            ihsg_returns = pd.DataFrame()
 
     all_latest = []
     
