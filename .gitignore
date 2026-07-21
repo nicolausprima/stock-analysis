@@ -22,8 +22,8 @@ data/raw/
 data/processed/
 data/*.db
 data/*.json
-models/*.pkl
-models/*.joblib
+# models/*.pkl   # Dikecualikan supaya bisa dipakai GitHub Actions
+# models/*.joblib
 models/*.model
 models/*.json
 !models/.gitkeep
