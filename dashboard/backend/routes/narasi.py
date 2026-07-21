@@ -9,7 +9,7 @@ load_dotenv()
 
 router = APIRouter()
 
-# Konfigurasi OpenCode via 9Router
+# Konfigurasi Omniroute
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "http://127.0.0.1:20128/v1")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
@@ -30,14 +30,23 @@ class NarasiRequest(BaseModel):
     sentiment_impact: str = "NETRAL"
 
 def parse_and_clean_response(text: str) -> str:
-    """Bersihkan teks response dari data: [DONE] suffix lalu parse JSON."""
-    clean_text = text.replace("data: [DONE]", "").replace("data:[DONE]", "").strip()
-    data = json.loads(clean_text)
-    return data["choices"][0]["message"]["content"].strip()
+    """Parse SSE streaming response dari Omniroute (data: {...} chunks)."""
+    content_parts = []
+    for line in text.splitlines():
+        line = line.strip()
+        if line.startswith("data: ") and not line.startswith("data: [DONE]"):
+            try:
+                chunk = json.loads(line[6:])
+                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                if "content" in delta:
+                    content_parts.append(delta["content"])
+            except json.JSONDecodeError:
+                continue
+    return "".join(content_parts).strip()
 
 @router.post("/narasi")
 def generate_narrative(req: NarasiRequest):
-    """Menghasilkan ulasan opini analisis teknikal & sentimen berita terpadu menggunakan model DeepSeek lokal."""
+    """Menghasilkan ulasan opini analisis teknikal & sentimen berita terpadu menggunakan model AI."""
     url = f"{OPENAI_API_BASE}/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -62,14 +71,13 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
 """
 
     payload = {
-        "model": "oc/deepseek-v4-flash-free",
+        "model": "opencode/deepseek-v4-flash-free",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2
     }
     
     try:
-        # Coba panggil api dasar dengan timeout lebih longgar (30s)
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        response = requests.post(url, json=payload, headers=headers, timeout=120)
         if response.status_code == 200:
             narrative = parse_and_clean_response(response.text)
             return {"status": "success", "narasi": narrative}
@@ -77,14 +85,14 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
         # Jika gagal (misal docker network mapping mismatch), coba fallback ke localhost url
         if "host.docker.internal" in OPENAI_API_BASE:
             fallback_url = url.replace("host.docker.internal", "127.0.0.1")
-            response = requests.post(fallback_url, json=payload, headers=headers, timeout=30)
+            response = requests.post(fallback_url, json=payload, headers=headers, timeout=120)
             if response.status_code == 200:
                 narrative = parse_and_clean_response(response.text)
                 return {"status": "success", "narasi": narrative}
                 
         raise HTTPException(
             status_code=500, 
-            detail=f"Error dari API 9Router (status {response.status_code})"
+            detail=f"Error dari API Omniroute (status {response.status_code})"
         )
         
     except Exception as e:
@@ -92,7 +100,7 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
         if "host.docker.internal" in OPENAI_API_BASE:
             try:
                 fallback_url = url.replace("host.docker.internal", "127.0.0.1")
-                response = requests.post(fallback_url, json=payload, headers=headers, timeout=30)
+                response = requests.post(fallback_url, json=payload, headers=headers, timeout=120)
                 if response.status_code == 200:
                     narrative = parse_and_clean_response(response.text)
                     return {"status": "success", "narasi": narrative}
