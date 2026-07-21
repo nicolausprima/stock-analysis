@@ -29,7 +29,7 @@ try:
 except ImportError:
     pass
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "8992155301:AAEUgsN223ZPDnDd22649k316tuhZMuiLCA")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "")
 
 def get_tickers():
