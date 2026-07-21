@@ -134,11 +134,11 @@ def run_audit():
         except ValueError:
             created_dt = datetime.now() - timedelta(days=1)
 
-        start_dt_val = created_dt + timedelta(days=1)
+        start_dt_val = created_dt
         start_date = start_dt_val.strftime("%Y-%m-%d")
 
-        # Jika start_date hari ini atau masa depan, belum ada data H+1 untuk di-audit
-        if start_date >= today_str:
+        # Jika start_date masih di masa depan, belum ada data untuk di-audit
+        if start_date > today_str:
             continue
 
         yf_ticker = f"{ticker}.JK" if not ticker.endswith(".JK") else ticker
