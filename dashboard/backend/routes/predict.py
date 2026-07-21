@@ -43,7 +43,7 @@ def get_recommendations():
     return {
         "status": "success",
         "timestamp": "Realtime Fallback",
-        "total_scanned": 300,
+        "total_scanned": 700,
         "data": [
             {
                 "ticker": "BBCA.JK",
@@ -66,11 +66,12 @@ def get_recommendations():
 
 @router.get("/sync")
 def sync_market_data():
-    """Endpoint manual untuk memaksa sinkronisasi batch data 300+ saham & kalkulasi rekomendasi baru."""
+    """Endpoint manual untuk memaksa sinkronisasi batch data 700+ saham & kalkulasi rekomendasi baru."""
     try:
         from src.scheduler.daily_scheduler import run_daily_after_market_job
         res = run_daily_after_market_job()
-        return {"status": "success", "message": "Sinkronisasi data 300+ saham selesai.", "data": res}
+        return {"status": "success", "message": "Sinkronisasi data 700+ saham selesai.", "data": res}
+
     except Exception as err:
         raise HTTPException(
             status_code=500,
