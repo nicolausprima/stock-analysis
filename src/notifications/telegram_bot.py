@@ -198,7 +198,7 @@ def send_after_market_audit_broadcast(recap_data: dict) -> dict:
     msg += f"• 📈 <b>Total Estimasi Profit:</b> <code>{'+' if total_profit >= 0 else ''}{total_profit:.1f}%</code> ({total_signals} Sinyal)\n\n"
     
     msg += f"───────────────────────\n"
-    msg += f"🚀 <i>Data 300+ saham BEI terbaru telah diunduh dari Yahoo Finance & dianalisis untuk rekomendasi esok hari!</i>"
+    msg += f"🚀 <i>Data 700+ saham BEI terbaru telah diunduh dari Yahoo Finance & dianalisis untuk rekomendasi esok hari!</i>"
 
     return send_telegram_message(msg)
 

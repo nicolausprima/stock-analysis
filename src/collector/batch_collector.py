@@ -14,7 +14,7 @@ from src.database.market_db import save_daily_prices, init_market_db
 
 def download_universe_in_batches(tickers_list=None, batch_size=BATCH_SIZE, delay_seconds=BATCH_DELAY_SECONDS):
     """
-    Mengunduh data pasar 300+ saham BEI secara batch dengan jeda waktu (delay)
+    Mengunduh data pasar 700+ saham BEI secara batch dengan jeda waktu (delay)
     agar 100% aman dari IP Ban / Rate Limit Yahoo Finance.
     """
     if tickers_list is None:

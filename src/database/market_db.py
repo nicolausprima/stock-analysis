@@ -11,7 +11,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.config import DB_PATH
 
 def init_market_db():
-    """Menginisialisasi tabel SQLite untuk menyimpan data pasar harian 300+ saham."""
+    """Menginisialisasi tabel SQLite untuk menyimpan data pasar harian 700+ saham."""
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.cursor()
     cursor.execute("""

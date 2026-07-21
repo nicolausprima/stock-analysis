@@ -27,7 +27,7 @@ from dashboard.backend.routes.audit import save_signals_to_db
 def run_daily_after_market_job():
     """
     Rutin Scheduler Harian (16:05 WIB Setelah Pasar Tutup):
-    1. Mengunduh data 300+ saham secara batch aman rate limit.
+    1. Mengunduh data 700+ saham secara batch aman rate limit.
     2. Ekstraksi Feature Embedding & Indikator.
     3. Prediksi XGBoost + Asymmetric Sentiment Filter.
     4. Simpan ke database audit & cache JSON untuk UI instan (<5ms).
