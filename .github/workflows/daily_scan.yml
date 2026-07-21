@@ -73,8 +73,10 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Force add files since they are in .gitignore
-          git add -f data/signals_audit.db data/latest_recommendations.json
+          # Only add files that actually exist (might not be generated on first run)
+          for f in data/signals_audit.db data/latest_recommendations.json; do
+            [ -f "$f" ] && git add -f "$f"
+          done
           
           # Check if there are changes to commit
           if git diff --staged --quiet; then
