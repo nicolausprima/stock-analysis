@@ -120,11 +120,13 @@ Navigate to `http://127.0.0.1:8000` in your web browser.
 
 ---
 
-## 🤖 Telegram Bot Commands
+## 🤖 Telegram Bot Interactive Commands
 
 | Command | Action |
 |---|---|
-| `/today` | Shows today's WIN / LOSS audit breakdown for newly triggered signals. |
+| `/today` | Shows today's top buy signals for Market Open (09:00 WIB). |
+| `/midday` | Displays Sesi 1 market recap & signal progress (12:00 WIB). |
+| `/bsjp` | Displays Beli Sore Jual Pagi radar recommendations (15:30 WIB). |
 | `/audit` | Displays overall performance audit recap (Win Rate, Total WIN/LOSS, Cumulative Profit %). |
 | `/start` | Displays interactive welcome message and available bot commands. |
 
