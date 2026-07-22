@@ -360,6 +360,28 @@ def start_telegram_bot_listener():
 
                             if text in ["/today", "today"]:
                                 send_today_picks(chat_id)
+                            elif text in ["/midday", "midday"]:
+                                try:
+                                    from dashboard.backend.routes.audit import get_today_audit_summary
+                                    info = get_today_audit_summary()
+                                    send_midday_recap_broadcast(info)
+                                except Exception as e:
+                                    send_telegram_message(f"Error fetching midday recap: {str(e)}", target_chat_id=chat_id)
+                            elif text in ["/bsjp", "bsjp"]:
+                                try:
+                                    from src.config import CACHE_FILE
+                                    import json
+                                    stocks = []
+                                    if CACHE_FILE.exists():
+                                        with open(CACHE_FILE) as f:
+                                            data = json.load(f)
+                                        stocks = data.get("data", [])
+                                    if stocks:
+                                        send_bsjp_radar_broadcast(stocks)
+                                    else:
+                                        send_telegram_message("Belum ada data BSJP sore ini.", target_chat_id=chat_id)
+                                except Exception as e:
+                                    send_telegram_message(f"Error fetching BSJP data: {str(e)}", target_chat_id=chat_id)
                             elif text in ["/audit", "audit"]:
                                 from dashboard.backend.routes.audit import get_audit_recap
                                 recap = get_audit_recap()
@@ -370,10 +392,12 @@ def start_telegram_bot_listener():
                             elif text in ["/start", "/help", "halo", "hi"]:
                                 send_telegram_message(
                                     "<b>🤖 StockAI Trading Bot Ready!</b>\n\n"
-                                    "Ketik perintah berikut kapan saja:\n"
-                                    "• <b>/today</b> : Lihat rekomendasi saham terbaru 🎯\n"
-                                    "• <b>/audit</b> : Lihat track record audit WIN/LOSS 📊\n"
-                                    "• <b>/start</b> : Pesan ini",
+                                    "Ketik perintah interaktif berikut kapan saja:\n"
+                                    "• <b>/today</b> : Rekomendasi Saham Siap Beli Pagi 🎯\n"
+                                    "• <b>/midday</b> : Update Sesi 1 & Progress Sinyal ☕\n"
+                                    "• <b>/bsjp</b> : Sinyal Beli Sore Jual Pagi 🌇\n"
+                                    "• <b>/audit</b> : Track Record & Win Rate Akumulasi 📊\n"
+                                    "• <b>/start</b> : Menampilkan menu perintah ini",
                                     target_chat_id=chat_id
                                 )
             except Exception as e:
