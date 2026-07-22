@@ -122,13 +122,15 @@ Navigate to `http://127.0.0.1:8000` in your web browser.
 
 ## 🤖 Telegram Bot Interactive Commands
 
-| Command | Action |
-|---|---|
-| `/today` | Shows today's top buy signals for Market Open (09:00 WIB). |
-| `/midday` | Displays Sesi 1 market recap & signal progress (12:00 WIB). |
-| `/bsjp` | Displays Beli Sore Jual Pagi radar recommendations (15:30 WIB). |
-| `/audit` | Displays overall performance audit recap (Win Rate, Total WIN/LOSS, Cumulative Profit %). |
-| `/start` | Displays interactive welcome message and available bot commands. |
+You can interact directly with the bot (`@StockAnalysisLocalBot`) on Telegram at any time using the following commands:
+
+| Command | Triggers | Description & Action |
+|---|---|---|
+| `/today` | Morning Buy Signal | Displays top 10 buy recommendations for Market Open (09:00 WIB). |
+| `/midday` | Midday Market Recap | Displays real-time Sesi 1 market recap & signal progress (12:00 WIB). |
+| `/bsjp` | BSJP Radar | Displays Beli Sore Jual Pagi momentum stock picks 30 mins before close (15:30 WIB). |
+| `/audit` | Track Record Audit | Displays 6-month accumulative performance audit (Win Rate %, WIN/LOSS counts, Profit %). |
+| `/start` / `/help` | Bot Menu | Displays interactive welcome menu with all available bot commands. |
 
 ---
 
