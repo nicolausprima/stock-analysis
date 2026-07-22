@@ -41,7 +41,7 @@ def _read_cache():
     try:
         with open(CACHE_FILE, 'r') as f:
             data = json.load(f)
-        if isinstance(data, dict) and data.get("status") == "success":
+        if isinstance(data, dict) and data.get("status") == "success" and len(data.get("data", [])) >= 5:
             return data
     except Exception as e:
         print(f"Gagal membaca cache JSON: {str(e)}")
