@@ -49,13 +49,13 @@ def _read_cache():
 
 
 def _run_fresh_scan():
-    """Analisa ulang dari data SQLite yang ada (tanpa download yfinance)."""
+    """Analisa ulang dari data SQLite yang ada (tanpa download yfinance, tanpa Telegram)."""
     if os.getenv("TESTING") == "true":
         return _fallback_response()
 
     try:
         from src.scheduler.daily_scheduler import run_daily_after_market_job
-        res = run_daily_after_market_job(skip_download=True)
+        res = run_daily_after_market_job(skip_download=True, broadcast_telegram=False)
         if isinstance(res, dict) and res.get("status") == "success":
             return res
     except Exception as err:

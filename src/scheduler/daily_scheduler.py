@@ -24,7 +24,7 @@ from dashboard.backend.routes.features import derive_signals, generate_reason
 from dashboard.backend.routes.sentiment_filter import apply_asymmetric_sentiment_filter
 from dashboard.backend.routes.audit import save_signals_to_db
 
-def run_daily_after_market_job(skip_download=False):
+def run_daily_after_market_job(skip_download=False, broadcast_telegram=True):
     """
     Rutin Scheduler Harian (16:05 WIB Setelah Pasar Tutup):
     1. Mengunduh data 700+ saham secara batch aman rate limit.
@@ -34,6 +34,7 @@ def run_daily_after_market_job(skip_download=False):
 
     Args:
         skip_download: Jika True, lewati download yfinance (pakai data DB yg ada).
+        broadcast_telegram: Jika False, lewati pengiriman notifikasi Telegram.
     """
     print("[SCHEDULER 16:05 WIB] Memulai proses rutin harian...")
     
@@ -170,15 +171,18 @@ def run_daily_after_market_job(skip_download=False):
         json.dump(payload, f, indent=2)
 
     # Kirim siaran otomatis ke Telegram Bot (After-Market Audit & Sync)
-    try:
-        from dashboard.backend.routes.audit import run_audit, get_audit_recap
-        run_audit()
-        recap = get_audit_recap()
-        from src.notifications.telegram_bot import send_after_market_audit_broadcast
-        send_after_market_audit_broadcast(recap)
-    except Exception as te:
-        print(f"[TELEGRAM] Error sending scheduler broadcast: {str(te)}")
-
+    # Hanya dikirim saat scheduled job sungguhan (bukan saat dipanggil dari UI)
+    if broadcast_telegram:
+        try:
+            from dashboard.backend.routes.audit import run_audit, get_audit_recap
+            run_audit()
+            recap = get_audit_recap()
+            from src.notifications.telegram_bot import send_after_market_audit_broadcast
+            send_after_market_audit_broadcast(recap)
+        except Exception as te:
+            print(f"[TELEGRAM] Error sending scheduler broadcast: {str(te)}")
+    else:
+        print("[INFO] Telegram broadcast dilewati (dipanggil dari UI / skip_download mode).")
 
     print(f"[SUCCESS] [SCHEDULER 16:05 WIB] Selesai! Data disinkronkan, sinyal di-audit & Telegram Broadcast tersampaikan.")
     return payload
