@@ -139,10 +139,9 @@ def send_morning_radar_broadcast(recommendations: list[dict]) -> dict:
 
     return send_telegram_message(msg)
 
-def send_after_market_audit_broadcast(recap_data: dict) -> dict:
+def send_after_market_audit_broadcast(recap_data: dict, new_recommendations: list = None, today_audit: dict = None) -> dict:
     """
-    [FASE 2: 16:05 WIB - AFTER-MARKET AUDIT & RECAP]
-    Mengirimkan ringkasan audit hasil trading KHUSUS HARI INI + Total Track Record.
+    Mengirimkan ringkasan audit hasil trading KHUSUS HARI INI + Total Track Record + Rekomendasi Esok Hari.
     """
     summary = recap_data.get("summary", {})
     win_rate_total = summary.get("win_rate", 0.0)
@@ -153,13 +152,14 @@ def send_after_market_audit_broadcast(recap_data: dict) -> dict:
 
     today_str = time.strftime("%Y-%m-%d")
 
-    # Ambil rincian sinyal khusus hari ini dari API audit
-    today_info = {}
-    try:
-        from dashboard.backend.routes.audit import get_today_audit_summary
-        today_info = get_today_audit_summary()
-    except Exception as e:
-        print(f"[TELEGRAM] Error fetching today audit summary: {str(e)}")
+    # Ambil rincian sinyal khusus hari ini jika belum di-pass
+    today_info = today_audit or {}
+    if not today_info:
+        try:
+            from dashboard.backend.routes.audit import get_today_audit_summary
+            today_info = get_today_audit_summary()
+        except Exception as e:
+            print(f"[TELEGRAM] Error fetching today audit summary: {str(e)}")
 
     msg = f"<b>📊 STOCKAI AFTER-MARKET AUDIT & SYNC 🇮🇩</b>\n"
     msg += f"<i>📅 {today_str} | ⏰ 16:05 WIB (Pasar Tutup)</i>\n"
@@ -196,6 +196,19 @@ def send_after_market_audit_broadcast(recap_data: dict) -> dict:
     msg += f"• 🎯 <b>Win Rate Total:</b> <code>{win_rate_total:.1f}%</code>\n"
     msg += f"• 📊 <b>Total Hasil:</b> {win_count_total} WIN ✅ / {loss_count_total} LOSS ❌\n"
     msg += f"• 📈 <b>Total Estimasi Profit:</b> <code>{'+' if total_profit >= 0 else ''}{total_profit:.1f}%</code> ({total_signals} Sinyal)\n\n"
+    
+    # --- SECTION 3: REKOMENDASI SINYAL BELI ESOK HARI ---
+    if new_recommendations:
+        msg += f"───────────────────────\n"
+        msg += f"<b>🚀 REKOMENDASI SINYAL BELI ESOK HARI:</b>\n"
+        for idx, s in enumerate(new_recommendations[:10], start=1):
+            clean_tk = s['ticker'].replace('.JK', '')
+            prob = s['probability']
+            ep = format_idr(s['close_price'])
+            tp = format_idr(s['target_price'])
+            sl = format_idr(s['stop_loss'])
+            msg += f"{idx}. <b>{clean_tk}</b> (AI Score: <code>{prob:.1f}%</code>) | Entry {ep} | TP {tp} | SL {sl}\n"
+        msg += f"\n"
     
     msg += f"───────────────────────\n"
     msg += f"🚀 <i>Data 700+ saham BEI terbaru telah diunduh dari Yahoo Finance & dianalisis untuk rekomendasi esok hari!</i>"

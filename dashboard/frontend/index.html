@@ -135,13 +135,23 @@
         </div>
     </div>
 
-    <!-- Results -->
+    <!-- Main View Switcher Tabs -->
+    <div class="main-tabs-bar" style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 12px; flex-wrap: wrap;">
+        <button id="tab-btn-recom" class="btn-scan" style="padding: 10px 20px; font-size: 14px; background: var(--c-charcoal); color: #FFF; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s;" onclick="switchMainTab('recom')">
+            🚀 Rekomendasi Sinyal Beli Esok Hari
+        </button>
+        <button id="tab-btn-audit" class="btn-scan" style="padding: 10px 20px; font-size: 14px; background: rgba(0,0,0,0.05); color: var(--c-charcoal); border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;" onclick="switchMainTab('audit')">
+            🎯 Hasil Audit Trading Hari Ini &amp; Track Record
+        </button>
+    </div>
+
+    <!-- Results (Rekomendasi Esok Hari) -->
     <div id="results" class="results hidden">
 
         <!-- Section header -->
         <div class="section-hd">
             <div class="section-hd-left">
-                <h2>Top 10 Rekomendasi</h2>
+                <h2>Top 10 Rekomendasi Sinyal Beli Esok Hari</h2>
                 <span class="chip green">BUY SIGNAL</span>
             </div>
             <p class="section-note">
@@ -184,10 +194,14 @@
     </div>
 
     <!-- Permanent Track Record Audit & Monthly Recap Section -->
-    <section class="audit-section" style="margin-top: var(--sp-10);">
+    <section class="audit-section" id="audit-section" style="margin-top: var(--sp-6);">
+
+        <!-- Today Audit Highlight Container -->
+        <div id="today-audit-container" style="margin-bottom: 24px;"></div>
+
         <div class="cards-hd" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
             <div>
-                <h3>Performa &amp; Audit Track Record</h3>
+                <h3>Performa &amp; Audit Track Record Akumulasi</h3>
                 <p>Statistik harian, grafik pertumbuhan modal (Equity Curve), dan rekapitulasi per bulan</p>
             </div>
             <button id="seed-sim-btn" class="btn-scan" style="padding: 8px 16px; font-size: 13px; background: rgba(28, 28, 28, 0.08); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12);" onclick="runAuditSimulationSeed()">
@@ -317,6 +331,6 @@
     <p class="footer-note">For Educational Purpose</p>
 </footer>
 
-<script src="js/app.js?v=25"></script>
+<script src="js/app.js?v=26"></script>
 </body>
 </html>
