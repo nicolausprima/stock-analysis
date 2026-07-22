@@ -387,7 +387,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 console.error('Failed to run audit:', e);
             }
-            await loadTodayAudit();
             await loadTrackRecord();
             await loadAuditRecapAndChart();
         }
