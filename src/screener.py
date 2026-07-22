@@ -29,6 +29,29 @@ def get_latest_data(ticker: str, ihsg_returns: pd.DataFrame) -> pd.DataFrame:
     # 1. Indikator Teknikal
     df = add_technical_indicators(df)
     
+    # 2. Fitur Baru: Lagged Returns (Sejarah masa lalu)
+    df['Return_1d'] = df['Close'].pct_change(1)
+    df['Return_2d'] = df['Close'].pct_change(2)
+    df['Return_3d'] = df['Close'].pct_change(3)
+    df['Return_5d'] = df['Close'].pct_change(5)
+    
+    # 3. Fitur Baru: Day of Week (0=Senin, 4=Jumat)
+    df['Day_of_Week'] = df.index.dayofweek
+    
+    # 4. Fitur Baru: IHSG Return
+    if df.index.tz is not None:
+        df.index = df.index.tz_localize(None)
+    df = df.join(ihsg_returns, how='left')
+    df['IHSG_Return'] = df['IHSG_Return'].fillna(0)
+    
+    # 5. Ticker identitas
+    df['Ticker'] = ticker
+    
+    # Ambil HANYA baris terakhir (Data Hari Ini)
+    latest_row = df.iloc[-1:].copy()
+    
+    return latest_row
+
 def generate_reason(row: pd.Series) -> str:
     """Menerjemahkan nilai teknikal ke dalam bahasa manusia."""
     reasons = []
@@ -57,29 +80,6 @@ def generate_reason(row: pd.Series) -> str:
         reasons.append("Pola Volume & Momentum tersembunyi yang dikenali AI")
         
     return ", ".join(reasons)
-    
-    # 2. Fitur Baru: Lagged Returns (Sejarah masa lalu)
-    df['Return_1d'] = df['Close'].pct_change(1)
-    df['Return_2d'] = df['Close'].pct_change(2)
-    df['Return_3d'] = df['Close'].pct_change(3)
-    df['Return_5d'] = df['Close'].pct_change(5)
-    
-    # 3. Fitur Baru: Day of Week (0=Senin, 4=Jumat)
-    df['Day_of_Week'] = df.index.dayofweek
-    
-    # 4. Fitur Baru: IHSG Return
-    if df.index.tz is not None:
-        df.index = df.index.tz_localize(None)
-    df = df.join(ihsg_returns, how='left')
-    df['IHSG_Return'] = df['IHSG_Return'].fillna(0)
-    
-    # 5. Ticker identitas
-    df['Ticker'] = ticker
-    
-    # Ambil HANYA baris terakhir (Data Hari Ini)
-    latest_row = df.iloc[-1:].copy()
-    
-    return latest_row
 
 def main():
     logging.info("=== 🚀 LIVE STOCK SCREENER INITIALIZED ===")
