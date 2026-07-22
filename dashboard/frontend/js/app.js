@@ -548,7 +548,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const row = document.createElement('tr');
                 const statusClass = s.status.toLowerCase();
                 row.innerHTML = `
-                    <td>${s.created_at.split(' ')[0]}</td>
+                    <td>${(s.updated_at || s.created_at).split(' ')[0]}</td>
                     <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
                     <td>${fmtPrice(s.entry_price)}</td>
                     <td style="color: var(--c-charcoal)">${fmtPrice(s.target_price)}</td>
