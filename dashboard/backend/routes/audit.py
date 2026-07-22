@@ -96,7 +96,8 @@ def get_track_record():
             "stop_loss": r["stop_loss"],
             "probability": r["probability"],
             "status": r["status"],
-            "created_at": r["created_at"]
+            "created_at": r["created_at"],
+            "updated_at": r["updated_at"]
         })
         
     conn.close()
