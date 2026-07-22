@@ -152,14 +152,24 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True):
             "reason": generate_reason(row)
         })
 
-    # Terapkan Asymmetric Risk Filter & Score Booster
+    # 3. Jalankan audit sinyal trading hari ini (SEBELUM membuat/menyimpan sinyal esok hari)
+    today_audit = {}
+    recap = {}
+    try:
+        from dashboard.backend.routes.audit import run_audit, get_audit_recap, get_today_audit_summary
+        run_audit()
+        today_audit = get_today_audit_summary()
+        recap = get_audit_recap()
+    except Exception as ae:
+        print(f"[AUDIT] Warning running pre-scan audit: {str(ae)}")
+
+    # 4. Terapkan Asymmetric Risk Filter & Score Booster untuk sinyal esok hari
     filtered_candidates = apply_asymmetric_sentiment_filter(candidates)
     results = filtered_candidates[:10]
 
-    # Simpan sinyal ke SQLite database audit
+    # Simpan sinyal baru ke SQLite database audit & cache JSON
     save_signals_to_db(results)
 
-    # Simpan hasil ke cache JSON untuk UI instan (< 5ms)
     payload = {
         "status": "success",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -170,15 +180,11 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True):
     with open(CACHE_FILE, 'w') as f:
         json.dump(payload, f, indent=2)
 
-    # Kirim siaran otomatis ke Telegram Bot (After-Market Audit & Sync)
-    # Hanya dikirim saat scheduled job sungguhan (bukan saat dipanggil dari UI)
+    # 5. Kirim siaran otomatis ke Telegram Bot (After-Market Audit & Sync)
     if broadcast_telegram:
         try:
-            from dashboard.backend.routes.audit import run_audit, get_audit_recap
-            run_audit()
-            recap = get_audit_recap()
             from src.notifications.telegram_bot import send_after_market_audit_broadcast
-            send_after_market_audit_broadcast(recap)
+            send_after_market_audit_broadcast(recap, new_recommendations=results, today_audit=today_audit)
         except Exception as te:
             print(f"[TELEGRAM] Error sending scheduler broadcast: {str(te)}")
     else:

@@ -324,27 +324,36 @@ def get_today_audit_summary():
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Cari sinyal yang dibuat hari ini atau paling baru
+    # Cari tanggal batch sinyal yang diperdagangkan/diaudit hari ini
     today_str = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute("""
+        SELECT DISTINCT strftime('%Y-%m-%d', created_at) as dt 
+        FROM signals 
+        ORDER BY dt DESC 
+        LIMIT 5
+    """)
+    dates = [r["dt"] for r in cursor.fetchall()]
+
+    audit_date = today_str
+    if dates:
+        # Jika batch terbaru dibuat hari ini dan seluruhnya PENDING (sinyal esok hari),
+        # ambil batch tanggal sebelumnya yang dievaluasi hari ini
+        if dates[0] == today_str and len(dates) > 1:
+            cursor.execute("SELECT COUNT(*) as total, SUM(CASE WHEN status != 'PENDING' THEN 1 ELSE 0 END) as decided FROM signals WHERE strftime('%Y-%m-%d', created_at) = ?", (today_str,))
+            chk = cursor.fetchone()
+            if chk and (chk["decided"] == 0 or chk["decided"] is None):
+                audit_date = dates[1]
+            else:
+                audit_date = dates[0]
+        else:
+            audit_date = dates[0]
+
     cursor.execute("""
         SELECT * FROM signals 
         WHERE strftime('%Y-%m-%d', created_at) = ? 
         ORDER BY id DESC
-    """, (today_str,))
+    """, (audit_date,))
     rows = cursor.fetchall()
-
-    # Jika hari ini belum ada sinyal, ambil tanggal perdagangan paling baru di DB
-    if not rows:
-        cursor.execute("SELECT created_at FROM signals ORDER BY id DESC LIMIT 1")
-        latest_row = cursor.fetchone()
-        if latest_row:
-            latest_date = latest_row["created_at"].split(" ")[0]
-            cursor.execute("""
-                SELECT * FROM signals 
-                WHERE strftime('%Y-%m-%d', created_at) = ? 
-                ORDER BY id DESC
-            """, (latest_date,))
-            rows = cursor.fetchall()
 
     today_signals = []
     win_cnt = 0

@@ -387,9 +387,118 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 console.error('Failed to run audit:', e);
             }
+            await loadTodayAudit();
             await loadTrackRecord();
             await loadAuditRecapAndChart();
         }
+
+        async function loadTodayAudit() {
+            const container = document.getElementById('today-audit-container');
+            if (!container) return;
+
+            try {
+                const res = await fetch('/api/audit/today');
+                const data = await res.json();
+
+                if (res.ok && data.status === 'success' && data.signals?.length > 0) {
+                    let signalsHtml = '';
+                    data.signals.forEach((s, idx) => {
+                        const badge = s.status === 'WIN' ? '<span class="badge bullish">WIN ✅</span>' :
+                                      (s.status === 'LOSS' ? '<span class="badge bearish">LOSS ❌</span>' : '<span class="badge netral">PENDING ⏳</span>');
+                        signalsHtml += `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
+                                <td>${fmtPrice(s.entry_price)}</td>
+                                <td style="color: var(--c-charcoal);">${fmtPrice(s.target_price)}</td>
+                                <td style="color: var(--c-red);">${fmtPrice(s.stop_loss)}</td>
+                                <td>${s.probability.toFixed(1)}%</td>
+                                <td>${badge}</td>
+                            </tr>
+                        `;
+                    });
+
+                    const gainSign = data.total_gain >= 0 ? '+' : '';
+
+                    container.innerHTML = `
+                        <div class="glass-card" style="padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                                <div>
+                                    <h4 style="font-family: var(--font-accent); font-size: 18px; font-weight: 700; color: var(--c-charcoal); margin:0;">
+                                        🔥 Hasil Audit Trading Hari Ini (${data.date})
+                                    </h4>
+                                    <p style="font-size: 13px; color: var(--c-soft-gray); margin: 4px 0 0 0;">
+                                        Evaluasi sinyal perdagangan yang berjalan pada hari bursa ini
+                                    </p>
+                                </div>
+                                <span class="chip ${data.total_gain >= 0 ? 'green' : 'red'}" style="font-size: 14px; font-weight: 700;">
+                                    Gain Harian: ${gainSign}${data.total_gain.toFixed(1)}%
+                                </span>
+                            </div>
+
+                            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; font-size: 13px; font-weight: 500;">
+                                <span>Hasil Sinyal: <strong style="color: var(--c-green);">${data.win_count} WIN</strong> / <strong style="color: var(--c-red);">${data.loss_count} LOSS</strong> ${data.pending_count > 0 ? `/ <strong>${data.pending_count} PENDING</strong>` : ''}</span>
+                                <span>Win Rate Hari Ini: <strong>${data.win_rate.toFixed(1)}%</strong></span>
+                            </div>
+
+                            <div class="table-scroll" tabindex="0">
+                                <table class="stock-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Saham</th>
+                                            <th>Harga Entry</th>
+                                            <th>Target (+3.0%)</th>
+                                            <th>Stop Loss (-1.5%)</th>
+                                            <th>AI Score</th>
+                                            <th>Status Audit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${signalsHtml}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = '';
+                }
+            } catch (e) {
+                console.error('Failed to load today audit:', e);
+            }
+        }
+
+        window.switchMainTab = function(tabName) {
+            const resultsDiv = document.getElementById('results');
+            const auditSec = document.getElementById('audit-section');
+            const btnRecom = document.getElementById('tab-btn-recom');
+            const btnAudit = document.getElementById('tab-btn-audit');
+
+            if (tabName === 'recom') {
+                if (resultsDiv) resultsDiv.classList.remove('hidden');
+                if (auditSec) auditSec.style.display = 'block';
+                if (btnRecom) {
+                    btnRecom.style.background = 'var(--c-charcoal)';
+                    btnRecom.style.color = '#FFF';
+                }
+                if (btnAudit) {
+                    btnAudit.style.background = 'rgba(0,0,0,0.05)';
+                    btnAudit.style.color = 'var(--c-charcoal)';
+                }
+                if (resultsDiv) resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else if (tabName === 'audit') {
+                if (resultsDiv) resultsDiv.classList.remove('hidden');
+                if (auditSec) auditSec.style.display = 'block';
+                if (btnAudit) {
+                    btnAudit.style.background = 'var(--c-charcoal)';
+                    btnAudit.style.color = '#FFF';
+                }
+                if (btnRecom) {
+                    btnRecom.style.background = 'rgba(0,0,0,0.05)';
+                    btnRecom.style.color = 'var(--c-charcoal)';
+                }
+                if (auditSec) auditSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        };
 
         async function loadTrackRecord() {
             const body = document.getElementById('audit-table-body');
