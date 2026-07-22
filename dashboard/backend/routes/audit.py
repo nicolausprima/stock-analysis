@@ -165,8 +165,9 @@ def run_audit():
         # 2. Jika belum ada di local DB, download via yfinance secara senyap (suppress stderr)
         if df.empty:
             try:
+                end_dt_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
                 with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
-                    df_yf = yf.download(yf_ticker, start=start_date, end=today_str, progress=False)
+                    df_yf = yf.download(yf_ticker, start=start_date, end=end_dt_str, progress=False)
                     if not df_yf.empty:
                         if isinstance(df_yf.columns, pd.MultiIndex):
                             df_yf.columns = df_yf.columns.droplevel('Ticker') if 'Ticker' in df_yf.columns.names else df_yf.columns.get_level_values(0)
