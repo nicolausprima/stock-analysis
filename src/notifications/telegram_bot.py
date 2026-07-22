@@ -139,6 +139,84 @@ def send_morning_radar_broadcast(recommendations: list[dict]) -> dict:
 
     return send_telegram_message(msg)
 
+def send_midday_recap_broadcast(today_audit: dict = None) -> dict:
+    """
+    [FASE 2: 12:00 WIB - MIDDAY MARKET RECAP]
+    Mengirimkan update performa pasar Sesi 1 saat bursa istirahat (12:00 WIB).
+    """
+    today_str = time.strftime("%Y-%m-%d")
+    today_info = today_audit or {}
+    if not today_info:
+        try:
+            from dashboard.backend.routes.audit import get_today_audit_summary
+            today_info = get_today_audit_summary()
+        except Exception as e:
+            print(f"[TELEGRAM] Error fetching today audit summary for midday: {str(e)}")
+
+    msg = f"<b>☕ STOCKAI MIDDAY MARKET RECAP 🇮🇩</b>\n"
+    msg += f"<i>📅 {today_str} | ⏰ 12:00 WIB (Jeda Sesi 1)</i>\n"
+    msg += f"───────────────────────\n\n"
+
+    if today_info and today_info.get("signals"):
+        t_win = today_info.get("win_count", 0)
+        t_loss = today_info.get("loss_count", 0)
+        t_pending = today_info.get("pending_count", 0)
+        t_win_rate = today_info.get("win_rate", 0.0)
+
+        msg += f"<b>📊 PERKEMBANGAN SINYAL PAGI (SESI 1):</b>\n"
+        msg += f"• 🎯 <b>Hasil Sementara:</b> {t_win} WIN ✅ / {t_loss} LOSS ❌ / {t_pending} PENDING ⏳\n"
+        msg += f"• 📈 <b>Win Rate Sesi 1:</b> <code>{t_win_rate:.1f}%</code>\n\n"
+
+        msg += f"<b>📜 STATUS SAHAM SESI 1:</b>\n"
+        for idx, s in enumerate(today_info["signals"][:5], start=1):
+            st = s["status"]
+            badge = "WIN ✅" if st == "WIN" else ("LOSS ❌" if st == "LOSS" else "BERJALAN ⏳")
+            entry_p = format_idr(s["entry_price"])
+            target_p = format_idr(s["target_price"])
+            msg += f"{idx}. <b>{s['ticker']}</b>: {badge} (Entry {entry_p} → TP {target_p})\n"
+        msg += f"\n"
+
+    msg += f"───────────────────────\n"
+    msg += f"💡 <i>Catatan: Bursa akan kembali dibuka untuk Sesi 2 pukul 13:30 WIB. Pantau terus stop loss Anda!</i>"
+
+    return send_telegram_message(msg)
+
+def send_bsjp_radar_broadcast(recommendations: list[dict]) -> dict:
+    """
+    [FASE 3: 15:30 WIB - BSJP RADAR (BELI SORE JUAL PAGI)]
+    Mengirimkan sinyal rekomendasi beli 30 menit sebelum bursa tutup (15:30 WIB) untuk dijual besok pagi.
+    """
+    if not recommendations:
+        return {"status": "error", "message": "Tidak ada sinyal BSJP sore ini."}
+
+    today_str = time.strftime("%Y-%m-%d")
+    top_stocks = recommendations[:5]
+
+    msg = f"<b>🌇 STOCKAI BSJP RADAR (BELI SORE JUAL PAGI) 🇮🇩</b>\n"
+    msg += f"<i>📅 {today_str} | ⏰ 15:30 WIB (30 Menit Sebelum Market Tutup)</i>\n"
+    msg += f"───────────────────────\n\n"
+    msg += f"<b>🚀 TOP SAHAM PILIHAN BSJP SORE INI:</b>\n\n"
+
+    for idx, s in enumerate(top_stocks, start=1):
+        ticker_name = s['ticker'].replace('.JK', '')
+        close_p = format_idr(s.get('close_price', 0))
+        target_p = format_idr(s.get('target_price', 0))
+        stop_p = format_idr(s.get('stop_loss', 0))
+        score = s.get('probability', 0.0)
+        reason = s.get('reason', 'Akumulasi & Volatilitas Menit Akhir')
+
+        msg += f"<b>{idx}. 🔥 {ticker_name}</b> ({s['ticker']})\n"
+        msg += f"   • 🛒 <b>Beli Sekarang (15:30-15:50):</b> {close_p}\n"
+        msg += f"   • 🎯 <b>Target Jual Besok Pagi (+3.0%):</b> {target_p}\n"
+        msg += f"   • 🛑 <b>Stop Loss (-1.5%):</b> {stop_p}\n"
+        msg += f"   • 🤖 <b>AI Score:</b> <code>{score:.1f}%</code>\n"
+        msg += f"   • 💡 <i>{reason}</i>\n\n"
+
+    msg += f"───────────────────────\n"
+    msg += f"⏰ <i>Petunjuk: Eksekusi pembelian di pra-penutupan (15:30-15:50 WIB) dan langsung pasang Auto-Sell TP (+3.0%) untuk pembukaan bursa besok pukul 09:00 WIB!</i>"
+
+    return send_telegram_message(msg)
+
 def send_after_market_audit_broadcast(recap_data: dict, new_recommendations: list = None, today_audit: dict = None) -> dict:
     """
     Mengirimkan ringkasan audit hasil trading KHUSUS HARI INI + Total Track Record + Rekomendasi Esok Hari.

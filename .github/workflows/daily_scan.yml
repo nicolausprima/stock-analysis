@@ -4,6 +4,10 @@ on:
   schedule:
     # 01:30 UTC = 08:30 WIB (Senin - Jumat) - Pre-market Telegram Radar
     - cron: '30 1 * * 1-5'
+    # 05:00 UTC = 12:00 WIB (Senin - Jumat) - Midday Market Recap
+    - cron: '0 5 * * 1-5'
+    # 08:30 UTC = 15:30 WIB (Senin - Jumat) - BSJP Radar (Beli Sore Jual Pagi)
+    - cron: '30 8 * * 1-5'
     # 09:05 UTC = 16:05 WIB (Senin - Jumat) - After-market Sync & Scan
     - cron: '5 9 * * 1-5'
   workflow_dispatch:
@@ -15,6 +19,8 @@ on:
         type: choice
         options:
           - afternoon
+          - bsjp
+          - midday
           - morning
 
 permissions:
@@ -44,6 +50,10 @@ jobs:
           if [ "${{ github.event_name }}" = "schedule" ]; then
             if [ "${{ github.event.schedule }}" = "30 1 * * 1-5" ]; then
               echo "JOB_TYPE=morning" >> $GITHUB_ENV
+            elif [ "${{ github.event.schedule }}" = "0 5 * * 1-5" ]; then
+              echo "JOB_TYPE=midday" >> $GITHUB_ENV
+            elif [ "${{ github.event.schedule }}" = "30 8 * * 1-5" ]; then
+              echo "JOB_TYPE=bsjp" >> $GITHUB_ENV
             else
               echo "JOB_TYPE=afternoon" >> $GITHUB_ENV
             fi
@@ -58,6 +68,22 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python -c "from src.scheduler.daily_scheduler import run_morning_premarket_job; run_morning_premarket_job()"
+
+      - name: Run Midday Market Recap Job
+        if: env.JOB_TYPE == 'midday'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -c "from src.scheduler.daily_scheduler import run_midday_recap_job; run_midday_recap_job()"
+
+      - name: Run BSJP Radar Job
+        if: env.JOB_TYPE == 'bsjp'
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python -c "from src.scheduler.daily_scheduler import run_bsjp_radar_job; run_bsjp_radar_job()"
 
       - name: Run Afternoon Sync & Scan Job
         if: env.JOB_TYPE == 'afternoon'

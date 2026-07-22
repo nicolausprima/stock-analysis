@@ -216,8 +216,44 @@ def run_morning_premarket_job():
     print("[WARNING] [SCHEDULER 08:30 WIB] Cache JSON rekomendasi belum tersedia.")
     return {"status": "error", "message": "Cache not available"}
 
+def run_midday_recap_job():
+    """
+    [FASE 2: 12:00 WIB - MIDDAY MARKET RECAP]
+    Mengunduh data intraday Sesi 1 & mengirimkan update pasar sesi siang ke Telegram.
+    """
+    print("[SCHEDULER 12:00 WIB] Memulai pengiriman Midday Market Recap ke Telegram...")
+    try:
+        from src.notifications.telegram_bot import send_midday_recap_broadcast
+        from dashboard.backend.routes.audit import get_today_audit_summary, run_audit
+        run_audit()
+        today_info = get_today_audit_summary()
+        res = send_midday_recap_broadcast(today_info)
+        print("[SUCCESS] [SCHEDULER 12:00 WIB] Midday Market Recap berhasil dikirim ke Telegram!")
+        return res
+    except Exception as e:
+        print(f"[ERROR] [SCHEDULER 12:00 WIB] Gagal menjalankan Midday Recap: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+def run_bsjp_radar_job():
+    """
+    [FASE 3: 15:30 WIB - BSJP RADAR (BELI SORE JUAL PAGI)]
+    Mengunduh data real-time 15:30 WIB, scan saham momentum sore, & kirim notifikasi BSJP ke Telegram.
+    """
+    print("[SCHEDULER 15:30 WIB] Memulai scan real-time BSJP Radar (Beli Sore Jual Pagi)...")
+    try:
+        res = run_daily_after_market_job(skip_download=False, broadcast_telegram=False)
+        stocks = res.get("data", [])
+        if stocks:
+            from src.notifications.telegram_bot import send_bsjp_radar_broadcast
+            b_res = send_bsjp_radar_broadcast(stocks)
+            print("[SUCCESS] [SCHEDULER 15:30 WIB] BSJP Radar berhasil dikirim ke Telegram!")
+            return b_res
+    except Exception as e:
+        print(f"[ERROR] [SCHEDULER 15:30 WIB] Gagal menjalankan BSJP Radar: {str(e)}")
+    return {"status": "error", "message": "BSJP scan failed"}
+
 def start_background_scheduler():
-    """Menjalankan scheduler di background thread (08:30 WIB & 16:05 WIB)."""
+    """Menjalankan scheduler 4-fase di background thread (08:30, 12:00, 15:30, 16:05 WIB)."""
     if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
         print("[INFO] Mode testing terdeteksi. Background scheduler dilewati.")
         return
@@ -232,7 +268,21 @@ def start_background_scheduler():
                 except Exception as e:
                     print(f"Error morning scheduler: {str(e)}")
                 time.sleep(60)
-            # 2. Sore (16:05 WIB): After-Market Sync, Audit & Telegram Broadcast
+            # 2. Siang (12:00 WIB): Midday Market Recap Telegram Broadcast
+            elif current_time == "12:00":
+                try:
+                    run_midday_recap_job()
+                except Exception as e:
+                    print(f"Error midday scheduler: {str(e)}")
+                time.sleep(60)
+            # 3. Sore (15:30 WIB): BSJP Radar (Beli Sore Jual Pagi)
+            elif current_time == "15:30":
+                try:
+                    run_bsjp_radar_job()
+                except Exception as e:
+                    print(f"Error BSJP scheduler: {str(e)}")
+                time.sleep(60)
+            # 4. Penutupan (16:05 WIB): After-Market Sync, Audit & Telegram Broadcast
             elif current_time == "16:05":
                 try:
                     run_daily_after_market_job()
