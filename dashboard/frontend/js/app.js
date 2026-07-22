@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
             buildTable(data.data);
             buildCards(data.data);
             results.classList.remove('hidden');
-            lastScan.textContent = 'Updated ' + new Date().toLocaleTimeString('id-ID');
+            if (lastScan) lastScan.textContent = 'Updated ' + new Date().toLocaleTimeString('id-ID');
             loadTrackRecord();
 
             // Smooth scroll to results
