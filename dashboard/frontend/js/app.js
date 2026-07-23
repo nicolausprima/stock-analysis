@@ -424,13 +424,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     data.signals.forEach((s, idx) => {
                         const badge = s.status === 'WIN' ? '<span class="badge bullish">WIN ✅</span>' :
                                       (s.status === 'LOSS' ? '<span class="badge bearish">LOSS ❌</span>' : '<span class="badge netral">PENDING ⏳</span>');
+                        const tpPct = (s.entry_price > 0 && s.target_price > 0)
+                            ? (((s.target_price - s.entry_price) / s.entry_price) * 100).toFixed(1)
+                            : '3.0';
+                        const slPct = (s.entry_price > 0 && s.stop_loss > 0)
+                            ? (((s.stop_loss - s.entry_price) / s.entry_price) * 100).toFixed(1)
+                            : '-1.5';
                         signalsHtml += `
                             <tr>
                                 <td>${idx + 1}</td>
                                 <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
                                 <td>${fmtPrice(s.entry_price)}</td>
-                                <td style="color: var(--c-charcoal);">${fmtPrice(s.target_price)}</td>
-                                <td style="color: var(--c-red);">${fmtPrice(s.stop_loss)}</td>
+                                <td style="color: var(--c-green); font-weight:600;">${fmtPrice(s.target_price)} <span style="font-size:11px; font-weight:600; color:var(--c-green);">(+${tpPct}%)</span></td>
+                                <td style="color: var(--c-red); font-weight:600;">${fmtPrice(s.stop_loss)} <span style="font-size:11px; font-weight:600; color:var(--c-red);">(${slPct}%)</span></td>
                                 <td>${s.probability.toFixed(1)}%</td>
                                 <td>${badge}</td>
                             </tr>
@@ -467,8 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <th>#</th>
                                             <th>Saham</th>
                                             <th>Harga Entry</th>
-                                            <th>Target (+3.0%)</th>
-                                            <th>Stop Loss (-1.5%)</th>
+                                            <th>Target Profit</th>
+                                            <th>Stop Loss</th>
                                             <th>AI Score</th>
                                             <th>Status Audit</th>
                                         </tr>
@@ -567,12 +573,19 @@ document.addEventListener('DOMContentLoaded', () => {
             visibleRows.forEach(s => {
                 const row = document.createElement('tr');
                 const statusClass = s.status.toLowerCase();
+                const tpPct = (s.entry_price > 0 && s.target_price > 0)
+                    ? (((s.target_price - s.entry_price) / s.entry_price) * 100).toFixed(1)
+                    : '3.0';
+                const slPct = (s.entry_price > 0 && s.stop_loss > 0)
+                    ? (((s.stop_loss - s.entry_price) / s.entry_price) * 100).toFixed(1)
+                    : '-1.5';
+
                 row.innerHTML = `
                     <td>${(s.updated_at || s.created_at).split(' ')[0]}</td>
                     <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
                     <td>${fmtPrice(s.entry_price)}</td>
-                    <td style="color: var(--c-charcoal)">${fmtPrice(s.target_price)}</td>
-                    <td style="color: var(--c-red)">${fmtPrice(s.stop_loss)}</td>
+                    <td style="color: var(--c-green); font-weight:600;">${fmtPrice(s.target_price)} <span style="font-size:11px; font-weight:600; color:var(--c-green);">(+${tpPct}%)</span></td>
+                    <td style="color: var(--c-red); font-weight:600;">${fmtPrice(s.stop_loss)} <span style="font-size:11px; font-weight:600; color:var(--c-red);">(${slPct}%)</span></td>
                     <td>${s.probability.toFixed(1)}%</td>
                     <td><span class="badge ${statusClass}">${s.status}</span></td>
                 `;
