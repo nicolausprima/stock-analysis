@@ -129,7 +129,8 @@ You can interact directly with the bot (`@StockAnalysisLocalBot`) on Telegram at
 | `/today` | Morning Buy Signal | Displays top 10 buy recommendations for Market Open (09:00 WIB). |
 | `/midday` | Midday Market Recap | Displays real-time Sesi 1 market recap & signal progress (12:00 WIB). |
 | `/bsjp` | BSJP Radar | Displays Beli Sore Jual Pagi momentum stock picks 30 mins before close (15:30 WIB). |
-| `/audit` | Track Record Audit | Displays 6-month accumulative performance audit (Win Rate %, WIN/LOSS counts, Profit %). |
+| `/audittoday` | Today's Audit | Displays WIN / LOSS / PENDING breakdown & daily win rate for today's trading. |
+| `/auditall` / `/audit` | 6-Month Track Record | Displays 6-month accumulative performance audit (Win Rate %, WIN/LOSS counts, Profit %). |
 | `/start` / `/help` | Bot Menu | Displays interactive welcome menu with all available bot commands. |
 
 ---

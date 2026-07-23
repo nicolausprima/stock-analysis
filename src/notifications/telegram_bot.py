@@ -293,20 +293,49 @@ def send_after_market_audit_broadcast(recap_data: dict, new_recommendations: lis
 
     return send_telegram_message(msg)
 
+def _format_today_audit(today_info: dict) -> str:
+    today_str = time.strftime("%Y-%m-%d")
+    if not today_info or not today_info.get("signals"):
+        return f"<b>🔥 AUDIT TRADING HARI INI ({today_str})</b>\n───────────────────────\nBelum ada data audit sinyal untuk hari ini."
+
+    t_win = today_info.get("win_count", 0)
+    t_loss = today_info.get("loss_count", 0)
+    t_pending = today_info.get("pending_count", 0)
+    t_win_rate = today_info.get("win_rate", 0.0)
+    t_gain = today_info.get("total_gain", 0.0)
+    t_date = today_info.get("date", today_str)
+
+    msg = f"<b>🔥 HASIL AUDIT TRADING HARI INI ({t_date})</b>\n"
+    msg += f"───────────────────────\n\n"
+    msg += f"• 📊 <b>Hasil Sinyal:</b> {t_win} WIN ✅ / {t_loss} LOSS ❌"
+    if t_pending > 0:
+        msg += f" / {t_pending} PENDING ⏳"
+    msg += f"\n• 🎯 <b>Win Rate Hari Ini:</b> <code>{t_win_rate:.1f}%</code>\n"
+    msg += f"• 📈 <b>Gain Harian:</b> <code>{'+' if t_gain >= 0 else ''}{t_gain:.1f}%</code>\n\n"
+
+    msg += f"<b>📜 DETAIL SAHAM HARI INI:</b>\n"
+    for idx, s in enumerate(today_info["signals"][:10], start=1):
+        st = s["status"]
+        badge = "WIN ✅" if st == "WIN" else ("LOSS ❌" if st == "LOSS" else "PENDING ⏳")
+        entry_p = format_idr(s["entry_price"])
+        target_p = format_idr(s["target_price"])
+        msg += f"{idx}. <b>{s['ticker']}</b>: {badge} (Entry {entry_p} → TP {target_p})\n"
+    return msg
+
 def _format_audit_recap(recap_data: dict) -> str:
     s = recap_data.get("summary", {})
-    msg = f"<b>📊 AUDIT TRACK RECORD</b>\n"
+    msg = f"<b>🏆 TOTAL TRACK RECORD AUDIT (6 BULAN)</b>\n"
     msg += f"───────────────────────\n\n"
-    msg += f"• 🎯 <b>Win Rate:</b> <code>{s.get('win_rate',0):.1f}%</code>\n"
-    msg += f"• 📊 <b>Total:</b> {s.get('win_count',0)} WIN ✅ / {s.get('loss_count',0)} LOSS ❌\n"
-    msg += f"• ⏳ <b>Pending:</b> {s.get('pending_count',0)}\n"
+    msg += f"• 🎯 <b>Win Rate Total:</b> <code>{s.get('win_rate',0):.1f}%</code>\n"
+    msg += f"• 📊 <b>Total Sinyal Audited:</b> {s.get('win_count',0)} WIN ✅ / {s.get('loss_count',0)} LOSS ❌\n"
+    msg += f"• ⏳ <b>Pending Active:</b> {s.get('pending_count',0)}\n"
     msg += f"• 📈 <b>Estimasi Profit Kumulatif:</b> <code>{'+' if s.get('total_profit_pct',0) >= 0 else ''}{s.get('total_profit_pct',0):.1f}%</code>\n"
     return msg
 
 def start_telegram_bot_listener():
     """
     Menjalankan background thread polling yang secara kontinu mendengarkan
-    dan merespon pesan/perintah interaktif (/today, /audit, /start) dari Telegram.
+    dan merespon pesan/perintah interaktif (/today, /midday, /bsjp, /audittoday, /auditall, /start) dari Telegram.
     """
     if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
         return
@@ -340,7 +369,7 @@ def start_telegram_bot_listener():
             print("[TELEGRAM] Token belum dikonfigurasi, polling listener dilewati.")
             return
 
-        print("[TELEGRAM] Background interactive listener aktif & siap menerima perintah (/today, /audit)...")
+        print("[TELEGRAM] Background interactive listener aktif & siap menerima perintah (/today, /audit...)...")
         offset = None
 
         while True:
@@ -381,13 +410,24 @@ def start_telegram_bot_listener():
                                         send_telegram_message("Belum ada sinyal BSJP sore ini.", target_chat_id=chat_id)
                                 except Exception as e:
                                     send_telegram_message(f"Error fetching BSJP data: {str(e)}", target_chat_id=chat_id)
-                            elif text in ["/audit", "audit"]:
-                                from dashboard.backend.routes.audit import get_audit_recap
-                                recap = get_audit_recap()
-                                send_telegram_message(
-                                    _format_audit_recap(recap),
-                                    target_chat_id=chat_id
-                                )
+                            elif text in ["/audittoday", "audittoday", "audit today", "/audit_today"]:
+                                send_telegram_message("⏳ <b>Memeriksa & meng-audit hasil trading hari ini...</b>", target_chat_id=chat_id)
+                                try:
+                                    from dashboard.backend.routes.audit import get_today_audit_summary, run_audit
+                                    run_audit()
+                                    info = get_today_audit_summary()
+                                    send_telegram_message(_format_today_audit(info), target_chat_id=chat_id)
+                                except Exception as e:
+                                    send_telegram_message(f"Error fetching today audit: {str(e)}", target_chat_id=chat_id)
+                            elif text in ["/auditall", "auditall", "audit all", "/audit_all", "/audit", "audit"]:
+                                send_telegram_message("⏳ <b>Memuat statistik track record akumulasi...</b>", target_chat_id=chat_id)
+                                try:
+                                    from dashboard.backend.routes.audit import get_audit_recap, run_audit
+                                    run_audit()
+                                    recap = get_audit_recap()
+                                    send_telegram_message(_format_audit_recap(recap), target_chat_id=chat_id)
+                                except Exception as e:
+                                    send_telegram_message(f"Error fetching audit recap: {str(e)}", target_chat_id=chat_id)
                             elif text in ["/start", "/help", "halo", "hi"]:
                                 send_telegram_message(
                                     "<b>🤖 StockAI Trading Bot Ready!</b>\n\n"
@@ -395,7 +435,8 @@ def start_telegram_bot_listener():
                                     "• <b>/today</b> : Rekomendasi Saham Siap Beli Pagi 🎯\n"
                                     "• <b>/midday</b> : Update Sesi 1 & Progress Sinyal ☕\n"
                                     "• <b>/bsjp</b> : Sinyal Beli Sore Jual Pagi 🌇\n"
-                                    "• <b>/audit</b> : Track Record & Win Rate Akumulasi 📊\n"
+                                    "• <b>/audittoday</b> : Hasil Audit Trading Hari Ini 🔥\n"
+                                    "• <b>/auditall</b> : Track Record & Win Rate Total (6 Bulan) 📊\n"
                                     "• <b>/start</b> : Menampilkan menu perintah ini",
                                     target_chat_id=chat_id
                                 )
