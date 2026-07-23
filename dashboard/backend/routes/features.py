@@ -38,12 +38,23 @@ def derive_signals(row: pd.Series) -> dict:
     macd_diff = float(row.get('MACD_Diff', 0))
     close     = float(row.get('_raw_close', 0)) or float(row.get('Close', 0))
     sma50     = float(row.get('SMA_50', 0))
+    atr       = float(row.get('ATR_14', 0)) or float(row.get('ATR', 0))
 
     rsi_signal  = 'Oversold'  if rsi < 40  else ('Overbought' if rsi > 70 else 'Netral')
     macd_signal = 'Bullish'   if macd_diff > 0 else 'Bearish'
     trend       = 'Uptrend'   if (close > 0 and sma50 > 0 and close > sma50) else 'Downtrend'
-    target      = round(close * 1.03, 0) if close > 0 else 0
-    stop_loss   = round(close * 0.985, 0) if close > 0 else 0
+
+    # Target Profit: Minimal +3.0%, atau lebih tinggi jika volatilitas/ATR mengizinkan
+    if close > 0:
+        if atr > 0:
+            raw_target = max(close * 1.03, close + (1.5 * atr))
+        else:
+            raw_target = close * 1.03
+        target = round(raw_target, 0)
+        stop_loss = round(close * 0.985, 0)
+    else:
+        target = 0
+        stop_loss = 0
 
     return {
         "close_price":  close,
