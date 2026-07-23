@@ -394,17 +394,24 @@ def get_today_audit_summary():
         entry_p = r["entry_price"]
         target_p = r["target_price"]
         stop_p = r["stop_loss"]
+        real_ret = r["realized_return"]
+
+        if real_ret is None:
+            if st == "WIN" and entry_p > 0 and target_p > 0:
+                real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
+            elif st == "LOSS" and entry_p > 0 and stop_p > 0:
+                real_ret = round(((stop_p - entry_p) / entry_p) * 100, 1)
+            else:
+                real_ret = 3.0 if st == "WIN" else (-1.5 if st == "LOSS" else 0.0)
+
         if st == "WIN":
             win_cnt += 1
-            ret_val = round(((target_p - entry_p) / entry_p) * 100, 1) if entry_p > 0 and target_p > 0 else 3.0
-            total_gain += ret_val
+            total_gain += real_ret
         elif st == "LOSS":
             loss_cnt += 1
-            ret_val = round(((stop_p - entry_p) / entry_p) * 100, 1) if entry_p > 0 and stop_p > 0 else -1.5
-            total_gain += ret_val
+            total_gain += real_ret
         else:
             pending_cnt += 1
-            ret_val = 0.0
 
         today_signals.append({
             "ticker": r["ticker"],
@@ -413,7 +420,8 @@ def get_today_audit_summary():
             "stop_loss": r["stop_loss"],
             "probability": r["probability"],
             "status": r["status"],
-            "return_pct": ret_val,
+            "return_pct": real_ret,
+            "realized_return": real_ret,
             "created_at": r["created_at"]
         })
 
@@ -424,7 +432,7 @@ def get_today_audit_summary():
 
     return {
         "status": "success",
-        "date": rows[0]["created_at"].split(" ")[0] if rows else today_str,
+        "date": today_str,
         "total_signals": len(today_signals),
         "win_count": win_cnt,
         "loss_count": loss_cnt,
