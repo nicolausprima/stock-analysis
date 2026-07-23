@@ -395,25 +395,31 @@ def start_telegram_bot_listener():
                                 send_today_picks(chat_id)
                             elif text in ["/midday", "midday"]:
                                 send_telegram_message("⏳ <b>Mengunduh data pasar Sesi 1 terbaru & meng-audit sinyal... Mohon tunggu sebentar.</b>", target_chat_id=chat_id)
-                                try:
-                                    from dashboard.backend.routes.audit import get_today_audit_summary, run_audit
-                                    run_audit()
-                                    info = get_today_audit_summary()
-                                    send_midday_recap_broadcast(info, target_chat_id=chat_id)
-                                except Exception as e:
-                                    send_telegram_message(f"Error fetching midday recap: {str(e)}", target_chat_id=chat_id)
+                                def handle_midday(c_id=chat_id):
+                                    try:
+                                        from dashboard.backend.routes.audit import get_today_audit_summary, run_audit
+                                        run_audit()
+                                        info = get_today_audit_summary()
+                                        send_midday_recap_broadcast(info, target_chat_id=c_id)
+                                    except Exception as e:
+                                        send_telegram_message(f"Error fetching midday recap: {str(e)}", target_chat_id=c_id)
+                                threading.Thread(target=handle_midday, daemon=True).start()
+
                             elif text in ["/bsjp", "bsjp"]:
                                 send_telegram_message("⏳ <b>Mengunduh data intraday real-time 700+ saham BEI & menganalisis sinyal BSJP terbaru... Mohon tunggu sebentar.</b>", target_chat_id=chat_id)
-                                try:
-                                    from src.scheduler.daily_scheduler import run_daily_after_market_job
-                                    res = run_daily_after_market_job(skip_download=False, broadcast_telegram=False)
-                                    stocks = res.get("data", []) if isinstance(res, dict) else []
-                                    if stocks:
-                                        send_bsjp_radar_broadcast(stocks, target_chat_id=chat_id)
-                                    else:
-                                        send_telegram_message("Belum ada sinyal BSJP sore ini.", target_chat_id=chat_id)
-                                except Exception as e:
-                                    send_telegram_message(f"Error fetching BSJP data: {str(e)}", target_chat_id=chat_id)
+                                def handle_bsjp(c_id=chat_id):
+                                    try:
+                                        from src.scheduler.daily_scheduler import run_daily_after_market_job
+                                        res = run_daily_after_market_job(skip_download=False, broadcast_telegram=False, save_to_json=False, save_to_db=False)
+                                        stocks = res.get("data", []) if isinstance(res, dict) else []
+                                        if stocks:
+                                            send_bsjp_radar_broadcast(stocks, target_chat_id=c_id)
+                                        else:
+                                            send_telegram_message("Belum ada sinyal BSJP sore ini.", target_chat_id=c_id)
+                                    except Exception as e:
+                                        send_telegram_message(f"Error fetching BSJP data: {str(e)}", target_chat_id=c_id)
+                                threading.Thread(target=handle_bsjp, daemon=True).start()
+
                             elif text in ["/audittoday", "audittoday", "audit today", "/audit_today"]:
                                 send_telegram_message("⏳ <b>Memeriksa & meng-audit hasil trading hari ini...</b>", target_chat_id=chat_id)
                                 try:
@@ -423,6 +429,7 @@ def start_telegram_bot_listener():
                                     send_telegram_message(_format_today_audit(info), target_chat_id=chat_id)
                                 except Exception as e:
                                     send_telegram_message(f"Error fetching today audit: {str(e)}", target_chat_id=chat_id)
+
                             elif text in ["/auditall", "auditall", "audit all", "/audit_all", "/audit", "audit"]:
                                 send_telegram_message("⏳ <b>Memuat statistik track record akumulasi...</b>", target_chat_id=chat_id)
                                 try:
@@ -432,6 +439,7 @@ def start_telegram_bot_listener():
                                     send_telegram_message(_format_audit_recap(recap), target_chat_id=chat_id)
                                 except Exception as e:
                                     send_telegram_message(f"Error fetching audit recap: {str(e)}", target_chat_id=chat_id)
+
                             elif text in ["/start", "/help", "halo", "hi"]:
                                 send_telegram_message(
                                     "<b>🤖 StockAI Trading Bot Ready!</b>\n\n"
@@ -445,7 +453,7 @@ def start_telegram_bot_listener():
                                     target_chat_id=chat_id
                                 )
             except Exception as e:
-                pass
+                print(f"[TELEGRAM] Warning in listener loop: {str(e)}")
             time.sleep(2)
 
     thread = threading.Thread(target=listener_loop, daemon=True)

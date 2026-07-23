@@ -36,6 +36,11 @@ if frontend_dir.exists():
 @app.on_event("startup")
 def startup_event():
     """Jalankan scheduler harian & telegram interactive command listener di background thread."""
+    req_env = ["TELEGRAM_BOT_TOKEN", "OPENAI_API_BASE"]
+    missing = [v for v in req_env if not os.getenv(v)]
+    if missing:
+        print(f"[WARNING] Environment variables belum diset: {missing}")
+
     if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
         print("[INFO] Mode testing terdeteksi. Background thread dilewati.")
         return
