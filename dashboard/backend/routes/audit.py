@@ -29,10 +29,15 @@ def init_db():
             stop_loss REAL,
             probability REAL,
             status TEXT DEFAULT 'PENDING',
+            realized_return REAL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    cursor.execute("PRAGMA table_info(signals)")
+    cols = [c[1] for c in cursor.fetchall()]
+    if "realized_return" not in cols:
+        cursor.execute("ALTER TABLE signals ADD COLUMN realized_return REAL")
     conn.commit()
     conn.close()
 
@@ -191,6 +196,7 @@ def run_audit():
             continue
 
         new_status = "PENDING"
+        real_ret = None
         for _, row in df.iterrows():
             high = float(row["High"])
             low = float(row["Low"])
@@ -200,20 +206,24 @@ def run_audit():
 
             if is_tp and is_sl:
                 new_status = "LOSS"
+                real_ret = round(((low - entry_price) / entry_price) * 100, 1) if entry_price > 0 else -1.5
                 break
             elif is_tp:
                 new_status = "WIN"
+                max_h = float(df["High"].max())
+                real_ret = round(((max_h - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 3.0
                 break
             elif is_sl:
                 new_status = "LOSS"
+                real_ret = round(((low - entry_price) / entry_price) * 100, 1) if entry_price > 0 else -1.5
                 break
 
         if new_status != "PENDING":
             cursor.execute("""
                 UPDATE signals 
-                SET status = ?, updated_at = datetime('now', 'localtime') 
+                SET status = ?, realized_return = ?, updated_at = datetime('now', 'localtime') 
                 WHERE id = ?
-            """, (new_status, sig_id))
+            """, (new_status, real_ret, sig_id))
             updated_count += 1
 
     conn.commit()
