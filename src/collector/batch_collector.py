@@ -38,18 +38,20 @@ def download_universe_in_batches(tickers_list=None, batch_size=BATCH_SIZE, delay
             
             if len(chunk) == 1:
                 t = chunk[0]
-                if not df_batch.empty:
+                if not df_batch.empty and df_batch['Close'].notna().any():
                     df_single = df_batch.copy()
-                    df_single["Ticker"] = t
-                    records_to_save.append(df_single)
+                    if df_single['Volume'].iloc[-5:].sum() > 0:
+                        df_single["Ticker"] = t
+                        records_to_save.append(df_single)
             else:
                 for t in chunk:
                     try:
                         if t in df_batch.columns.levels[0]:
                             df_single = df_batch[t].dropna(how="all").copy()
-                            if not df_single.empty:
-                                df_single["Ticker"] = t
-                                records_to_save.append(df_single)
+                            if not df_single.empty and df_single['Close'].notna().any():
+                                if 'Volume' in df_single.columns and df_single['Volume'].iloc[-5:].sum() > 0:
+                                    df_single["Ticker"] = t
+                                    records_to_save.append(df_single)
                     except Exception:
                         continue
                         
