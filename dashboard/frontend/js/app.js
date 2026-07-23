@@ -588,7 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
                               (s.status === 'LOSS' ? `<span class="badge bearish">LOSS ${retVal.toFixed(1)}% ❌</span>` : `<span class="badge netral">PENDING ⏳</span>`);
 
                 row.innerHTML = `
-                    <td>${(s.updated_at || s.created_at).split(' ')[0]}</td>
+                    <td>${s.trading_date || (s.updated_at || s.created_at).split(' ')[0]}</td>
                     <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
                     <td>${fmtPrice(s.entry_price)}</td>
                     <td style="color: var(--c-green); font-weight:600;">${fmtPrice(s.target_price)} <span style="font-size:11px; font-weight:600; color:var(--c-green);">(+${tpPct}%)</span></td>
