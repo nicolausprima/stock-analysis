@@ -84,6 +84,21 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         if df.empty or len(df) < 20:
             continue
             
+        # 🚫 SUSPEND & DELISTING GUARD
+        # 1. Skip if 5-day trading volume is zero (Suspended by BEI)
+        if 'Volume' in df.columns and len(df) >= 5 and df['Volume'].iloc[-5:].sum() == 0:
+            continue
+            
+        # 2. Skip if price is completely frozen over 10 days (Zero Liquidity / Suspend)
+        if 'Close' in df.columns and len(df) >= 10 and df['Close'].iloc[-10:].nunique() == 1 and df['Volume'].iloc[-10:].sum() == 0:
+            continue
+            
+        # 3. Skip if last data timestamp is stale (> 7 calendar days old, e.g. Delisted)
+        last_dt = pd.to_datetime(df.index[-1])
+        now_dt = pd.Timestamp.now()
+        if (now_dt - last_dt).days > 7:
+            continue
+
         last_close = float(df['Close'].dropna().iloc[-1]) if not df['Close'].dropna().empty else 0.0
         
         df = add_technical_indicators(df)
