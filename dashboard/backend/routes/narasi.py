@@ -110,3 +110,18 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
             status_code=500, 
             detail=f"Gagal menghubungi model AI lokal: {str(e)}"
         )
+
+@router.post("/narasi/multi-agent")
+def generate_multi_agent_consensus(req: NarasiRequest):
+    """Menghasilkan konsensus analisis multi-agent (Technical, Sentiment, Bull vs Bear, Risk Manager)."""
+    try:
+        from src.agents.multi_agent_system import MultiAgentSystem
+        agent_system = MultiAgentSystem()
+        consensus = agent_system.generate_consensus(req.dict())
+        return {"status": "success", "data": consensus}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Gagal menjalankan sistem Multi-Agent: {str(e)}"
+        )
+

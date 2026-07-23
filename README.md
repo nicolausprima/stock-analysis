@@ -187,6 +187,17 @@ stock-analysis/
 
 ---
 
+## 🙏 Acknowledgements & Inspirations
+
+Special thanks to the open-source projects and research frameworks that inspired and enriched StockAI's quantitative architecture:
+
+- 🤖 **[TauricResearch/TradingAgents](https://github.com/TauricResearch/TradingAgents)** — Multi-Agent Trading Framework architecture (Technical Analyst, Sentiment Analyst, Bull vs. Bear Debate, and Risk Manager consensus engine).
+- 📊 **[OpenBB Finance](https://github.com/OpenBB-finance/OpenBB)** — Open-source financial data platform and Python SDK for unified market indicators and data provider integration.
+- 📋 **[Paperclip AI](https://github.com/paperclipai/paperclip)** — Concepts and design patterns in AI agent orchestration and heartbeat scheduling.
+
+---
+
 ## 📄 License
 
 Distributed under the MIT License. Educational project built for stock analysis & quantitative trading experimentation.
+
