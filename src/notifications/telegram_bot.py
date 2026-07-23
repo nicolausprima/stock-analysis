@@ -139,7 +139,7 @@ def send_morning_radar_broadcast(recommendations: list[dict]) -> dict:
 
     return send_telegram_message(msg)
 
-def send_midday_recap_broadcast(today_audit: dict = None) -> dict:
+def send_midday_recap_broadcast(today_audit: dict = None, target_chat_id: str = None) -> dict:
     """
     [FASE 2: 12:00 WIB - MIDDAY MARKET RECAP]
     Mengirimkan update performa pasar Sesi 1 saat bursa istirahat (12:00 WIB).
@@ -179,9 +179,9 @@ def send_midday_recap_broadcast(today_audit: dict = None) -> dict:
     msg += f"───────────────────────\n"
     msg += f"💡 <i>Catatan: Bursa akan kembali dibuka untuk Sesi 2 pukul 13:30 WIB. Pantau terus stop loss Anda!</i>"
 
-    return send_telegram_message(msg)
+    return send_telegram_message(msg, target_chat_id=target_chat_id)
 
-def send_bsjp_radar_broadcast(recommendations: list[dict]) -> dict:
+def send_bsjp_radar_broadcast(recommendations: list[dict], target_chat_id: str = None) -> dict:
     """
     [FASE 3: 15:30 WIB - BSJP RADAR (BELI SORE JUAL PAGI)]
     Mengirimkan sinyal rekomendasi beli 30 menit sebelum bursa tutup (15:30 WIB) untuk dijual besok pagi.
@@ -215,7 +215,7 @@ def send_bsjp_radar_broadcast(recommendations: list[dict]) -> dict:
     msg += f"───────────────────────\n"
     msg += f"⏰ <i>Petunjuk: Eksekusi pembelian di pra-penutupan (15:30-15:50 WIB) dan langsung pasang Auto-Sell TP (+3.0%) untuk pembukaan bursa besok pukul 09:00 WIB!</i>"
 
-    return send_telegram_message(msg)
+    return send_telegram_message(msg, target_chat_id=target_chat_id)
 
 def send_after_market_audit_broadcast(recap_data: dict, new_recommendations: list = None, today_audit: dict = None) -> dict:
     """
@@ -361,25 +361,24 @@ def start_telegram_bot_listener():
                             if text in ["/today", "today"]:
                                 send_today_picks(chat_id)
                             elif text in ["/midday", "midday"]:
+                                send_telegram_message("⏳ <b>Mengunduh data pasar Sesi 1 terbaru & meng-audit sinyal... Mohon tunggu sebentar.</b>", target_chat_id=chat_id)
                                 try:
-                                    from dashboard.backend.routes.audit import get_today_audit_summary
+                                    from dashboard.backend.routes.audit import get_today_audit_summary, run_audit
+                                    run_audit()
                                     info = get_today_audit_summary()
-                                    send_midday_recap_broadcast(info)
+                                    send_midday_recap_broadcast(info, target_chat_id=chat_id)
                                 except Exception as e:
                                     send_telegram_message(f"Error fetching midday recap: {str(e)}", target_chat_id=chat_id)
                             elif text in ["/bsjp", "bsjp"]:
+                                send_telegram_message("⏳ <b>Mengunduh data intraday real-time 700+ saham BEI & menganalisis sinyal BSJP terbaru... Mohon tunggu sebentar.</b>", target_chat_id=chat_id)
                                 try:
-                                    from src.config import CACHE_FILE
-                                    import json
-                                    stocks = []
-                                    if CACHE_FILE.exists():
-                                        with open(CACHE_FILE) as f:
-                                            data = json.load(f)
-                                        stocks = data.get("data", [])
+                                    from src.scheduler.daily_scheduler import run_daily_after_market_job
+                                    res = run_daily_after_market_job(skip_download=False, broadcast_telegram=False)
+                                    stocks = res.get("data", []) if isinstance(res, dict) else []
                                     if stocks:
-                                        send_bsjp_radar_broadcast(stocks)
+                                        send_bsjp_radar_broadcast(stocks, target_chat_id=chat_id)
                                     else:
-                                        send_telegram_message("Belum ada data BSJP sore ini.", target_chat_id=chat_id)
+                                        send_telegram_message("Belum ada sinyal BSJP sore ini.", target_chat_id=chat_id)
                                 except Exception as e:
                                     send_telegram_message(f"Error fetching BSJP data: {str(e)}", target_chat_id=chat_id)
                             elif text in ["/audit", "audit"]:
