@@ -195,7 +195,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="sig-dot ${isBuy ? 'green' : 'blue'}"></span>
                         ${isBuy ? 'BUY' : 'WATCH'}
                     </span>
+                    <button class="agent-toggle-btn" id="btn-ma-${s.ticker.replace('.JK', '')}">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        Multi-Agent
+                    </button>
                 </div>
+
+                <div id="ma-box-${s.ticker.replace('.JK', '')}" style="display:none;" class="multi-agent-card"></div>
 
                 <div class="dc-reason">
                     <span class="dc-reason-lbl">Analisis AI Terpadu (Teknikal & Berita)</span>
@@ -203,11 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="ai-loading">Menganalisis teknikal & sentimen dengan AI...</div>
                     </div>
                 </div>
+
             `;
 
             cardsGrid.appendChild(card);
             fetchNarrative(s, card);
+            setupMultiAgentToggle(s, card);
         });
+
     }
 
     // Charting Logic
@@ -394,6 +403,80 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = `<span style="color:var(--c-red);font-size:13px">Gagal memuat narasi: ${err.message}</span>`;
         }
     }
+
+    function setupMultiAgentToggle(s, card) {
+        const cleanTicker = s.ticker.replace('.JK', '');
+        const btn = card.querySelector(`#btn-ma-${cleanTicker}`);
+        const box = card.querySelector(`#ma-box-${cleanTicker}`);
+        if (!btn || !box) return;
+
+        let loaded = false;
+
+        btn.addEventListener('click', async () => {
+            if (box.style.display === 'none') {
+                box.style.display = 'block';
+                if (!loaded) {
+                    box.innerHTML = '<div class="ai-loading">Memproses analisis 4 agen (Technical, Sentiment, Bull/Bear Debate, Risk Manager)...</div>';
+                    try {
+                        const res = await fetch('/api/narasi/multi-agent', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                ticker: s.ticker,
+                                close_price: s.close_price,
+                                target_price: s.target_price,
+                                stop_loss: s.stop_loss,
+                                rsi: s.rsi,
+                                macd_signal: s.macd_signal,
+                                trend: s.trend,
+                                probability: s.probability,
+                                sentiment_status: s.sentiment_status || 'NETRAL',
+                                sentiment_impact: s.sentiment_impact || 'NETRAL'
+                            })
+                        });
+                        const json = await res.json();
+                        if (res.ok && json.status === 'success' && json.data) {
+                            const d = json.data;
+                            const isBuyVerdict = (d.risk_verdict || '').includes('BELI') || (d.risk_verdict || '').includes('BUY');
+                            const verdictBadgeClass = isBuyVerdict ? 'pill-verdict-buy' : 'pill-verdict-watch';
+                            
+                            box.innerHTML = `
+                                <div class="ma-header">
+                                    <div class="ma-title">Konsensus Multi-Agent Framework</div>
+                                    <span class="risk-pill ${verdictBadgeClass}">${d.risk_verdict}</span>
+                                </div>
+                                <div class="ma-subcard bull">
+                                    <div class="ma-card-label label-bull">Bull Case (Analisis Pembeli)</div>
+                                    <div>${d.bull_case}</div>
+                                </div>
+                                <div class="ma-subcard bear">
+                                    <div class="ma-card-label label-bear">Bear Case (Kewaspadaan Penjual)</div>
+                                    <div>${d.bear_case}</div>
+                                </div>
+                                <div class="ma-subcard risk">
+                                    <div class="ma-card-label label-risk">Risk Manager Verdict</div>
+                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+                                        <span>Risk/Reward Ratio Target:</span>
+                                        <span class="risk-pill pill-rr">${d.risk_reward_ratio}x R:R</span>
+                                    </div>
+                                </div>
+                            `;
+
+                            loaded = true;
+                        } else {
+                            box.innerHTML = `<span style="color:var(--c-red);font-size:12.5px;padding:8px">Gagal memuat konsensus agent: ${json.detail || 'Error'}</span>`;
+                        }
+                    } catch (err) {
+                        box.innerHTML = `<span style="color:var(--c-red);font-size:12.5px;padding:8px">Error: ${err.message}</span>`;
+                    }
+
+                }
+            } else {
+                box.style.display = 'none';
+            }
+        });
+    }
+
 
         // Audit & Monthly Recap State
         let allMonthlyData = [];

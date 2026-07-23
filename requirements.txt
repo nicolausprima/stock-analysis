@@ -13,3 +13,4 @@ langchain-openai
 langchain-community
 duckduckgo-search
 python-dotenv
+openbb

@@ -110,7 +110,13 @@ def get_track_record():
         c_at = r["created_at"] or ""
         try:
             dt = datetime.strptime(c_at, "%Y-%m-%d %H:%M:%S")
-            trade_date_str = (dt + timedelta(days=1)).strftime("%Y-%m-%d")
+            td = dt + timedelta(days=1)
+            # Skip weekend: Sabtu -> Senin (+2), Minggu -> Senin (+1)
+            if td.weekday() == 5:   # Saturday
+                td += timedelta(days=2)
+            elif td.weekday() == 6: # Sunday
+                td += timedelta(days=1)
+            trade_date_str = td.strftime("%Y-%m-%d")
         except Exception:
             trade_date_str = (r["updated_at"] or c_at).split(" ")[0]
 
@@ -169,6 +175,11 @@ def run_audit():
 
         # Jika start_date masih di masa depan, belum ada data H+1 untuk di-audit
         if start_date > today_str:
+            continue
+
+        # Jika start_date == hari ini, cek jam: hanya audit setelah market close (>= 16:00 WIB)
+        now_hour = datetime.now().hour
+        if start_date == today_str and now_hour < 16:
             continue
 
         yf_ticker = f"{ticker}.JK" if not ticker.endswith(".JK") else ticker
