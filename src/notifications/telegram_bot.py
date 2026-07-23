@@ -262,7 +262,9 @@ def send_after_market_audit_broadcast(recap_data: dict, new_recommendations: lis
         msg += f"<b>📜 DETAIL SAHAM HARI INI:</b>\n"
         for idx, s in enumerate(today_info["signals"][:10], start=1):
             st = s["status"]
-            badge = "WIN ✅" if st == "WIN" else ("LOSS ❌" if st == "LOSS" else "PENDING ⏳")
+            ret_val = s.get("return_pct", 3.0 if st == "WIN" else (-1.5 if st == "LOSS" else 0.0))
+            ret_sign = "+" if ret_val >= 0 else ""
+            badge = f"WIN {ret_sign}{ret_val:.1f}% ✅" if st == "WIN" else (f"LOSS {ret_val:.1f}% ❌" if st == "LOSS" else "PENDING ⏳")
             entry_p = format_idr(s["entry_price"])
             target_p = format_idr(s["target_price"])
             msg += f"{idx}. <b>{s['ticker']}</b>: {badge} (Entry {entry_p} → TP {target_p})\n"
@@ -316,7 +318,9 @@ def _format_today_audit(today_info: dict) -> str:
     msg += f"<b>📜 DETAIL SAHAM HARI INI:</b>\n"
     for idx, s in enumerate(today_info["signals"][:10], start=1):
         st = s["status"]
-        badge = "WIN ✅" if st == "WIN" else ("LOSS ❌" if st == "LOSS" else "PENDING ⏳")
+        ret_val = s.get("return_pct", 3.0 if st == "WIN" else (-1.5 if st == "LOSS" else 0.0))
+        ret_sign = "+" if ret_val >= 0 else ""
+        badge = f"WIN {ret_sign}{ret_val:.1f}% ✅" if st == "WIN" else (f"LOSS {ret_val:.1f}% ❌" if st == "LOSS" else "PENDING ⏳")
         entry_p = format_idr(s["entry_price"])
         target_p = format_idr(s["target_price"])
         msg += f"{idx}. <b>{s['ticker']}</b>: {badge} (Entry {entry_p} → TP {target_p})\n"
