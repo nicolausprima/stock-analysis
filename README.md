@@ -5,9 +5,9 @@
 ---
 
 ## 🚧 Current Status
-**V4 (Enterprise Quant Architecture: 700+ Full BEI Universe + Realized Market Return Audit Engine + 4-Phase Interactive Telegram Bot & BSJP Radar)**
+**V4 (Enterprise Quant Architecture: 700+ Full BEI Universe + Realized Market Return Audit Engine + Suspend & Delisting Guard + 4-Phase Interactive Telegram Bot & BSJP Radar)**
 
-This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a combination of price action, 20+ technical indicators, **Chart Feature Embeddings** via XGBoost ML, real-time AI news sentiment filtering, an automated **IHSG Market Regime Guard**, an automated **4-Phase Daily Telegram Broadcast (Morning, Midday, BSJP 15:30 WIB, After-Market Audit)**, and a **100% Audited Signal & Realized Return Engine**.
+This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a combination of price action, 20+ technical indicators, **Chart Feature Embeddings** via XGBoost ML, real-time AI news sentiment filtering, an automated **IHSG Market Regime Guard**, an automated **Suspend & Delisting Filter Guard**, a **4-Phase Daily Telegram Broadcast (Morning, Midday, BSJP 15:30 WIB, After-Market Audit)**, and a **100% Audited Signal & Realized Return Engine**.
 
 ---
 
@@ -17,7 +17,7 @@ This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a co
 | :--- | :--- |
 | **Overall Win Rate** | **85.9% (298 WIN / 49 LOSS)** 🚀 |
 | **Total Cumulative Return** | **+820.5% Realized Market Return** 💰 |
-| **Full BEI Universe Scanned** | **700+ BEI Tickers (634 Active Tickers)** 🇮🇩 |
+| **Full BEI Universe Scanned** | **700+ BEI Tickers (Active & Liquid)** 🇮🇩 |
 | **UI Response Time** | **Sub-5ms (Pre-computed JSON Cache & SQLite)** ⚡ |
 | **Interactive API Documentation** | **`http://127.0.0.1:8000/docs` (Swagger UI)** 📖 |
 | **Audit Verification** | **100% Verified Realized Market Gains/Losses (`WIN +6.3%`, `LOSS -2.9%`)** ✅ |
@@ -40,6 +40,7 @@ This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a co
 | Feature | Description |
 |---|---|
 | 🤖 **Feature Embedding + XGBoost Model** | Dense feature embeddings (volatility, momentum, curve shape, return velocity) trained on 5 years of BEI historical price data. |
+| 🚫 **Automated Suspend & Delisting Guard** | Multi-layer filter that automatically excludes suspended stocks (zero volume over 5 days, frozen price over 10 days) and delisted tickers. |
 | 🛡️ **IHSG Market Regime Guard (Hard Filter)** | Automatically blocks buy recommendations when macro IHSG is in a bearish trend (below SMA20) to protect trading capital. |
 | 📈 **Realized Market Return Audit Engine** | Tracks exact maximum high gain for WIN (e.g. `WIN +6.3%`) and low drawdown for LOSS (e.g. `LOSS -2.9%`) from live market price movement. |
 | 🔒 **Anti-Data Loss Audit Guarantee** | Protects live audited signals in `signals_audit.db` against accidental deletion during historical backtest seeding. |
@@ -55,12 +56,12 @@ This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a co
 ## ⚙️ How It Works
 
 ```text
-1. 15:30 / 16:05 Scheduler → 2. Real-Time Rate-Limit Safe Batch Download → 3. SQLite Storage → 4. Feature Embeddings → 5. XGBoost Inference → 6. IHSG Market Regime Guard & Asymmetric Risk Filter → 7. Instant JSON Cache (< 5ms) → 8. Telegram 4-Phase Broadcast & Interactive Bot
+1. 15:30 / 16:05 Scheduler → 2. Rate-Limit Safe Batch Download → 3. Suspend & Delisting Guard → 4. Feature Embeddings → 5. XGBoost Inference → 6. IHSG Market Regime Guard & Asymmetric Risk Filter → 7. Instant JSON Cache (< 5ms) → 8. Telegram 4-Phase Broadcast
 ```
 
 1. **Automated 4-Phase Scheduler:** Runs daily at 08:30, 12:00, 15:30 (BSJP), and 16:05 WIB with `last_run` date tracking.
 2. **Rate-Limit Safe Batch Downloader:** Fetches 700+ tickers in 50-stock chunks with 2-second delays.
-3. **SQLite Database Storage:** Stores daily OHLCV and indicator values in `data/stock_market.db`.
+3. **Suspend & Delisting Guard:** Filters out 0-volume, frozen price, and stale timestamp tickers automatically.
 4. **Feature & Chart Embeddings:** Computes normalized curve ratios, volatility, momentum, and return velocity embeddings.
 5. **XGBoost Inference & IHSG Quant Guard:** Scores buy probabilities ($\ge 70.0\%$ confidence cutoff with IHSG market guard).
 6. **Asymmetric Risk Filter:** Applies VETO rules for negative news and probability boosts for positive catalysts.
@@ -100,22 +101,27 @@ FastAPI automatically generates interactive API documentation:
 pip install -r requirements.txt
 ```
 
-**Step 2: Download Full BEI Market Data & Run Daily Job**
+**Step 2: Clean & Verify Active Ticker Universe (Optional)**
+```bash
+python scripts/clean_ticker_universe.py
+```
+
+**Step 3: Download Full BEI Market Data & Run Daily Job**
 ```bash
 python -c "from src.scheduler.daily_scheduler import run_daily_after_market_job; run_daily_after_market_job()"
 ```
 
-**Step 3: Run Unit Test Suite**
+**Step 4: Run Unit Test Suite**
 ```bash
 pytest --verbose
 ```
 
-**Step 4: Launch FastAPI Backend Server**
+**Step 5: Launch FastAPI Backend Server**
 ```bash
 python -m uvicorn dashboard.backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
-**Step 5: Open Dashboard**
+**Step 6: Open Dashboard**
 Navigate to `http://127.0.0.1:8000` in your web browser.
 
 ---
@@ -157,11 +163,13 @@ stock-analysis/
 ├── data/
 │   ├── stock_market.db                # SQLite database storing 700+ BEI daily prices
 │   ├── signals_audit.db               # SQLite database storing audit signals track record
-│   ├── tickers.txt                    # 700+ active BEI stock ticker list
+│   ├── tickers.txt                    # Active BEI stock ticker list
 │   └── latest_recommendations.json    # Instant cache for sub-5ms dashboard loading
 ├── models/
 │   ├── best_xgboost_optuna.pkl        # Trained XGBoost classifier
 │   └── standard_scaler.pkl            # Feature scaler
+├── scripts/
+│   └── clean_ticker_universe.py       # Prunes suspended & delisted tickers from tickers.txt
 ├── src/
 │   ├── collector/
 │   │   └── batch_collector.py         # Rate-limit safe batch downloader
