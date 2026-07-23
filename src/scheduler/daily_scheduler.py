@@ -24,7 +24,7 @@ from dashboard.backend.routes.features import derive_signals, generate_reason
 from dashboard.backend.routes.sentiment_filter import apply_asymmetric_sentiment_filter
 from dashboard.backend.routes.audit import save_signals_to_db
 
-def run_daily_after_market_job(skip_download=False, broadcast_telegram=True):
+def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, save_to_json=True, save_to_db=True):
     """
     Rutin Scheduler Harian (16:05 WIB Setelah Pasar Tutup):
     1. Mengunduh data 700+ saham secara batch aman rate limit.
@@ -35,6 +35,8 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True):
     Args:
         skip_download: Jika True, lewati download yfinance (pakai data DB yg ada).
         broadcast_telegram: Jika False, lewati pengiriman notifikasi Telegram.
+        save_to_json: Jika False, lewati penulisan cache JSON (misal mode BSJP 15:30).
+        save_to_db: Jika False, lewati simpan ke DB audit (misal mode BSJP 15:30).
     """
     print("[SCHEDULER 16:05 WIB] Memulai proses rutin harian...")
     
@@ -168,7 +170,8 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True):
     results = filtered_candidates[:10]
 
     # Simpan sinyal baru ke SQLite database audit & cache JSON
-    save_signals_to_db(results)
+    if save_to_db:
+        save_signals_to_db(results)
 
     payload = {
         "status": "success",
@@ -177,8 +180,9 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True):
         "data": results
     }
     
-    with open(CACHE_FILE, 'w') as f:
-        json.dump(payload, f, indent=2)
+    if save_to_json:
+        with open(CACHE_FILE, 'w') as f:
+            json.dump(payload, f, indent=2)
 
     # 5. Kirim siaran otomatis ke Telegram Bot (After-Market Audit & Sync)
     if broadcast_telegram:
@@ -241,7 +245,7 @@ def run_bsjp_radar_job():
     """
     print("[SCHEDULER 15:30 WIB] Memulai scan real-time BSJP Radar (Beli Sore Jual Pagi)...")
     try:
-        res = run_daily_after_market_job(skip_download=False, broadcast_telegram=False)
+        res = run_daily_after_market_job(skip_download=False, broadcast_telegram=False, save_to_json=False, save_to_db=False)
         stocks = res.get("data", [])
         if stocks:
             from src.notifications.telegram_bot import send_bsjp_radar_broadcast

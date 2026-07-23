@@ -267,7 +267,16 @@ def get_audit_recap():
 
     decided = win_count + loss_count
     win_rate = round((win_count / decided * 100), 1) if decided > 0 else 0.0
-    total_profit_pct = round((win_count * 3.0) - (loss_count * 1.5), 1)
+
+    total_profit_pct = 0.0
+    for r in rows:
+        st = r["status"]
+        if st in ["WIN", "LOSS"]:
+            ret = r["realized_return"]
+            if ret is None:
+                ret = 3.0 if st == "WIN" else -1.5
+            total_profit_pct += ret
+    total_profit_pct = round(total_profit_pct, 1)
 
     # Monthly Grouping
     MONTH_NAMES = {
@@ -301,15 +310,18 @@ def get_audit_recap():
         m_data = monthly_dict[month_key]
         m_data["total_signals"] += 1
         st = r["status"]
+        real_ret = r["realized_return"]
+        if real_ret is None and st in ["WIN", "LOSS"]:
+            real_ret = 3.0 if st == "WIN" else -1.5
 
         if st == "WIN":
             m_data["win_count"] += 1
-            m_data["monthly_profit_pct"] += 3.0
-            cum_return += 3.0
+            m_data["monthly_profit_pct"] += real_ret
+            cum_return += real_ret
         elif st == "LOSS":
             m_data["loss_count"] += 1
-            m_data["monthly_profit_pct"] -= 1.5
-            cum_return -= 1.5
+            m_data["monthly_profit_pct"] += real_ret
+            cum_return += real_ret
         else:
             m_data["pending_count"] += 1
 
@@ -466,8 +478,8 @@ def seed_simulation_audit():
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.cursor()
 
-    # Hapus data lama agar terisi dengan data teroptimasi
-    cursor.execute("DELETE FROM signals")
+    # DO NOT DELETE REAL AUDIT SIGNALS!
+    # Instead, only insert missing backtest signals without deleting existing live records.
 
     tickers_to_backtest = [
         "BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "TLKM.JK",
@@ -515,7 +527,16 @@ def seed_simulation_audit():
                 for i in range(20, len(df_stock)):
                     date_dt = df_stock.index[i]
                     date_str = date_dt.strftime("%Y-%m-%d")
+                    created_str = date_dt.strftime("%Y-%m-%d 16:05:00")
                     row = df_stock.iloc[i]
+
+                    # Skip if signal already exists for this ticker and date
+                    cursor.execute("""
+                        SELECT id FROM signals 
+                        WHERE ticker = ? AND strftime('%Y-%m-%d', created_at) = ?
+                    """, (clean_ticker, date_str))
+                    if cursor.fetchone() is not None:
+                        continue
 
                     # Market Regime Guard
                     is_market_bullish = True
@@ -524,10 +545,6 @@ def seed_simulation_audit():
                         m_dt = ihsg_matches[0]
                         if pd.notna(ihsg_sma20.loc[m_dt]) and ihsg_close.loc[m_dt] < ihsg_sma20.loc[m_dt] * 0.99:
                             is_market_bullish = False
-
-                    # VETO di pasar bearish ekstrem untuk mengeliminasi drawdown Mei 2026
-                    if not is_market_bullish and date_str.startswith("2026-05"):
-                        continue
 
                     rsi_val = float(row['RSI_14']) if pd.notna(row['RSI_14']) else 50.0
                     macd_val = float(row['MACD']) if pd.notna(row['MACD']) else 0.0
@@ -560,29 +577,28 @@ def seed_simulation_audit():
                         # Evaluasi hasil nyata H+1 s/d H+5 (atau hari yang tersedia hingga hari ini)
                         fw = df_stock.iloc[i+1 : i+6]
                         if len(fw) == 0:
-                            # Sinyal yang dibuat hari ini
                             status = "PENDING"
+                            real_ret = None
                         else:
                             max_h = float(fw['High'].max())
-                            last_c = float(fw['Close'].iloc[-1])
-
-                            if max_h >= target_price or last_c >= entry_price:
+                            min_l = float(fw['Low'].min())
+                            if max_h >= target_price:
                                 status = "WIN"
+                                real_ret = round(((max_h - entry_price) / entry_price) * 100, 1)
+                            elif min_l <= stop_loss:
+                                status = "LOSS"
+                                real_ret = round(((min_l - entry_price) / entry_price) * 100, 1)
                             elif len(fw) < 5:
-                                # Masih berjalan jika belum 5 hari dan durasi singkat
-                                min_l = float(fw['Low'].min())
-                                if min_l <= stop_loss:
-                                    status = "LOSS"
-                                else:
-                                    status = "WIN" if last_c >= entry_price else "PENDING"
+                                status = "PENDING"
+                                real_ret = None
                             else:
-                                hash_val = (hash(clean_ticker) + i) % 100
-                                status = "WIN" if hash_val < 74 else "LOSS"
+                                last_c = float(fw['Close'].iloc[-1])
+                                real_ret = round(((last_c - entry_price) / entry_price) * 100, 1)
+                                status = "WIN" if real_ret >= 0 else "LOSS"
 
-                        created_str = date_dt.strftime("%Y-%m-%d 16:05:00")
                         real_records.append((
                             clean_ticker, entry_price, target_price, stop_loss,
-                            prob, status, created_str, created_str
+                            prob, status, real_ret, created_str, created_str
                         ))
 
             except Exception as se:
@@ -593,8 +609,8 @@ def seed_simulation_audit():
 
     if real_records:
         cursor.executemany("""
-            INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, realized_return, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, real_records)
 
     conn.commit()
