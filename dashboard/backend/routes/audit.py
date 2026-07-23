@@ -107,6 +107,13 @@ def get_track_record():
             else:
                 real_ret = 3.0 if st == "WIN" else -1.5
 
+        c_at = r["created_at"] or ""
+        try:
+            dt = datetime.strptime(c_at, "%Y-%m-%d %H:%M:%S")
+            trade_date_str = (dt + timedelta(days=1)).strftime("%Y-%m-%d")
+        except Exception:
+            trade_date_str = (r["updated_at"] or c_at).split(" ")[0]
+
         result.append({
             "id": r["id"],
             "ticker": r["ticker"],
@@ -118,7 +125,8 @@ def get_track_record():
             "return_pct": real_ret,
             "realized_return": real_ret,
             "created_at": r["created_at"],
-            "updated_at": r["updated_at"]
+            "updated_at": r["updated_at"],
+            "trading_date": trade_date_str
         })
         
     conn.close()
