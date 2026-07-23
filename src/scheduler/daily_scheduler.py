@@ -65,11 +65,17 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
                 ihsg_close = ihsg['Close'].iloc[:, 0]
             else:
                 ihsg_close = ihsg['Close']
-            ihsg_returns = pd.DataFrame({'IHSG_Return': ihsg_close.pct_change()}, index=ihsg.index)
+            ihsg_returns = pd.DataFrame({'IHSG_Return': ihsg_close.pct_change(1, fill_method=None)}, index=ihsg.index)
             if ihsg_returns.index.tz is not None:
                 ihsg_returns.index = ihsg_returns.index.tz_localize(None)
-        except Exception:
-            ihsg_returns = pd.DataFrame()
+
+            # IHSG Market Regime Guard Check (Hard Filter if IHSG < SMA20)
+            ihsg_sma20 = ihsg_close.rolling(20).mean()
+            if len(ihsg_close) >= 20 and float(ihsg_close.iloc[-1]) < float(ihsg_sma20.iloc[-1]):
+                print(f"[IHSG GUARD] Market bearish (IHSG {float(ihsg_close.iloc[-1]):.1f} < SMA20 {float(ihsg_sma20.iloc[-1]):.1f}) — skip all buy recommendations for today.")
+                return {"status": "success", "data": [], "ihsg_guard": "active", "message": "IHSG Market Regime Guard Active: Downtrend detected, risk-off mode."}
+        except Exception as e:
+            print(f"[WARNING] Gagal download data IHSG: {str(e)}")
 
     all_latest = []
     

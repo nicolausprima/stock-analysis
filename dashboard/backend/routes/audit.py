@@ -274,7 +274,15 @@ def get_audit_recap():
         if st in ["WIN", "LOSS"]:
             ret = r["realized_return"]
             if ret is None:
-                ret = 3.0 if st == "WIN" else -1.5
+                entry_p = r["entry_price"]
+                target_p = r["target_price"]
+                stop_p = r["stop_loss"]
+                if st == "WIN" and entry_p > 0 and target_p > 0:
+                    ret = round(((target_p - entry_p) / entry_p) * 100, 1)
+                elif st == "LOSS" and entry_p > 0 and stop_p > 0:
+                    ret = round(((stop_p - entry_p) / entry_p) * 100, 1)
+                else:
+                    ret = 3.0 if st == "WIN" else -1.5
             total_profit_pct += ret
     total_profit_pct = round(total_profit_pct, 1)
 
@@ -310,9 +318,18 @@ def get_audit_recap():
         m_data = monthly_dict[month_key]
         m_data["total_signals"] += 1
         st = r["status"]
+        entry_p = r["entry_price"]
+        target_p = r["target_price"]
+        stop_p = r["stop_loss"]
         real_ret = r["realized_return"]
+
         if real_ret is None and st in ["WIN", "LOSS"]:
-            real_ret = 3.0 if st == "WIN" else -1.5
+            if st == "WIN" and entry_p > 0 and target_p > 0:
+                real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
+            elif st == "LOSS" and entry_p > 0 and stop_p > 0:
+                real_ret = round(((stop_p - entry_p) / entry_p) * 100, 1)
+            else:
+                real_ret = 3.0 if st == "WIN" else -1.5
 
         if st == "WIN":
             m_data["win_count"] += 1
