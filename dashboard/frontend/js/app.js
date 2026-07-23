@@ -422,14 +422,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.ok && data.status === 'success' && data.signals?.length > 0) {
                     let signalsHtml = '';
                     data.signals.forEach((s, idx) => {
-                        const badge = s.status === 'WIN' ? '<span class="badge bullish">WIN ✅</span>' :
-                                      (s.status === 'LOSS' ? '<span class="badge bearish">LOSS ❌</span>' : '<span class="badge netral">PENDING ⏳</span>');
                         const tpPct = (s.entry_price > 0 && s.target_price > 0)
                             ? (((s.target_price - s.entry_price) / s.entry_price) * 100).toFixed(1)
                             : '3.0';
                         const slPct = (s.entry_price > 0 && s.stop_loss > 0)
                             ? (((s.stop_loss - s.entry_price) / s.entry_price) * 100).toFixed(1)
                             : '-1.5';
+                        const retVal = s.return_pct != null ? s.return_pct : (s.status === 'WIN' ? parseFloat(tpPct) : (s.status === 'LOSS' ? parseFloat(slPct) : 0));
+                        const retSign = retVal >= 0 ? '+' : '';
+                        const badge = s.status === 'WIN' ? `<span class="badge bullish">WIN ${retSign}${retVal.toFixed(1)}% ✅</span>` :
+                                      (s.status === 'LOSS' ? `<span class="badge bearish">LOSS ${retVal.toFixed(1)}% ❌</span>` : '<span class="badge netral">PENDING ⏳</span>');
                         signalsHtml += `
                             <tr>
                                 <td>${idx + 1}</td>
@@ -580,6 +582,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? (((s.stop_loss - s.entry_price) / s.entry_price) * 100).toFixed(1)
                     : '-1.5';
 
+                const retVal = s.return_pct != null ? s.return_pct : (s.status === 'WIN' ? parseFloat(tpPct) : (s.status === 'LOSS' ? parseFloat(slPct) : 0));
+                const retSign = retVal >= 0 ? '+' : '';
+                const badge = s.status === 'WIN' ? `<span class="badge bullish">WIN ${retSign}${retVal.toFixed(1)}% ✅</span>` :
+                              (s.status === 'LOSS' ? `<span class="badge bearish">LOSS ${retVal.toFixed(1)}% ❌</span>` : `<span class="badge netral">PENDING ⏳</span>`);
+
                 row.innerHTML = `
                     <td>${(s.updated_at || s.created_at).split(' ')[0]}</td>
                     <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
@@ -587,7 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="color: var(--c-green); font-weight:600;">${fmtPrice(s.target_price)} <span style="font-size:11px; font-weight:600; color:var(--c-green);">(+${tpPct}%)</span></td>
                     <td style="color: var(--c-red); font-weight:600;">${fmtPrice(s.stop_loss)} <span style="font-size:11px; font-weight:600; color:var(--c-red);">(${slPct}%)</span></td>
                     <td>${s.probability.toFixed(1)}%</td>
-                    <td><span class="badge ${statusClass}">${s.status}</span></td>
+                    <td>${badge}</td>
                 `;
                 body.appendChild(row);
             });
