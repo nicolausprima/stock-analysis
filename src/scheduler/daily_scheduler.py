@@ -263,37 +263,27 @@ def start_background_scheduler():
         return
 
     def loop():
+        last_run = {}
         while True:
-            current_time = time.strftime("%H:%M")
-            # 1. Pagi (08:30 WIB): Pre-Market Radar Telegram Broadcast
-            if current_time == "08:30":
-                try:
-                    run_morning_premarket_job()
-                except Exception as e:
-                    print(f"Error morning scheduler: {str(e)}")
-                time.sleep(60)
-            # 2. Siang (12:00 WIB): Midday Market Recap Telegram Broadcast
-            elif current_time == "12:00":
-                try:
-                    run_midday_recap_job()
-                except Exception as e:
-                    print(f"Error midday scheduler: {str(e)}")
-                time.sleep(60)
-            # 3. Sore (15:30 WIB): BSJP Radar (Beli Sore Jual Pagi)
-            elif current_time == "15:30":
-                try:
-                    run_bsjp_radar_job()
-                except Exception as e:
-                    print(f"Error BSJP scheduler: {str(e)}")
-                time.sleep(60)
-            # 4. Penutupan (16:05 WIB): After-Market Sync, Audit & Telegram Broadcast
-            elif current_time == "16:05":
-                try:
-                    run_daily_after_market_job()
-                except Exception as e:
-                    print(f"Error after-market scheduler: {str(e)}")
-                time.sleep(60)
-            time.sleep(30)
+            today_str = time.strftime("%Y-%m-%d")
+            now_time = time.strftime("%H:%M")
+
+            schedules = {
+                "08:30": run_morning_premarket_job,
+                "12:00": run_midday_recap_job,
+                "15:30": run_bsjp_radar_job,
+                "16:05": run_daily_after_market_job
+            }
+
+            for sched_time, job_fn in schedules.items():
+                if now_time == sched_time and last_run.get(sched_time) != today_str:
+                    last_run[sched_time] = today_str
+                    try:
+                        job_fn()
+                    except Exception as e:
+                        print(f"[SCHEDULER] Error running {sched_time} job: {str(e)}")
+
+            time.sleep(25)
             
     thread = threading.Thread(target=loop, daemon=True)
     thread.start()

@@ -594,7 +594,7 @@ def seed_simulation_audit():
                             else:
                                 last_c = float(fw['Close'].iloc[-1])
                                 real_ret = round(((last_c - entry_price) / entry_price) * 100, 1)
-                                status = "WIN" if real_ret >= 0 else "LOSS"
+                                status = "WIN" if real_ret >= 0.5 else "LOSS"
 
                         real_records.append((
                             clean_ticker, entry_price, target_price, stop_loss,
