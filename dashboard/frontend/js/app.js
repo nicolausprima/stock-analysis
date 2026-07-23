@@ -81,6 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const sentImpact     = s.sentiment_impact || 'NETRAL';
             const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
 
+            const tpPct = (s.close_price > 0 && s.target_price > 0)
+                ? (((s.target_price - s.close_price) / s.close_price) * 100).toFixed(1)
+                : '3.0';
+            const slPct = (s.close_price > 0 && s.stop_loss > 0)
+                ? (((s.stop_loss - s.close_price) / s.close_price) * 100).toFixed(1)
+                : '-1.5';
+
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="td-rank">${i + 1}</td>
@@ -89,8 +96,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="t-code">${s.ticker}</div>
                 </td>
                 <td class="td-price">${fmtPrice(s.close_price)}</td>
-                <td class="td-target">${fmtPrice(s.target_price)}</td>
-                <td class="td-sl">${fmtPrice(s.stop_loss)}</td>
+                <td class="td-target">
+                    <span style="font-weight:600; color:var(--c-green);">${fmtPrice(s.target_price)}</span>
+                    <span style="font-size:11px; font-weight:600; color:var(--c-green); margin-left:2px;">(+${tpPct}%)</span>
+                </td>
+                <td class="td-sl">
+                    <span style="font-weight:600; color:var(--c-red);">${fmtPrice(s.stop_loss)}</span>
+                    <span style="font-size:11px; font-weight:600; color:var(--c-red); margin-left:2px;">(${slPct}%)</span>
+                </td>
                 <td>
                     <div class="rsi-cell">
                         <span class="rsi-val">${s.rsi}</span>
@@ -133,6 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const sentImpact     = s.sentiment_impact || 'NETRAL';
             const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
 
+            const tpPct = (s.close_price > 0 && s.target_price > 0)
+                ? (((s.target_price - s.close_price) / s.close_price) * 100).toFixed(1)
+                : '3.0';
+            const slPct = (s.close_price > 0 && s.stop_loss > 0)
+                ? (((s.stop_loss - s.close_price) / s.close_price) * 100).toFixed(1)
+                : '-1.5';
+
             const card = document.createElement('div');
             card.className = 'detail-card';
             card.setAttribute('role', 'listitem');
@@ -155,12 +175,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="dc-pval primary">${s.close_price > 0 ? idr(s.close_price) : '—'}</div>
                     </div>
                     <div class="dc-price-col">
-                        <div class="dc-plbl">Target</div>
-                        <div class="dc-pval green">${s.target_price > 0 ? idr(s.target_price) : '—'}</div>
+                        <div class="dc-plbl">Target Profit</div>
+                        <div class="dc-pval green">${s.target_price > 0 ? idr(s.target_price) : '—'} <span style="font-size:11px; font-weight:600;">(+${tpPct}%)</span></div>
                     </div>
                     <div class="dc-price-col">
                         <div class="dc-plbl">Stop Loss</div>
-                        <div class="dc-pval red">${s.stop_loss > 0 ? idr(s.stop_loss) : '—'}</div>
+                        <div class="dc-pval red">${s.stop_loss > 0 ? idr(s.stop_loss) : '—'} <span style="font-size:11px; font-weight:600;">(${slPct}%)</span></div>
                     </div>
                 </div>
 
