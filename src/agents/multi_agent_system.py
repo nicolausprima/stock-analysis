@@ -37,36 +37,58 @@ class SentimentAnalystAgent:
             f"Dukungan narasi publik memberi dorongan {'positif' if status == 'POSITIF' else 'terbatas'} bagi pergerakan harga saham."
         )
 
+class MacroContextAgent:
+    """Agent specialized in evaluating domestic and global macroeconomic regime."""
+    def analyze(self, macro_data: Dict[str, Any]) -> str:
+        mode = macro_data.get("mode", "NORMAL")
+        score = macro_data.get("macro_score", 0.0)
+        badge = macro_data.get("mode_badge", "MODE NORMAL")
+        
+        if mode == "BLOCK":
+            return f"Analisis Makro: {badge} (Skor {score:+.1f}). Pasar dalam zona merah/downtrend tinggi. Risiko sistemik membatasi posisi beli."
+        elif mode == "CAUTIOUS":
+            return f"Analisis Makro: {badge} (Skor {score:+.1f}). Fluktuasi kurs/pasar global menuntut kewaspadaan ekstra. Filter diperketat."
+        else:
+            return f"Analisis Makro: {badge} (Skor {score:+.1f}). Lingkungan makro kondusif mendukung pergerakan IHSG dan saham domestik."
+
 class BullBearDebateAgent:
     """Simulates a debate between Bull (upside factors) and Bear (risk factors)."""
-    def debate(self, tech_summary: str, sent_summary: str, data: Dict[str, Any]) -> Dict[str, str]:
+    def debate(self, tech_summary: str, sent_summary: str, macro_summary: str, data: Dict[str, Any]) -> Dict[str, str]:
         prob = data.get("probability", 50.0)
         ticker = data.get("ticker", "SAHAM").replace(".JK", "")
         
         bull_case = (
             f"Pandangan Bullish (Pembeli): {ticker} memiliki probabilitas AI {prob:.1f}%. {tech_summary} "
-            f"Volume transaksi dan indikator tren mendukung kelanjutan momentum kenaikan."
+            f"{macro_summary} Momentum accumulation mendukung kenaikan lanjutan."
         )
         
         bear_case = (
             f"Pandangan Bearish (Penjual): Waspadai batas Stop Loss di Rp {data.get('stop_loss', 0):.0f}. "
-            f"Jika IHSG mengalami konsolidasi atau aksi profit taking, saham berisiko terkoreksi jangka pendek."
+            f"Jika IHSG atau makro bergejolak, saham berisiko mengalami tekanan koreksi."
         )
         
         return {"bull_case": bull_case, "bear_case": bear_case}
 
 class RiskManagerAgent:
     """Evaluates risk/reward ratio and synthesizes final trading consensus."""
-    def evaluate(self, debate: Dict[str, str], data: Dict[str, Any]) -> Dict[str, Any]:
+    def evaluate(self, debate: Dict[str, str], data: Dict[str, Any], macro_mode: str = "NORMAL") -> Dict[str, Any]:
         close = data.get("close_price", 1)
         target = data.get("target_price", 1)
         stop = data.get("stop_loss", 1)
+        prob = data.get("probability", 0)
         
         reward = max(0, target - close)
         risk = max(1, close - stop)
         rr_ratio = reward / risk if risk > 0 else 1.0
         
-        verdict = "REKOMENDASI BELI (BUY)" if rr_ratio >= 1.5 and data.get("probability", 0) >= 55 else "PERTIMBANGKAN WAIT & SEE"
+        min_prob = 80 if macro_mode == "CAUTIOUS" else 55
+        
+        if macro_mode == "BLOCK":
+            verdict = "TAHAN POSISI (RISK-OFF / BLOCK)"
+        elif rr_ratio >= 1.5 and prob >= min_prob:
+            verdict = "REKOMENDASI BELI (BUY)"
+        else:
+            verdict = "PERTIMBANGKAN WAIT & SEE"
         
         return {
             "verdict": verdict,
@@ -78,35 +100,39 @@ class RiskManagerAgent:
 class MultiAgentSystem:
     """
     Multi-Agent Trading Framework inspired by TauricResearch/TradingAgents.
-    Orchestrates Technical, Sentiment, Debate, and Risk Manager Agents to output consensus.
+    Orchestrates Technical, Sentiment, Macro, Debate, and Risk Manager Agents to output consensus.
     """
     def __init__(self):
         self.technical_agent = TechnicalAnalystAgent()
         self.sentiment_agent = SentimentAnalystAgent()
+        self.macro_agent = MacroContextAgent()
         self.debate_agent = BullBearDebateAgent()
         self.risk_manager = RiskManagerAgent()
 
-    def generate_consensus(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Runs the 4-agent workflow locally or enhances with LLM synthesis if available."""
+    def generate_consensus(self, data: Dict[str, Any], macro_info: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Runs the multi-agent consensus workflow."""
+        macro_info = macro_info or {}
+        macro_mode = macro_info.get("mode", "NORMAL")
+
         tech_out = self.technical_agent.analyze(data)
         sent_out = self.sentiment_agent.analyze(data)
-        debate_out = self.debate_agent.debate(tech_out, sent_out, data)
-        risk_out = self.risk_manager.evaluate(debate_out, data)
+        macro_out = self.macro_agent.analyze(macro_info)
+        debate_out = self.debate_agent.debate(tech_out, sent_out, macro_out, data)
+        risk_out = self.risk_manager.evaluate(debate_out, data, macro_mode=macro_mode)
         
         ticker = data.get("ticker", "SAHAM").replace(".JK", "")
         
-        # Build unified synthesis text
         synthesis = (
             f"Konsensus Multi-Agent StockAI ({ticker}):\n"
             f"• [Technical Analyst]: {tech_out}\n"
+            f"• [Macro Intelligence]: {macro_out}\n"
             f"• [Sentiment Analyst]: {sent_out}\n"
             f"• [Bull Case]: {debate_out['bull_case']}\n"
             f"• [Bear Case]: {debate_out['bear_case']}\n"
             f"• [Risk Manager]: Verdict {risk_out['verdict']} dengan Risk/Reward Ratio {risk_out['risk_reward_ratio']}x."
         )
         
-        # Optionally enhance via LLM if available
-        llm_enhanced = self._call_llm_synthesis(ticker, data, debate_out, risk_out)
+        llm_enhanced = self._call_llm_synthesis(ticker, data, debate_out, risk_out, macro_out)
         if llm_enhanced:
             synthesis = llm_enhanced
 
@@ -114,6 +140,7 @@ class MultiAgentSystem:
             "ticker": ticker,
             "technical_view": tech_out,
             "sentiment_view": sent_out,
+            "macro_view": macro_out,
             "bull_case": debate_out["bull_case"],
             "bear_case": debate_out["bear_case"],
             "risk_verdict": risk_out["verdict"],
@@ -121,14 +148,15 @@ class MultiAgentSystem:
             "consensus_summary": synthesis
         }
 
-    def _call_llm_synthesis(self, ticker: str, data: Dict[str, Any], debate: Dict[str, str], risk: Dict[str, Any]) -> str:
+    def _call_llm_synthesis(self, ticker: str, data: Dict[str, Any], debate: Dict[str, str], risk: Dict[str, Any], macro_view: str) -> str:
         """Helper to invoke LLM proxy for polished natural language synthesis."""
         url = f"{OPENAI_API_BASE}/chat/completions"
         headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}
         
         prompt = (
             f"Kamu adalah Manajer Konsensus Trading Multi-Agent saham BEI untuk {ticker}.\n"
-            f"Gabungkan hasil perdebatan Bull vs Bear dan Manajer Risiko berikut menjadi ulasan opini 3 kalimat padat:\n"
+            f"Gabungkan perdebatan Bull vs Bear, Konteks Makro, dan Manajer Risiko berikut menjadi ulasan opini 3 kalimat padat:\n"
+            f"- Konteks Makro: {macro_view}\n"
             f"- Bull Case: {debate['bull_case']}\n"
             f"- Bear Case: {debate['bear_case']}\n"
             f"- Hasil Risk Manager: {risk['verdict']} (Risk/Reward {risk['risk_reward_ratio']}x).\n"
