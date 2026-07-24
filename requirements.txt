@@ -14,3 +14,4 @@ langchain-community
 duckduckgo-search
 python-dotenv
 openbb
+feedparser

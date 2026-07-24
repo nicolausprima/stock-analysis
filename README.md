@@ -5,9 +5,10 @@
 ---
 
 ## 🚧 Current Status
-**V4 (Enterprise Quant Architecture: 700+ Full BEI Universe + Realized Market Return Audit Engine + Suspend & Delisting Guard + 4-Phase Interactive Telegram Bot & BSJP Radar)**
+## 🚧 Current Status
+**V5 (Multi-Agent Trading Framework + IHSG Macro Intelligence Agent + Economic News Sentiment Agent + OpenBB Data Integration)**
 
-This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a combination of price action, 20+ technical indicators, **Chart Feature Embeddings** via XGBoost ML, real-time AI news sentiment filtering, an automated **IHSG Market Regime Guard**, an automated **Suspend & Delisting Filter Guard**, a **4-Phase Daily Telegram Broadcast (Morning, Midday, BSJP 15:30 WIB, After-Market Audit)**, and a **100% Audited Signal & Realized Return Engine**.
+This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a combination of price action, 20+ technical indicators, **Chart Feature Embeddings** via XGBoost ML, real-time AI news sentiment filtering, an **IHSG Macro Intelligence Agent** (scoring USD/IDR, DXY, Nikkei, Wall St, Commodities & IHSG technicals into 3 Market Modes: `NORMAL`, `CAUTIOUS`, `BLOCK`), an **Economic News Sentiment Agent** (RSS feed parsing + DeepSeek / Keyword Sentiment), an **OpenBB Platform Data Provider Layer**, an **Interactive Multi-Agent Consensus Framework** (Technical Analyst, Sentiment Analyst, Macro Context Agent, Bull vs Bear Debate, Risk Manager), an automated **Suspend & Delisting Filter Guard**, a **4-Phase Daily Telegram Broadcast**, and a **100% Audited Signal & Realized Return Engine**.
 
 ---
 
@@ -18,6 +19,7 @@ This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a co
 | **Overall Win Rate** | **85.9% (298 WIN / 49 LOSS)** 🚀 |
 | **Total Cumulative Return** | **+820.5% Realized Market Return** 💰 |
 | **Full BEI Universe Scanned** | **700+ BEI Tickers (Active & Liquid)** 🇮🇩 |
+| **Automated Test Suite** | **100% Pass (17/17 pytest Unit Tests)** 🧪 |
 | **UI Response Time** | **Sub-5ms (Pre-computed JSON Cache & SQLite)** ⚡ |
 | **Interactive API Documentation** | **`http://127.0.0.1:8000/docs` (Swagger UI)** 📖 |
 | **Audit Verification** | **100% Verified Realized Market Gains/Losses (`WIN +6.3%`, `LOSS -2.9%`)** ✅ |
@@ -28,7 +30,7 @@ This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a co
 
 | Phase | Time (WIB) | Trigger & Action | Strategy Target |
 | :--- | :--- | :--- | :--- |
-| ☀️ **Phase 1: Morning Radar** | `08:30 WIB` | Pre-market scan before BEI open (09:00 WIB). | Queue buy orders for Market Open (09:00 WIB). |
+| ☀️ **Phase 1: Morning Radar** | `08:30 WIB` | Pre-market scan before BEI open (09:00 WIB) with Macro Context & News Summary. | Queue buy orders for Market Open (09:00 WIB). |
 | ☕ **Phase 2: Midday Market Recap** | `12:00 WIB` | Real-time Sesi 1 price download & signal progress update. | Track Sesi 1 win rate & morning picks during lunch break. |
 | 🌇 **Phase 3: BSJP Radar** | `15:30 WIB` | **30 mins before market close**. Real-time intraday scan for late-session volume expansion & breakout momentum. | **BSJP (Beli Sore Jual Pagi)**: Buy @ 15:30-15:50 WIB → Auto-sell @ 09:00 WIB Open. |
 | 📊 **Phase 4: After-Market Audit** | `16:05 WIB` | Full market close price audit, SQLite DB update, 6-month track record sync & next-day signal generation. | Complete day audit & pre-load UI cache JSON. |
@@ -39,17 +41,19 @@ This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a co
 
 | Feature | Description |
 |---|---|
+| 🌐 **IHSG Macro Intelligence Agent** | Real-time pre-screening agent evaluating USD/IDR, DXY, Nikkei, Wall St, Commodities & IHSG technicals into 3 market modes (`NORMAL`, `CAUTIOUS`, `BLOCK`). |
+| 📰 **Economic News Sentiment Agent** | Parses real-time macroeconomic news from RSS feeds (Google News & Yahoo Finance) and evaluates sentiment using DeepSeek LLM or keyword fallback. |
+| 🤖 **Multi-Agent Trading Consensus Engine** | 5-agent decision framework (Technical, Sentiment, Macro, Bull vs. Bear Debate, Risk Manager) inspired by `TauricResearch/TradingAgents`. |
+| 📊 **OpenBB Data Platform Integration** | OpenBB Platform SDK wrapper (`openbb_provider.py`) with seamless yfinance fallback for robust financial data retrieval. |
 | 🤖 **Feature Embedding + XGBoost Model** | Dense feature embeddings (volatility, momentum, curve shape, return velocity) trained on 5 years of BEI historical price data. |
 | 🚫 **Automated Suspend & Delisting Guard** | Multi-layer filter that automatically excludes suspended stocks (zero volume over 5 days, frozen price over 10 days) and delisted tickers. |
-| 🛡️ **IHSG Market Regime Guard (Hard Filter)** | Automatically blocks buy recommendations when macro IHSG is in a bearish trend (below SMA20) to protect trading capital. |
 | 📈 **Realized Market Return Audit Engine** | Tracks exact maximum high gain for WIN (e.g. `WIN +6.3%`) and low drawdown for LOSS (e.g. `LOSS -2.9%`) from live market price movement. |
 | 🔒 **Anti-Data Loss Audit Guarantee** | Protects live audited signals in `signals_audit.db` against accidental deletion during historical backtest seeding. |
 | ⚡ **Async Non-Blocking Telegram Bot** | Responds instantly (<1s) to `/today`, `/midday`, `/bsjp`, `/audittoday`, and `/auditall` commands using background worker threads. |
 | 🌇 **BSJP (Beli Sore Jual Pagi) Engine** | Dedicated 15:30 WIB real-time scanner capturing late-afternoon volume accumulation without overwriting main recommendation caches. |
 | 📊 **700+ Full BEI Ticker Universe (A-Z)** | Scans all active BEI listed companies (LQ45, Kompas100, ISSI, IDX80, Main & Development Boards). |
 | ⚡ **Sub-5ms UI Response & JSON Cache** | Pre-computes recommendations after market close into `data/latest_recommendations.json` for instant UI loading. |
-| 📰 **Unified AI Narrative Layer** | Generates detailed Indonesian analysis narratives summarizing technical & news catalysts. |
-| 🎨 **Liquid Glass UI** | Modern frosted glassmorphism design with clean 2-tab navigation (*Rekomendasi Esok Hari* & *Performa 6 Bulan*). |
+| 🎨 **Modern Multi-Agent Dashboard UI** | Pill-shaped glassmorphism toggle card displaying Bull Case, Bear Case, Risk Verdict, and Risk/Reward Ratios. |
 
 ---
 

@@ -58,6 +58,27 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
 
     # Download data IHSG (lewati jika skip_download=True)
     ihsg_returns = pd.DataFrame()
+    macro_eval = {"mode": "NORMAL", "macro_score": 0.0, "details": []}
+    try:
+        from src.agents.ihsg_macro_agent import IHSGMacroAgent
+        macro_agent = IHSGMacroAgent()
+        macro_eval = macro_agent.evaluate(skip_news=skip_download)
+        print(f"[MACRO AGENT] Result: {macro_eval.get('mode_badge', 'NORMAL')} | Score: {macro_eval.get('macro_score', 0):+.1f}")
+        for d in macro_eval.get('details', []):
+            print(f"   {d}")
+        
+        if macro_eval.get('mode') == 'BLOCK':
+            print(f"[MACRO GUARD] Market risk-off active ({macro_eval.get('mode_badge')}). Skip buy recommendations for today.")
+            return {
+                "status": "success",
+                "data": [],
+                "macro_mode": "BLOCK",
+                "macro_eval": macro_eval,
+                "message": f"IHSG Macro Guard Active: Downtrend/High Risk detected."
+            }
+    except Exception as e:
+        print(f"[WARNING] Gagal mengevaluasi IHSG Macro Agent: {str(e)}")
+
     if not skip_download:
         try:
             ihsg = yf.download('^JKSE', period='100d', progress=False)
@@ -68,14 +89,8 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             ihsg_returns = pd.DataFrame({'IHSG_Return': ihsg_close.pct_change(1, fill_method=None)}, index=ihsg.index)
             if ihsg_returns.index.tz is not None:
                 ihsg_returns.index = ihsg_returns.index.tz_localize(None)
-
-            # IHSG Market Regime Guard Check (Hard Filter if IHSG < SMA20)
-            ihsg_sma20 = ihsg_close.rolling(20).mean()
-            if len(ihsg_close) >= 20 and float(ihsg_close.iloc[-1]) < float(ihsg_sma20.iloc[-1]):
-                print(f"[IHSG GUARD] Market bearish (IHSG {float(ihsg_close.iloc[-1]):.1f} < SMA20 {float(ihsg_sma20.iloc[-1]):.1f}) — skip all buy recommendations for today.")
-                return {"status": "success", "data": [], "ihsg_guard": "active", "message": "IHSG Market Regime Guard Active: Downtrend detected, risk-off mode."}
         except Exception as e:
-            print(f"[WARNING] Gagal download data IHSG: {str(e)}")
+            print(f"[WARNING] Gagal download data IHSG returns: {str(e)}")
 
     all_latest = []
     
@@ -198,6 +213,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         "status": "success",
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "total_scanned": len(combined_df),
+        "macro_eval": macro_eval,
         "data": results
     }
     
@@ -209,7 +225,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     if broadcast_telegram:
         try:
             from src.notifications.telegram_bot import send_after_market_audit_broadcast
-            send_after_market_audit_broadcast(recap, new_recommendations=results, today_audit=today_audit)
+            send_after_market_audit_broadcast(recap, new_recommendations=results, today_audit=today_audit, macro_eval=macro_eval)
         except Exception as te:
             print(f"[TELEGRAM] Error sending scheduler broadcast: {str(te)}")
     else:

@@ -113,11 +113,20 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
 
 @router.post("/narasi/multi-agent")
 def generate_multi_agent_consensus(req: NarasiRequest):
-    """Menghasilkan konsensus analisis multi-agent (Technical, Sentiment, Bull vs Bear, Risk Manager)."""
+    """Menghasilkan konsensus analisis multi-agent (Technical, Sentiment, Macro, Bull vs Bear, Risk Manager)."""
     try:
         from src.agents.multi_agent_system import MultiAgentSystem
+        from src.config import CACHE_FILE
+        macro_info = None
+        if CACHE_FILE.exists():
+            try:
+                with open(CACHE_FILE, 'r') as f:
+                    c_data = json.load(f)
+                    macro_info = c_data.get("macro_eval")
+            except Exception:
+                pass
         agent_system = MultiAgentSystem()
-        consensus = agent_system.generate_consensus(req.dict())
+        consensus = agent_system.generate_consensus(req.dict(), macro_info=macro_info)
         return {"status": "success", "data": consensus}
     except Exception as e:
         raise HTTPException(

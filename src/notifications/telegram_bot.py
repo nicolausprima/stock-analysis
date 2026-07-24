@@ -217,7 +217,7 @@ def send_bsjp_radar_broadcast(recommendations: list[dict], target_chat_id: str =
 
     return send_telegram_message(msg, target_chat_id=target_chat_id)
 
-def send_after_market_audit_broadcast(recap_data: dict, new_recommendations: list = None, today_audit: dict = None) -> dict:
+def send_after_market_audit_broadcast(recap_data: dict, new_recommendations: list = None, today_audit: dict = None, macro_eval: dict = None) -> dict:
     """
     Mengirimkan ringkasan audit hasil trading KHUSUS HARI INI + Total Track Record + Rekomendasi Esok Hari.
     """
@@ -242,6 +242,20 @@ def send_after_market_audit_broadcast(recap_data: dict, new_recommendations: lis
     msg = f"<b>📊 STOCKAI AFTER-MARKET AUDIT & SYNC 🇮🇩</b>\n"
     msg += f"<i>📅 {today_str} | ⏰ 16:05 WIB (Pasar Tutup)</i>\n"
     msg += f"───────────────────────\n\n"
+
+    # --- SECTION 0: KONDISI MAKRO & SENTIMEN BERITA ---
+    if macro_eval:
+        msg += f"<b>🌐 KONDISI MAKRO & SENTIMEN BERITA:</b>\n"
+        msg += f"• 🎯 <b>Status Pasar:</b> {macro_eval.get('mode_badge', 'NORMAL')}\n"
+        msg += f"• 📊 <b>Macro Score:</b> <code>{macro_eval.get('macro_score', 0):+.1f}</code>\n"
+        for d in macro_eval.get('details', [])[:4]:
+            msg += f"  {d}\n"
+        news = macro_eval.get('news_sentiment', {})
+        if news and news.get('headlines'):
+            msg += f"📰 <b>Headline Ekonomi Terkini:</b>\n"
+            for h in news['headlines'][:3]:
+                msg += f"  • {h['title']}\n"
+        msg += f"───────────────────────\n\n"
 
     # --- SECTION 1: KHUSUS HARI INI ---
     if today_info and today_info.get("signals"):
