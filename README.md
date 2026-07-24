@@ -5,7 +5,6 @@
 ---
 
 ## 🚧 Current Status
-## 🚧 Current Status
 **V5 (Multi-Agent Trading Framework + IHSG Macro Intelligence Agent + Economic News Sentiment Agent + OpenBB Data Integration)**
 
 This project analyzes the entire Indonesia Stock Exchange (IDX / BEI) using a combination of price action, 20+ technical indicators, **Chart Feature Embeddings** via XGBoost ML, real-time AI news sentiment filtering, an **IHSG Macro Intelligence Agent** (scoring USD/IDR, DXY, Nikkei, Wall St, Commodities & IHSG technicals into 3 Market Modes: `NORMAL`, `CAUTIOUS`, `BLOCK`), an **Economic News Sentiment Agent** (RSS feed parsing + DeepSeek / Keyword Sentiment), an **OpenBB Platform Data Provider Layer**, an **Interactive Multi-Agent Consensus Framework** (Technical Analyst, Sentiment Analyst, Macro Context Agent, Bull vs Bear Debate, Risk Manager), an automated **Suspend & Delisting Filter Guard**, a **4-Phase Daily Telegram Broadcast**, and a **100% Audited Signal & Realized Return Engine**.
