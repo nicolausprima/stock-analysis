@@ -426,7 +426,7 @@ a { color: inherit; text-decoration: none; }
 class TextScramble {
     constructor(el) {
         this.el = el;
-        this.chars = '!<>-_\\/[]{}—=+*^?#________';
+        this.chars = '!<>-_\\/[]{}—=+*^?#________ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         this.update = this.update.bind(this);
     }
     setText(newText) {
@@ -437,8 +437,9 @@ class TextScramble {
         for (let i = 0; i < length; i++) {
             const from = oldText[i] || '';
             const to = newText[i] || '';
-            const start = Math.floor(Math.random() * 15);
-            const end = start + Math.floor(Math.random() * 15);
+            // Durasi acak yang lebih panjang dan mengunci berurutan dari kiri ke kanan
+            const start = Math.floor(i * 2.2) + Math.floor(Math.random() * 18);
+            const end = start + 30 + Math.floor(Math.random() * 30);
             this.queue.push({ from, to, start, end, char: '' });
         }
         cancelAnimationFrame(this.frameRequest);
@@ -455,7 +456,7 @@ class TextScramble {
                 complete++;
                 output += to;
             } else if (this.frame >= start) {
-                if (!char || Math.random() < 0.28) {
+                if (!char || Math.random() < 0.35) {
                     char = this.chars[Math.floor(Math.random() * this.chars.length)];
                     this.queue[i].char = char;
                 }
@@ -488,12 +489,13 @@ if (el) {
     var counter = 0;
     var nextWord = function() {
         fx.setText(words[counter]).then(function() {
-            setTimeout(nextWord, 2500);
+            setTimeout(nextWord, 3500);
         });
         counter = (counter + 1) % words.length;
     };
     nextWord();
 }
+
 
 
 var observer = new IntersectionObserver(function(entries) {
