@@ -49,14 +49,19 @@ def _read_cache():
 
 
 def _run_fresh_scan():
-    """Analisa ulang dari data SQLite yang ada (tanpa download yfinance, tanpa Telegram)."""
+    """Analisa ulang dari data SQLite yang ada. Jika DB lokal kosong (misal di Render), jalankan scan otomatis."""
     if os.getenv("TESTING") == "true":
         return _fallback_response()
 
     try:
         from src.scheduler.daily_scheduler import run_daily_after_market_job
         res = run_daily_after_market_job(skip_download=True, broadcast_telegram=False)
-        if isinstance(res, dict) and res.get("status") == "success":
+        if isinstance(res, dict) and res.get("status") == "success" and len(res.get("data", [])) > 0:
+            return res
+
+        # Jika DB lokal kosong / fresh deployment di cloud, jalankan scan dengan download data
+        res = run_daily_after_market_job(skip_download=False, broadcast_telegram=False)
+        if isinstance(res, dict) and res.get("status") == "success" and len(res.get("data", [])) > 0:
             return res
     except Exception as err:
         print(f"Scheduler execution warning: {str(err)}")
