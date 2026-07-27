@@ -3,331 +3,467 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockAI — AI-Powered Day Trading Screener</title>
-    <meta name="description" content="AI stock screener for Indonesian market — 700+ BEI stocks analyzed daily with XGBoost">
-    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap" rel="stylesheet">
-    <script src="js/lightweight-charts.js"></script>
-    <link rel="stylesheet" href="css/style.css?v=20">
+    <title>StockAI — AI-Powered Day Trading Screener for BEI</title>
+    <meta name="description" content="AI-powered stock screener for Indonesia Stock Exchange. XGBoost analyzes 700+ BEI stocks daily with 20+ technical indicators.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #09090b;
+    color: #fff;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+
+.hero {
+    position: relative;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+    background: #09090b;
+    overflow: hidden;
+}
+.hero-glow {
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 70%);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+.hero-inner {
+    position: relative;
+    z-index: 1;
+    max-width: 720px;
+    width: 100%;
+    text-align: center;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 28px;
+    transition: border-color 0.2s;
+    cursor: default;
+}
+.pill:hover { border-color: rgba(255,255,255,0.15); }
+.pill-arrow { font-size: 11px; opacity: 0.5; }
+
+.hero h1 {
+    font-size: clamp(36px, 6vw, 64px);
+    font-weight: 700;
+    line-height: 1.15;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: -0.02em;
+}
+.hero h1 .line1 {
+    display: block;
+    font-weight: 600;
+}
+.hero h1 .rotator-wrap {
+    display: block;
+    height: 1.15em;
+    overflow: hidden;
+    position: relative;
+}
+.hero h1 .rotator {
+    display: block;
+    position: relative;
+}
+.hero h1 .rotator span {
+    display: block;
+    height: 1.15em;
+    line-height: 1.15;
+    background: linear-gradient(135deg, #fff 0%, #e8e0d8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.hero-desc {
+    font-size: clamp(15px, 1.5vw, 17px);
+    color: rgba(255,255,255,0.55);
+    max-width: 580px;
+    margin: 20px auto 36px;
+    line-height: 1.7;
+}
+
+.hero-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 500;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.8);
+    transition: background 0.2s, border-color 0.2s;
+}
+.btn-outline:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+.btn-solid {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 28px;
+    border-radius: 100px;
+    font-size: 14px;
+    font-weight: 600;
+    background: #fff;
+    color: #09090b;
+    border: none;
+    transition: opacity 0.2s;
+}
+.btn-solid:hover { opacity: 0.9; }
+
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: #0c0c0d;
+}
+.stat-item {
+    padding: 36px 24px;
+    text-align: center;
+    border-right: 1px solid rgba(255,255,255,0.06);
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+.stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.35);
+    margin-top: 4px;
+}
+
+.section {
+    padding: 100px 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+.section-header { text-align: center; margin-bottom: 56px; }
+.section-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 12px;
+}
+.section-title {
+    font-size: clamp(30px, 4vw, 44px);
+    font-weight: 700;
+    line-height: 1.15;
+    color: #fff;
+    max-width: 550px;
+    margin: 0 auto;
+    letter-spacing: -0.02em;
+}
+.section-desc {
+    font-size: 15px;
+    color: rgba(255,255,255,0.75);
+    max-width: 480px;
+    margin: 10px auto 0;
+    line-height: 1.7;
+}
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+.feat-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 32px 28px;
+    transition: background 0.2s;
+}
+.feat-card:hover { background: rgba(255,255,255,0.05); }
+.feat-card h3 {
+    font-size: 17px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #fff;
+}
+.feat-card p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.7;
+}
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+.step-card { text-align: center; }
+.step-num {
+    font-size: 40px;
+    font-weight: 700;
+    color: #ffffff;
+    opacity: 0.85;
+    line-height: 1;
+    margin-bottom: 12px;
+    letter-spacing: -0.03em;
+}
+.step-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #ffffff;
+}
+.step-card p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.6;
+}
+
+.cta-section {
+    background: #0c0c0d;
+    text-align: center;
+    padding: 80px 24px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+.cta-section h2 {
+    font-size: clamp(28px, 3.5vw, 40px);
+    font-weight: 700;
+    margin-bottom: 10px;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+.cta-section p {
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 28px;
+    font-size: 15px;
+}
+.cta-section .btn-solid {
+    font-size: 15px;
+    padding: 14px 32px;
+}
+
+.footer {
+    padding: 28px 24px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.2);
+    border-top: 1px solid rgba(255,255,255,0.04);
+}
+
+.reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+@media (max-width: 768px) {
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .stat-item:nth-child(2) { border-right: none; }
+    .stat-item { padding: 24px 16px; }
+    .stat-num { font-size: 26px; }
+    .section { padding: 60px 20px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .steps-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+    .steps-grid { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 28px; }
+}
+</style>
 </head>
 <body>
 
-<!-- NAVBAR -->
-<nav class="navbar" role="navigation" aria-label="Main navigation">
-    <div class="nav-inner">
-        <a href="/" class="logo" aria-label="StockAI Home">
-            <div class="logo-mark" aria-hidden="true">
-                <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="2,14 7,8 11,11 18,4"/>
-                    <polyline points="14,4 18,4 18,8"/>
-                </svg>
-            </div>
-            StockAI
-        </a>
-        <span id="last-scan-time" class="last-scan" aria-live="polite"></span>
-    </div>
-</nav>
-
-<!-- HERO — split layout: left title | right IHSG preview -->
-<section class="hero" aria-labelledby="hero-heading">
+<section class="hero">
+    <div class="hero-glow"></div>
     <div class="hero-inner">
-
-        <!-- Left: Title + CTA -->
-        <div class="hero-left">
-            <div class="hero-eyebrow">
-                <span class="pulse-dot" aria-hidden="true"></span>
-                Live Market Analysis
-            </div>
-            <h1 class="hero-title" id="hero-heading">
-                Temukan Saham<br>Terbaik dengan<br><span class="text-gradient">Kecerdasan AI</span>
-            </h1>
-            <p class="hero-desc">
-                Model XGBoost menganalisis <strong>700+ saham BEI</strong> setiap hari
-                dengan 20+ indikator teknikal &amp; Quant Engine.
-            </p>
-            <div class="hero-stats">
-                <div class="hstat"><span class="hstat-n">700+</span><span class="hstat-l">Saham</span></div>
-                <div class="hstat-div"></div>
-                <div class="hstat"><span class="hstat-n">20+</span><span class="hstat-l">Indikator</span></div>
-                <div class="hstat-div"></div>
-                <div class="hstat"><span class="hstat-n">+3.0%</span><span class="hstat-l">Target/Hari</span></div>
-            </div>
-            <button id="scan-btn" class="btn-scan" aria-label="Pindai pasar dan dapatkan rekomendasi saham">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                Pindai Pasar Sekarang
-            </button>
+        <div class="pill">
+            Screening Saham BEI Berbasis AI
+            <span class="pill-arrow">→</span>
         </div>
 
-        <!-- Right: IHSG preview card (visible after scan) -->
-        <div class="hero-right">
-            <div class="hero-ihsg-preview glass-card" id="hero-ihsg-preview">
-                <div class="hisg-preview-hd">
-                    <div>
-                        <div class="hisg-label">IHSG · Jakarta Composite</div>
-                        <div id="hero-ihsg-price" class="hisg-price">—</div>
-                    </div>
-                    <div class="chart-range-tabs" role="group" aria-label="Rentang waktu">
-                        <button class="chart-tab active" id="tab-1d" onclick="switchIhsgRange(1)">1D</button>
-                        <button class="chart-tab" id="tab-60d" onclick="switchIhsgRange(60)">60D</button>
-                    </div>
-                </div>
-                <div class="hisg-desc-wrap">
-                    <p id="ihsg-desc" class="hisg-sub">Pindai pasar untuk melihat grafik</p>
-                </div>
-                <div id="ihsg-chart" class="ihsg-chart-container"></div>
-            </div>
-        </div>
+        <h1>
+            <span class="line1">Screening Saham BEI Berbasis</span>
+            <span class="rotator-wrap">
+                <span class="rotator" id="rotator">
+                    <span>Artificial Intelligence</span>
+                </span>
+            </span>
+        </h1>
 
+        <p class="hero-desc">
+            Analisis 700+ saham Bursa Efek Indonesia secara otomatis setiap hari menggunakan kombinasi 20+ Indikator Teknikal, Chart Feature Embeddings, dan Sentimen Berita AI terpadu.
+        </p>
+
+        <div class="hero-actions">
+            <a href="https://t.me/stockaibot" target="_blank" class="btn-outline">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                Gabung Telegram Bot
+            </a>
+            <a href="/dashboard" class="btn-solid">
+                Lihat Rekomendasi Saham
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+        </div>
     </div>
-    <div class="hero-blob blob-a" aria-hidden="true"></div>
-    <div class="hero-blob blob-b" aria-hidden="true"></div>
 </section>
 
-<!-- MAIN -->
-<main class="main" id="main-content">
+<section class="stats-bar">
+    <div class="stat-item"><div class="stat-num">700+</div><div class="stat-label">Saham BEI</div></div>
+    <div class="stat-item"><div class="stat-num">20+</div><div class="stat-label">Indikator</div></div>
+    <div class="stat-item"><div class="stat-num">XGBoost</div><div class="stat-label">ML Model</div></div>
+    <div class="stat-item"><div class="stat-num">+3%</div><div class="stat-label">Target/Hari</div></div>
+</section>
 
-    <!-- Loader -->
-    <div id="loader" class="loader hidden" role="status" aria-label="Sedang memuat">
-        <div class="loader-box glass-card">
-            <div class="spin-ring" aria-hidden="true"><div></div><div></div><div></div></div>
-            <p class="loader-title">Menganalisis pasar...</p>
-            <p class="loader-sub">Memproses 700+ saham BEI &amp; Feature Embedding</p>
+<section class="section" id="features">
+    <div class="section-header reveal">
+        <div class="section-tag">Fitur</div>
+        <h2 class="section-title">Dirancang untuk Trader Indonesia</h2>
+        <p class="section-desc">Kombinasi machine learning dan analisis teknikal untuk screening saham BEI.</p>
+    </div>
+    <div class="features-grid">
+        <div class="feat-card reveal">
+            <h3>Real-time Data</h3>
+            <p>Harga terkini langsung dari Yahoo Finance. Data historis 5 tahun untuk training model prediktif.</p>
+        </div>
+        <div class="feat-card reveal">
+            <h3>20+ Indikator Teknikal</h3>
+            <p>RSI, MACD, Bollinger Bands, OBV, ATR, VWAP, SMA & Bandarmologi — dihitung otomatis setiap scan.</p>
+        </div>
+        <div class="feat-card reveal">
+            <h3>XGBoost + Optuna</h3>
+            <p>Model dilatih dengan 5 tahun data historis, hyperparameter tuning via Optuna untuk akurasi maksimal.</p>
+        </div>
+        <div class="feat-card reveal">
+            <h3>Top 10 Transparan</h3>
+            <p>Target harga, stop loss, dan alasan AI yang jelas. Track record 6 bulan dengan audit sinyal harian.</p>
         </div>
     </div>
+</section>
 
-    <!-- Error -->
-    <div id="error-box" class="alert-error hidden" role="alert" aria-live="assertive">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div><strong>Terjadi Kesalahan</strong><p id="error-text"></p></div>
+<section class="section" id="how">
+    <div class="section-header reveal">
+        <div class="section-tag">Alur Kerja</div>
+        <h2 class="section-title">Bagaimana Cara Kerjanya</h2>
+        <p class="section-desc">Pipeline otomatis dari pengumpulan data hingga rekomendasi trading.</p>
     </div>
-
-    <!-- Empty State -->
-    <div id="empty-state" class="empty-state">
-        <p class="es-label">Cara kerja StockAI</p>
-        <div class="feat-grid">
-            <div class="feat-card glass-card">
-                <div class="feat-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-                </div>
-                <h3>Data Real-time</h3>
-                <p>Harga terkini langsung dari Yahoo Finance setiap scan.</p>
-            </div>
-            <div class="feat-card glass-card">
-                <div class="feat-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                </div>
-                <h3>20+ Indikator</h3>
-                <p>RSI, MACD, BB, OBV, ATR, VWAP, SMA &amp; Bandarmologi.</p>
-            </div>
-            <div class="feat-card glass-card">
-                <div class="feat-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                </div>
-                <h3>Model XGBoost</h3>
-                <p>Dilatih 5 tahun historis dengan Optuna tuning.</p>
-            </div>
-            <div class="feat-card glass-card">
-                <div class="feat-icon">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                </div>
-                <h3>Top 10 Transparan</h3>
-                <p>Target harga, stop loss, dan alasan AI yang jelas.</p>
-            </div>
+    <div class="steps-grid">
+        <div class="step-card reveal">
+            <div class="step-num">01</div>
+            <h3>Data Collection</h3>
+            <p>Batch download 700+ ticker BEI dari Yahoo Finance dalam chunks 50 saham.</p>
+        </div>
+        <div class="step-card reveal">
+            <div class="step-num">02</div>
+            <h3>Feature Engineering</h3>
+            <p>20+ indikator teknikal + embedding vector dari Quant Engine.</p>
+        </div>
+        <div class="step-card reveal">
+            <div class="step-num">03</div>
+            <h3>Prediction</h3>
+            <p>Model XGBoost memproses fitur & menghasilkan skor sinyal beli.</p>
+        </div>
+        <div class="step-card reveal">
+            <div class="step-num">04</div>
+            <h3>Output</h3>
+            <p>Top 10 rekomendasi + target profit, stop loss, dan narasi AI.</p>
         </div>
     </div>
+</section>
 
-    <!-- Main View Switcher Tabs -->
-    <div class="main-tabs-bar" style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 12px; flex-wrap: wrap;">
-        <button id="tab-btn-recom" class="btn-scan" style="padding: 10px 20px; font-size: 14px; background: var(--c-charcoal); color: #FFF; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s;" onclick="switchMainTab('recom')">
-            🚀 Rekomendasi Sinyal Beli Esok Hari
-        </button>
-        <button id="tab-btn-audit" class="btn-scan" style="padding: 10px 20px; font-size: 14px; background: rgba(0,0,0,0.05); color: var(--c-charcoal); border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;" onclick="switchMainTab('audit')">
-            📊 Performa &amp; Track Record 6 Bulan
-        </button>
-    </div>
+<section class="cta-section">
+    <h2>Siap Memulai?</h2>
+    <p>Analisis 700+ saham BEI dalam hitungan detik.</p>
+    <a href="/dashboard" class="btn-solid">Mulai Screening →</a>
+</section>
 
-    <!-- Results (Rekomendasi Esok Hari) -->
-    <div id="results" class="results hidden">
+<footer class="footer">For Educational Purpose</footer>
 
-        <!-- Section header -->
-        <div class="section-hd">
-            <div class="section-hd-left">
-                <h2>Top 10 Rekomendasi Sinyal Beli Esok Hari</h2>
-                <span class="chip green">BUY SIGNAL</span>
-            </div>
-            <p class="section-note">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                Beli Open esok · Target +3.0% · Stop Loss -1.5% · (Dianalisis dari Data Pasar Terakhir)
-            </p>
-        </div>
+<script>
+var words = [
+    'Artificial Intelligence',
+    'XGBoost Machine Learning',
+    'Multi-Agent Consensus',
+    'IHSG Macro Intelligence',
+    'Real-Time Data BEI',
+];
 
-        <!-- Table -->
-        <div class="table-card glass-card">
-            <div class="table-scroll" role="region" aria-label="Tabel rekomendasi saham" tabindex="0">
-                <table class="stock-table" aria-label="Top 10 rekomendasi saham">
-                    <thead>
-                        <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">Saham</th>
-                            <th scope="col">Harga</th>
-                            <th scope="col">Target Profit</th>
-                            <th scope="col">Stop Loss</th>
-                            <th scope="col">RSI (14)</th>
-                            <th scope="col">MACD</th>
-                            <th scope="col">Tren</th>
-                            <th scope="col">Sentimen</th>
-                            <th scope="col">AI Score</th>
-                            <th scope="col">Sinyal</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body"></tbody>
-                </table>
-            </div>
-        </div>
+var rotator = document.getElementById('rotator');
+var index = 0;
 
-        <!-- Cards -->
-        <div class="cards-hd">
-            <h3>Analisis Detail (Target Transaksi Esok Hari)</h3>
-            <p>Breakdown indikator teknikal &amp; alasan opini AI untuk eksekusi perdagangan esok hari</p>
-        </div>
-        <div class="cards-grid" id="cards-grid" role="list" aria-label="Kartu analisis saham"></div>
+function rotateWord() {
+    index = (index + 1) % words.length;
+    var currentSpan = rotator.querySelector('span');
+    var newSpan = document.createElement('span');
+    newSpan.textContent = words[index];
+    newSpan.style.opacity = '0';
+    newSpan.style.transform = 'translateY(12px)';
+    rotator.appendChild(newSpan);
 
-    </div>
+    currentSpan.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+    currentSpan.style.opacity = '0';
+    currentSpan.style.transform = 'translateY(-12px)';
 
-    <!-- Permanent Track Record Audit & Monthly Recap Section -->
-    <section class="audit-section" id="audit-section" style="margin-top: var(--sp-6);">
+    requestAnimationFrame(function() {
+        newSpan.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+        newSpan.style.opacity = '1';
+        newSpan.style.transform = 'translateY(0)';
+    });
 
-        <div class="cards-hd" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
-            <div>
-                <h3>Performa &amp; Audit Track Record Akumulasi</h3>
-                <p>Statistik harian, grafik pertumbuhan modal (Equity Curve), dan rekapitulasi per bulan</p>
-            </div>
-            <button id="seed-sim-btn" class="btn-scan" style="padding: 8px 16px; font-size: 13px; background: rgba(28, 28, 28, 0.08); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12);" onclick="runAuditSimulationSeed()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                Simulasi Performance 6 Bulan
-            </button>
-        </div>
+    setTimeout(function() {
+        if (rotator.contains(currentSpan)) rotator.removeChild(currentSpan);
+    }, 500);
+}
 
-        <!-- Audit Summary Cards -->
-        <div class="audit-stats-grid" id="audit-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
-            <div class="glass-card" style="padding: 16px; border-radius: 12px;">
-                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Overall Win Rate</div>
-                <div id="stat-win-rate" style="font-family: var(--font-accent); font-size: 28px; font-weight: 700; color: var(--c-charcoal); margin-top: 4px;">—</div>
-                <div style="font-size: 11px; color: var(--c-green); margin-top: 2px;">Target Profit +3.0% / SL -1.5%</div>
-            </div>
-            <div class="glass-card" style="padding: 16px; border-radius: 12px;">
-                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Total WIN / LOSS</div>
-                <div id="stat-win-loss" style="font-family: var(--font-accent); font-size: 24px; font-weight: 700; color: var(--c-charcoal); margin-top: 4px;">—</div>
-                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Sinyal Terkonfirmasi Audit</div>
-            </div>
-            <div class="glass-card" style="padding: 16px; border-radius: 12px;">
-                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Kumulatif Profit (%)</div>
-                <div id="stat-total-profit" style="font-family: var(--font-accent); font-size: 28px; font-weight: 700; color: var(--c-green); margin-top: 4px;">—</div>
-                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Tanpa Compound Multiplier</div>
-            </div>
-        </div>
+setInterval(rotateWord, 2500);
 
-        <!-- Equity Curve Chart -->
-        <div class="table-card glass-card" style="padding: 20px; margin-bottom: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="font-family: var(--font-accent); font-size: 16px; font-weight: 600; color: var(--c-charcoal); margin:0;">Grafik Pertumbuhan Ekuitas (Equity Curve %)</h4>
-                <span style="font-size: 12px; color: var(--c-soft-gray);">Aktivitas Sinyal Historis</span>
-            </div>
-            <div id="audit-equity-chart" style="width: 100%; height: 220px;"></div>
-        </div>
-
-        <!-- Monthly Recap Table -->
-        <div class="cards-hd" style="margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
-            <div>
-                <h3>Rekapitulasi Performa Per Bulan</h3>
-                <p>Rincian akurasi sinyal dan imbal hasil bulanan</p>
-            </div>
-            <button id="toggle-monthly-btn" class="btn-scan" style="padding: 6px 14px; font-size: 12px; background: rgba(0,0,0,0.04); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12); display: none;" onclick="toggleMonthlyRecap()">
-                Lihat Selengkapnya ↓
-            </button>
-        </div>
-        <div class="table-card glass-card" style="margin-bottom: 24px;">
-            <div class="table-scroll" role="region" aria-label="Tabel rekap bulanan" tabindex="0">
-                <table class="stock-table" id="monthly-recap-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Bulan</th>
-                            <th scope="col">Total Sinyal</th>
-                            <th scope="col">WIN</th>
-                            <th scope="col">LOSS</th>
-                            <th scope="col">Win Rate (%)</th>
-                            <th scope="col">Return Bulanan (%)</th>
-                        </tr>
-                    </thead>
-                    <tbody id="monthly-recap-body">
-                        <tr>
-                            <td colspan="6" style="text-align: center; padding: 20px; color: var(--c-soft-gray);">
-                                Memuat rekapitulasi bulanan...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Daily Signal Audit Table -->
-        <div class="cards-hd" style="margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
-            <div>
-                <h3>Log Detail Sinyal Harian</h3>
-                <p>Riwayat individual sinyal yang terdaftar dan diaudit oleh sistem</p>
-            </div>
-            <button id="toggle-audit-btn" class="btn-scan" style="padding: 6px 14px; font-size: 12px; background: rgba(0,0,0,0.04); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12); display: none;" onclick="toggleAuditLog()">
-                Lihat Selengkapnya ↓
-            </button>
-        </div>
-        <div class="table-card glass-card" style="margin-bottom: var(--sp-8);">
-            <div class="table-scroll" role="region" aria-label="Tabel track record sinyal" tabindex="0">
-                <table class="stock-table" id="audit-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Tanggal Audit / Trading</th>
-                            <th scope="col">Saham</th>
-                            <th scope="col">Harga Entry</th>
-                            <th scope="col">Target Profit</th>
-                            <th scope="col">Stop Loss</th>
-                            <th scope="col">AI Score</th>
-                            <th scope="col">Status Audit</th>
-                        </tr>
-                    </thead>
-                    <tbody id="audit-table-body">
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-soft-gray);">
-                                Memuat data track record...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-
-        <!-- Risk -->
-        <div class="risk-banner glass-card" role="note">
-            <div class="risk-icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-            </div>
-            <div class="risk-body">
-                <h4>Manajemen Risiko</h4>
-                <p>Rekomendasi AI adalah alat bantu — bukan jaminan keuntungan.</p>
-                <div class="risk-pills">
-                    <span class="rpill"><span class="rpill-lbl">BELI</span> Harga Open esok</span>
-                    <span class="rpill"><span class="rpill-lbl red">STOP LOSS</span> –1.5%</span>
-                    <span class="rpill"><span class="rpill-lbl green">TAKE PROFIT</span> +3.0%</span>
-                </div>
-            </div>
-        </div>
-    </section>
-</main>
-
-<!-- FOOTER -->
-<footer class="footer" role="contentinfo">
-    <p class="footer-note">For Educational Purpose</p>
-</footer>
-
-<script src="js/app.js?v=33"></script>
+var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+    });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(function(el) { observer.observe(el); });
+</script>
 </body>
 </html>
