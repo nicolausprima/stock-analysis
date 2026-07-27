@@ -310,24 +310,57 @@ a { color: inherit; text-decoration: none; }
     gap: 24px;
 }
 
-.step-card { text-align: center; }
+.step-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    padding: 0;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.step-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(255, 255, 255, 0.22);
+}
+.step-img-wrap {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    max-height: 190px;
+    overflow: hidden;
+    position: relative;
+    background: #09090b;
+}
+.step-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.92;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.step-card:hover .step-img-wrap img {
+    opacity: 1;
+    transform: scale(1.03);
+}
+.step-content {
+    padding: 22px 22px 26px;
+    text-align: left;
+}
 .step-num {
-    font-size: 40px;
+    font-size: 11px;
     font-weight: 700;
-    color: #ffffff;
-    opacity: 0.85;
-    line-height: 1;
-    margin-bottom: 12px;
-    letter-spacing: -0.03em;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
 }
 .step-card h3 {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 600;
     margin-bottom: 6px;
     color: #ffffff;
 }
 .step-card p {
-    font-size: 13px;
+    font-size: 14px;
     color: rgba(255,255,255,0.85);
     line-height: 1.6;
 }
@@ -489,19 +522,34 @@ a { color: inherit; text-decoration: none; }
     </div>
     <div class="steps-grid">
         <div class="step-card reveal">
-            <div class="step-num">01</div>
-            <h3>Data Collection</h3>
-            <p>Batch download 700+ ticker BEI dari Yahoo Finance dalam chunks 50 saham secara teratur.</p>
+            <div class="step-img-wrap">
+                <img src="step_img_1.png" alt="Data Collection" loading="lazy">
+            </div>
+            <div class="step-content">
+                <div class="step-num">01 / DATA STREAM</div>
+                <h3>Data Collection</h3>
+                <p>Batch download 700+ ticker BEI dari Yahoo Finance dalam chunks 50 saham secara teratur.</p>
+            </div>
         </div>
         <div class="step-card reveal">
-            <div class="step-num">02</div>
-            <h3>Quant &amp; Feature Engine</h3>
-            <p>Kalkulasi 20+ indikator teknikal presisi serta ekstraksi embedding vector karakteristik saham.</p>
+            <div class="step-img-wrap">
+                <img src="step_img_2.png" alt="Quant & Feature Engine" loading="lazy">
+            </div>
+            <div class="step-content">
+                <div class="step-num">02 / FEATURE MATRIX</div>
+                <h3>Quant &amp; Feature Engine</h3>
+                <p>Kalkulasi 20+ indikator teknikal presisi serta ekstraksi embedding vector karakteristik saham.</p>
+            </div>
         </div>
         <div class="step-card reveal">
-            <div class="step-num">03</div>
-            <h3>Signal &amp; AI Output</h3>
-            <p>Hasil Top 10 rekomendasi saham terbaik lengkap dengan target profit, stop loss, dan penjelasan AI.</p>
+            <div class="step-img-wrap">
+                <img src="step_img_3.png" alt="Signal & AI Output" loading="lazy">
+            </div>
+            <div class="step-content">
+                <div class="step-num">03 / AI CONSENSUS</div>
+                <h3>Signal &amp; AI Output</h3>
+                <p>Hasil Top 10 rekomendasi saham terbaik lengkap dengan target profit, stop loss, dan penjelasan AI.</p>
+            </div>
         </div>
     </div>
 </section>
