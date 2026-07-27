@@ -71,12 +71,13 @@ a { color: inherit; text-decoration: none; }
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
-    opacity: 0.22;
-    mix-blend-mode: luminosity;
-    filter: contrast(125%) brightness(90%);
+    opacity: 0.42;
+    mix-blend-mode: screen;
+    filter: contrast(145%) brightness(110%);
     pointer-events: none;
     z-index: 0;
 }
+
 
 .hero-inner {
     position: relative;
@@ -244,8 +245,8 @@ a { color: inherit; text-decoration: none; }
 }
 .features-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
 }
 .feat-card {
     background: rgba(255,255,255,0.03);
@@ -268,9 +269,10 @@ a { color: inherit; text-decoration: none; }
 }
 .steps-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
 }
+
 .step-card { text-align: center; }
 .step-num {
     font-size: 40px;
@@ -402,20 +404,16 @@ a { color: inherit; text-decoration: none; }
     </div>
     <div class="features-grid">
         <div class="feat-card reveal">
-            <h3>Real-time Data</h3>
-            <p>Harga terkini langsung dari Yahoo Finance. Data historis 5 tahun untuk training model prediktif.</p>
+            <h3>Makro & Sentimen Pasar</h3>
+            <p>Evaluasi otomatis terhadap tren IHSG, nilai tukar USD/IDR, serta analisis sentimen berita pasar secara real-time.</p>
         </div>
         <div class="feat-card reveal">
-            <h3>20+ Indikator Teknikal</h3>
-            <p>RSI, MACD, Bollinger Bands, OBV, ATR, VWAP, SMA & Bandarmologi | Dihitung otomatis setiap scan.</p>
+            <h3>XGBoost Quant Engine</h3>
+            <p>Dilatih dengan 5 tahun data historis BEI, 20+ indikator teknikal (RSI, MACD, BB, OBV, VWAP) &amp; hyperparameter tuning Optuna.</p>
         </div>
         <div class="feat-card reveal">
-            <h3>XGBoost + Optuna</h3>
-            <p>Model dilatih dengan 5 tahun data historis, hyperparameter tuning via Optuna untuk akurasi maksimal.</p>
-        </div>
-        <div class="feat-card reveal">
-            <h3>Top 10 Transparan</h3>
-            <p>Target harga, stop loss, dan alasan AI yang jelas. Track record 6 bulan dengan audit sinyal harian.</p>
+            <h3>Multi-Agent &amp; Daily Audit</h3>
+            <p>Konsensus sinyal teknikal &amp; sentimen dengan manajemen risiko disiplin (Target Profit +3.0%, Stop Loss -1.5%).</p>
         </div>
     </div>
 </section>
@@ -430,25 +428,21 @@ a { color: inherit; text-decoration: none; }
         <div class="step-card reveal">
             <div class="step-num">01</div>
             <h3>Data Collection</h3>
-            <p>Batch download 700+ ticker BEI dari Yahoo Finance dalam chunks 50 saham.</p>
+            <p>Batch download 700+ ticker BEI dari Yahoo Finance dalam chunks 50 saham secara teratur.</p>
         </div>
         <div class="step-card reveal">
             <div class="step-num">02</div>
-            <h3>Feature Engineering</h3>
-            <p>20+ indikator teknikal + embedding vector dari Quant Engine.</p>
+            <h3>Quant &amp; Feature Engine</h3>
+            <p>Kalkulasi 20+ indikator teknikal presisi serta ekstraksi embedding vector karakteristik saham.</p>
         </div>
         <div class="step-card reveal">
             <div class="step-num">03</div>
-            <h3>Prediction</h3>
-            <p>Model XGBoost memproses fitur & menghasilkan skor sinyal beli.</p>
-        </div>
-        <div class="step-card reveal">
-            <div class="step-num">04</div>
-            <h3>Output</h3>
-            <p>Top 10 rekomendasi + target profit, stop loss, dan narasi AI.</p>
+            <h3>Signal &amp; AI Output</h3>
+            <p>Hasil Top 10 rekomendasi saham terbaik lengkap dengan target profit, stop loss, dan penjelasan AI.</p>
         </div>
     </div>
 </section>
+
 
 <section class="cta-section">
     <h2>Siap Memulai?</h2>
