@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockAI — AI-Powered Day Trading Screener for BEI</title>
+    <title>StockAI | AI-Powered Day Trading Screener for BEI</title>
     <meta name="description" content="AI-powered stock screener for Indonesia Stock Exchange. XGBoost analyzes 700+ BEI stocks daily with 20+ technical indicators.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,7 +19,23 @@ body {
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
+body.page-loaded {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0px);
+}
+body.page-exiting {
+    opacity: 0;
+    transform: translateY(-8px);
+    filter: blur(6px);
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 a { color: inherit; text-decoration: none; }
 
 .hero {
@@ -101,7 +117,10 @@ a { color: inherit; text-decoration: none; }
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    will-change: opacity, transform, filter;
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
+
 
 .hero-desc {
     font-size: clamp(15px, 1.5vw, 17px);
@@ -369,7 +388,7 @@ a { color: inherit; text-decoration: none; }
         </div>
         <div class="feat-card reveal">
             <h3>20+ Indikator Teknikal</h3>
-            <p>RSI, MACD, Bollinger Bands, OBV, ATR, VWAP, SMA & Bandarmologi — dihitung otomatis setiap scan.</p>
+            <p>RSI, MACD, Bollinger Bands, OBV, ATR, VWAP, SMA & Bandarmologi | Dihitung otomatis setiap scan.</p>
         </div>
         <div class="feat-card reveal">
             <h3>XGBoost + Optuna</h3>
@@ -438,25 +457,30 @@ function rotateWord() {
     var newSpan = document.createElement('span');
     newSpan.textContent = words[index];
     newSpan.style.opacity = '0';
-    newSpan.style.transform = 'translateY(12px)';
+    newSpan.style.transform = 'translateY(14px) scale(0.97)';
+    newSpan.style.filter = 'blur(6px)';
     rotator.appendChild(newSpan);
 
-    currentSpan.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-    currentSpan.style.opacity = '0';
-    currentSpan.style.transform = 'translateY(-12px)';
+    if (currentSpan) {
+        currentSpan.style.opacity = '0';
+        currentSpan.style.transform = 'translateY(-14px) scale(0.97)';
+        currentSpan.style.filter = 'blur(6px)';
+    }
 
     requestAnimationFrame(function() {
-        newSpan.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-        newSpan.style.opacity = '1';
-        newSpan.style.transform = 'translateY(0)';
+        requestAnimationFrame(function() {
+            newSpan.style.opacity = '1';
+            newSpan.style.transform = 'translateY(0) scale(1)';
+            newSpan.style.filter = 'blur(0px)';
+        });
     });
 
     setTimeout(function() {
-        if (rotator.contains(currentSpan)) rotator.removeChild(currentSpan);
-    }, 500);
+        if (currentSpan && rotator.contains(currentSpan)) rotator.removeChild(currentSpan);
+    }, 600);
 }
 
-setInterval(rotateWord, 2500);
+setInterval(rotateWord, 3200);
 
 var observer = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
@@ -464,6 +488,26 @@ var observer = new IntersectionObserver(function(entries) {
     });
 }, { threshold: 0.1 });
 document.querySelectorAll('.reveal').forEach(function(el) { observer.observe(el); });
+
+// Smooth Page Entrance & Navigation Transition to Dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    requestAnimationFrame(function() {
+        document.body.classList.add('page-loaded');
+    });
+});
+
+document.querySelectorAll('a[href="/dashboard"], a[href="dashboard.html"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var targetUrl = this.getAttribute('href');
+        document.body.classList.remove('page-loaded');
+        document.body.classList.add('page-exiting');
+        setTimeout(function() {
+            window.location.href = targetUrl;
+        }, 320);
+    });
+});
 </script>
 </body>
 </html>
+

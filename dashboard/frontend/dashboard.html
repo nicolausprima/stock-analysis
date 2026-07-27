@@ -3,12 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockAI — AI-Powered Day Trading Screener</title>
+    <title>StockAI | AI-Powered Day Trading Screener</title>
     <meta name="description" content="AI stock screener for Indonesian market — 700+ BEI stocks analyzed daily with XGBoost">
     <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap" rel="stylesheet">
     <script src="js/lightweight-charts.js"></script>
     <link rel="stylesheet" href="css/style.css?v=20">
+    <style>
+    body {
+        opacity: 0;
+        transform: translateY(8px);
+        filter: blur(4px);
+        transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body.page-loaded {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0px);
+    }
+    body.page-exiting {
+        opacity: 0;
+        transform: translateY(-8px);
+        filter: blur(6px);
+        transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    </style>
 </head>
+
 <body>
 
 <!-- NAVBAR -->
@@ -329,5 +349,25 @@
 </footer>
 
 <script src="js/app.js?v=33"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    requestAnimationFrame(function() {
+        document.body.classList.add('page-loaded');
+    });
+});
+
+document.querySelectorAll('a[href="/"], a[href="index.html"]').forEach(function(link) {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        var targetUrl = this.getAttribute('href');
+        document.body.classList.remove('page-loaded');
+        document.body.classList.add('page-exiting');
+        setTimeout(function() {
+            window.location.href = targetUrl;
+        }, 320);
+    });
+});
+</script>
 </body>
 </html>
+
