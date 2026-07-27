@@ -4,6 +4,7 @@ import warnings
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 # Filter warning noise in logs
 warnings.filterwarnings("ignore")
@@ -35,6 +36,9 @@ app.include_router(telegram_router, prefix="/api", tags=["Telegram"])
 # Serve static frontend
 frontend_dir = PROJECT_ROOT / 'dashboard' / 'frontend'
 if frontend_dir.exists():
+    @app.get("/dashboard")
+    async def serve_dashboard():
+        return FileResponse(str(frontend_dir / "dashboard.html"))
     app.mount("/", StaticFiles(directory=str(frontend_dir), html=True), name="frontend")
 
 @app.on_event("startup")
