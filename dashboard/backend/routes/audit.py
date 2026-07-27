@@ -16,8 +16,21 @@ DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 router = APIRouter()
 
+def _ensure_valid_db(db_file: Path):
+    """Pastikan file SQLite valid. Jika pointer LFS / corrupt, hapus agar re-created."""
+    if db_file.exists():
+        try:
+            with open(db_file, 'rb') as f:
+                header = f.read(16)
+                if header and not header.startswith(b'SQLite format 3'):
+                    f.close()
+                    db_file.unlink()
+        except Exception:
+            pass
+
 def init_db():
     """Menginisialisasi database SQLite dan membuat tabel signals jika belum ada."""
+    _ensure_valid_db(DB_PATH)
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.cursor()
     cursor.execute("""

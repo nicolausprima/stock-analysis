@@ -10,8 +10,21 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.config import DB_PATH
 
+def _ensure_valid_db(db_file: Path):
+    """Pastikan file SQLite valid. Jika pointer LFS / corrupt, hapus agar re-created."""
+    if db_file.exists():
+        try:
+            with open(db_file, 'rb') as f:
+                header = f.read(16)
+                if header and not header.startswith(b'SQLite format 3'):
+                    f.close()
+                    db_file.unlink()
+        except Exception:
+            pass
+
 def init_market_db():
     """Menginisialisasi tabel SQLite untuk menyimpan data pasar harian 700+ saham."""
+    _ensure_valid_db(DB_PATH)
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.cursor()
     cursor.execute("""
@@ -61,16 +74,21 @@ def save_daily_prices(combined_df: pd.DataFrame):
 
 def get_ticker_history_from_db(ticker: str, limit_days: int = 100) -> pd.DataFrame:
     """Mengambil riwayat data harga saham tertentu dari database SQLite."""
-    conn = sqlite3.connect(str(DB_PATH))
-    query = """
-        SELECT date, open as Open, high as High, low as Low, close as Close, volume as Volume
-        FROM daily_prices
-        WHERE ticker = ?
-        ORDER BY date DESC
-        LIMIT ?
-    """
-    df = pd.read_sql_query(query, conn, params=(ticker, limit_days))
-    conn.close()
+    _ensure_valid_db(DB_PATH)
+    init_market_db()
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        query = """
+            SELECT date, open as Open, high as High, low as Low, close as Close, volume as Volume
+            FROM daily_prices
+            WHERE ticker = ?
+            ORDER BY date DESC
+            LIMIT ?
+        """
+        df = pd.read_sql_query(query, conn, params=(ticker, limit_days))
+        conn.close()
+    except Exception:
+        return pd.DataFrame()
     
     if not df.empty:
         df['date'] = pd.to_datetime(df['date'])
