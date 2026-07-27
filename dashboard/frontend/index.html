@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockAI — AI-Powered Day Trading Screener for BEI</title>
+    <title>StockAI - AI-Powered Day Trading Screener for BEI</title>
     <meta name="description" content="AI-powered stock screener for Indonesia Stock Exchange. XGBoost analyzes 700+ BEI stocks daily with 20+ technical indicators.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -293,8 +293,8 @@ a { color: inherit; text-decoration: none; }
 
 .reveal {
     opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
+    transform: translateY(24px);
+    transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
 }
 .reveal.visible { opacity: 1; transform: translateY(0); }
 
@@ -306,6 +306,11 @@ a { color: inherit; text-decoration: none; }
     .section { padding: 60px 20px; }
     .features-grid { grid-template-columns: 1fr; }
     .steps-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.scramble-glyph {
+    color: rgba(255, 255, 255, 0.45);
+    font-family: monospace;
+    font-weight: 400;
 }
 @media (max-width: 480px) {
     .steps-grid { grid-template-columns: 1fr; }
@@ -320,7 +325,6 @@ a { color: inherit; text-decoration: none; }
     <div class="hero-inner">
         <div class="pill">
             Screening Saham BEI Berbasis AI
-            <span class="pill-arrow">→</span>
         </div>
 
         <h1>
@@ -338,12 +342,10 @@ a { color: inherit; text-decoration: none; }
 
         <div class="hero-actions">
             <a href="https://t.me/stockaibot" target="_blank" class="btn-outline">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
                 Gabung Telegram Bot
             </a>
             <a href="/dashboard" class="btn-solid">
                 Lihat Rekomendasi Saham
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </a>
         </div>
     </div>
@@ -369,7 +371,7 @@ a { color: inherit; text-decoration: none; }
         </div>
         <div class="feat-card reveal">
             <h3>20+ Indikator Teknikal</h3>
-            <p>RSI, MACD, Bollinger Bands, OBV, ATR, VWAP, SMA & Bandarmologi — dihitung otomatis setiap scan.</p>
+            <p>RSI, MACD, Bollinger Bands, OBV, ATR, VWAP, SMA dan Bandarmologi, dihitung otomatis setiap scan.</p>
         </div>
         <div class="feat-card reveal">
             <h3>XGBoost + Optuna</h3>
@@ -415,12 +417,63 @@ a { color: inherit; text-decoration: none; }
 <section class="cta-section">
     <h2>Siap Memulai?</h2>
     <p>Analisis 700+ saham BEI dalam hitungan detik.</p>
-    <a href="/dashboard" class="btn-solid">Mulai Screening →</a>
+    <a href="/dashboard" class="btn-solid">Mulai Screening</a>
 </section>
 
 <footer class="footer">For Educational Purpose</footer>
 
 <script>
+class TextScramble {
+    constructor(el) {
+        this.el = el;
+        this.chars = '!<>-_\\/[]{}—=+*^?#________';
+        this.update = this.update.bind(this);
+    }
+    setText(newText) {
+        const oldText = this.el.innerText || '';
+        const length = Math.max(oldText.length, newText.length);
+        const promise = new Promise((resolve) => this.resolve = resolve);
+        this.queue = [];
+        for (let i = 0; i < length; i++) {
+            const from = oldText[i] || '';
+            const to = newText[i] || '';
+            const start = Math.floor(Math.random() * 15);
+            const end = start + Math.floor(Math.random() * 15);
+            this.queue.push({ from, to, start, end, char: '' });
+        }
+        cancelAnimationFrame(this.frameRequest);
+        this.frame = 0;
+        this.update();
+        return promise;
+    }
+    update() {
+        let output = '';
+        let complete = 0;
+        for (let i = 0, n = this.queue.length; i < n; i++) {
+            let { from, to, start, end, char } = this.queue[i];
+            if (this.frame >= end) {
+                complete++;
+                output += to;
+            } else if (this.frame >= start) {
+                if (!char || Math.random() < 0.28) {
+                    char = this.chars[Math.floor(Math.random() * this.chars.length)];
+                    this.queue[i].char = char;
+                }
+                output += `<span class="scramble-glyph">${char}</span>`;
+            } else {
+                output += from;
+            }
+        }
+        this.el.innerHTML = output;
+        if (complete === this.queue.length) {
+            this.resolve();
+        } else {
+            this.frameRequest = requestAnimationFrame(this.update);
+            this.frame++;
+        }
+    }
+}
+
 var words = [
     'Artificial Intelligence',
     'XGBoost Machine Learning',
@@ -429,34 +482,19 @@ var words = [
     'Real-Time Data BEI',
 ];
 
-var rotator = document.getElementById('rotator');
-var index = 0;
-
-function rotateWord() {
-    index = (index + 1) % words.length;
-    var currentSpan = rotator.querySelector('span');
-    var newSpan = document.createElement('span');
-    newSpan.textContent = words[index];
-    newSpan.style.opacity = '0';
-    newSpan.style.transform = 'translateY(12px)';
-    rotator.appendChild(newSpan);
-
-    currentSpan.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-    currentSpan.style.opacity = '0';
-    currentSpan.style.transform = 'translateY(-12px)';
-
-    requestAnimationFrame(function() {
-        newSpan.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-        newSpan.style.opacity = '1';
-        newSpan.style.transform = 'translateY(0)';
-    });
-
-    setTimeout(function() {
-        if (rotator.contains(currentSpan)) rotator.removeChild(currentSpan);
-    }, 500);
+var el = document.getElementById('rotator');
+if (el) {
+    var fx = new TextScramble(el);
+    var counter = 0;
+    var nextWord = function() {
+        fx.setText(words[counter]).then(function() {
+            setTimeout(nextWord, 2500);
+        });
+        counter = (counter + 1) % words.length;
+    };
+    nextWord();
 }
 
-setInterval(rotateWord, 2500);
 
 var observer = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
