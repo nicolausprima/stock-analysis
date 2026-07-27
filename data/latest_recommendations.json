@@ -1,17 +1,18 @@
 {
   "status": "success",
-  "timestamp": "2026-07-27 20:26:44",
+  "timestamp": "2026-07-27 20:40:10",
   "total_scanned": 571,
   "macro_eval": {
     "status": "success",
     "mode": "NORMAL",
     "mode_badge": "\ud83d\udfe2 MODE NORMAL (Pasar Kondusif)",
-    "macro_score": 2.0,
+    "macro_score": 3.0,
     "prob_threshold": 0.7,
     "stop_loss_pct": 0.015,
     "details": [
       "\u2022 USD/IDR: Rp 17,990 (Stabil) \u2796",
       "\u2022 Bursa Asia (Nikkei/HSI/STI): Rata-rata +0.68% \u2705",
+      "\u2022 Bursa Wall St (S&P500/NASDAQ): Rata-rata +0.90% \u2705",
       "\u2022 Teknikal IHSG: 6185.8 > SMA20 6028.9 (Uptrend) \u2705"
     ],
     "news_sentiment": {
