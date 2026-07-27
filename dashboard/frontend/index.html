@@ -235,13 +235,39 @@ a { color: inherit; text-decoration: none; }
     gap: 20px;
 }
 .feat-card {
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.06);
-    border-radius: 12px;
-    padding: 32px 28px;
-    transition: background 0.2s;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    overflow: hidden;
+    padding: 0;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.feat-card:hover { background: rgba(255,255,255,0.05); }
+.feat-card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(255,255,255,0.22);
+}
+.feat-img-wrap {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    max-height: 190px;
+    overflow: hidden;
+    position: relative;
+    background: #09090b;
+}
+.feat-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.92;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.feat-card:hover .feat-img-wrap img {
+    opacity: 1;
+    transform: scale(1.03);
+}
+.feat-content {
+    padding: 22px 22px 26px;
+}
 .feat-card h3 {
     font-size: 17px;
     font-weight: 600;
@@ -253,6 +279,7 @@ a { color: inherit; text-decoration: none; }
     color: rgba(255,255,255,0.75);
     line-height: 1.7;
 }
+
 .steps-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -322,68 +349,6 @@ a { color: inherit; text-decoration: none; }
 }
 .reveal.visible { opacity: 1; transform: translateY(0); }
 
-.triptych-section {
-    max-width: 1100px;
-    margin: 60px auto 20px;
-    padding: 0 24px;
-}
-.triptych-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-}
-.triptych-card {
-    position: relative;
-    border-radius: 14px;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.triptych-card:hover {
-    transform: translateY(-6px);
-    border-color: rgba(255, 255, 255, 0.22);
-}
-.triptych-img-wrap {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    max-height: 210px;
-    overflow: hidden;
-    position: relative;
-    background: #09090b;
-}
-.triptych-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.92;
-    transition: opacity 0.35s ease, transform 0.35s ease;
-}
-.triptych-card:hover .triptych-img-wrap img {
-    opacity: 1;
-    transform: scale(1.03);
-}
-
-.triptych-content {
-    padding: 18px 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(14, 14, 18, 0.85);
-    backdrop-filter: blur(8px);
-}
-.triptych-tag {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    color: rgba(255, 255, 255, 0.5);
-    display: block;
-    margin-bottom: 4px;
-}
-.triptych-content h4 {
-    font-size: 16px;
-    font-weight: 700;
-    color: #ffffff;
-}
-
 @media (max-width: 768px) {
     .stats-bar { grid-template-columns: repeat(2, 1fr); }
     .stat-item:nth-child(2) { border-right: none; }
@@ -392,8 +357,8 @@ a { color: inherit; text-decoration: none; }
     .section { padding: 60px 20px; }
     .features-grid { grid-template-columns: 1fr; }
     .steps-grid { grid-template-columns: repeat(2, 1fr); }
-    .triptych-grid { grid-template-columns: 1fr; }
 }
+
 @media (max-width: 480px) {
     .steps-grid { grid-template-columns: 1fr; }
     .hero h1 { font-size: 28px; }
@@ -447,38 +412,6 @@ a { color: inherit; text-decoration: none; }
 </section>
 
 <!-- 3-PANEL NIKE VICTORY DITHER SHOWCASE -->
-<section class="triptych-section reveal">
-    <div class="triptych-grid">
-        <div class="triptych-card">
-            <div class="triptych-img-wrap">
-                <img src="nike_panel_1.png" alt="Nike Victory Intel" loading="lazy">
-            </div>
-            <div class="triptych-content">
-                <span class="triptych-tag">01 / MAKRO &amp; SENTIMEN</span>
-                <h4>Market Intelligence</h4>
-            </div>
-        </div>
-        <div class="triptych-card">
-            <div class="triptych-img-wrap">
-                <img src="nike_panel_2.png" alt="Nike Victory Quant Engine" loading="lazy">
-            </div>
-            <div class="triptych-content">
-                <span class="triptych-tag">02 / QUANT &amp; EMBEDDINGS</span>
-                <h4>XGBoost Engine</h4>
-            </div>
-        </div>
-        <div class="triptych-card">
-            <div class="triptych-img-wrap">
-                <img src="nike_panel_3.png" alt="Nike Victory Consensus" loading="lazy">
-            </div>
-            <div class="triptych-content">
-                <span class="triptych-tag">03 / TRADING CONSENSUS</span>
-                <h4>Victory Signals</h4>
-            </div>
-        </div>
-    </div>
-</section>
-
 <section class="section" id="features">
     <div class="section-header reveal">
         <div class="section-tag">Fitur</div>
@@ -487,16 +420,31 @@ a { color: inherit; text-decoration: none; }
     </div>
     <div class="features-grid">
         <div class="feat-card reveal">
-            <h3>Makro & Sentimen Pasar</h3>
-            <p>Evaluasi otomatis terhadap tren IHSG, nilai tukar USD/IDR, serta analisis sentimen berita pasar secara real-time.</p>
+            <div class="feat-img-wrap">
+                <img src="nike_panel_1.png" alt="Makro & Sentimen Pasar" loading="lazy">
+            </div>
+            <div class="feat-content">
+                <h3>Makro &amp; Sentimen Pasar</h3>
+                <p>Evaluasi otomatis terhadap tren IHSG, nilai tukar USD/IDR, serta analisis sentimen berita pasar secara real-time.</p>
+            </div>
         </div>
         <div class="feat-card reveal">
-            <h3>XGBoost Quant Engine</h3>
-            <p>Dilatih dengan 5 tahun data historis BEI, 20+ indikator teknikal (RSI, MACD, BB, OBV, VWAP) &amp; hyperparameter tuning Optuna.</p>
+            <div class="feat-img-wrap">
+                <img src="nike_panel_2.png" alt="XGBoost Quant Engine" loading="lazy">
+            </div>
+            <div class="feat-content">
+                <h3>XGBoost Quant Engine</h3>
+                <p>Dilatih dengan 5 tahun data historis BEI, 20+ indikator teknikal (RSI, MACD, BB, OBV, VWAP) &amp; hyperparameter tuning Optuna.</p>
+            </div>
         </div>
         <div class="feat-card reveal">
-            <h3>Multi-Agent &amp; Daily Audit</h3>
-            <p>Konsensus sinyal teknikal &amp; sentimen dengan manajemen risiko disiplin (Target Profit +3.0%, Stop Loss -1.5%).</p>
+            <div class="feat-img-wrap">
+                <img src="nike_panel_3.png" alt="Multi-Agent & Daily Audit" loading="lazy">
+            </div>
+            <div class="feat-content">
+                <h3>Multi-Agent &amp; Daily Audit</h3>
+                <p>Konsensus sinyal teknikal &amp; sentimen dengan manajemen risiko disiplin (Target Profit +3.0%, Stop Loss -1.5%).</p>
+            </div>
         </div>
     </div>
 </section>
