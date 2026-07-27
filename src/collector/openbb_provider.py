@@ -30,21 +30,26 @@ class OpenBBProvider:
         """
         Fetch historical daily price data for a given ticker.
         """
+        df = pd.DataFrame()
         if self.openbb_available:
             try:
                 # OpenBB SDK call
                 res = self.obb.equity.price.historical(symbol=ticker, provider="yfinance")
                 df = res.to_df()
-                if not df.empty:
-                    return df
             except Exception as e:
                 logger.warning(f"OpenBB fetch failed for {ticker}: {e}. Falling back to yfinance.")
 
         # Fallback to direct yfinance
-        df_yf = yf.download(ticker, period=period, progress=False)
-        if isinstance(df_yf.columns, pd.MultiIndex):
-            df_yf.columns = df_yf.columns.get_level_values(0)
-        return df_yf
+        if df.empty:
+            df = yf.download(ticker, period=period, progress=False)
+
+        if not df.empty:
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+            # Normalize column names to TitleCase (e.g. close -> Close)
+            df.columns = [str(c).capitalize() for c in df.columns]
+
+        return df
 
     def get_technical_indicators(self, ticker: str, df: pd.DataFrame = None) -> dict:
         """
@@ -56,7 +61,12 @@ class OpenBBProvider:
         if df.empty:
             return {}
 
-        close_prices = df['Close'].dropna()
+        # Case-insensitive column resolution for Close
+        close_col = 'Close' if 'Close' in df.columns else ('close' if 'close' in df.columns else None)
+        if close_col is None:
+            return {}
+
+        close_prices = df[close_col].dropna()
         if len(close_prices) < 14:
             return {}
 
