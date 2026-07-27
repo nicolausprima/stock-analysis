@@ -1,5 +1,8 @@
 FROM python:3.11-slim
 
+# Set unbuffered Python logs
+ENV PYTHONUNBUFFERED=1
+
 # Set working directory
 WORKDIR /app
 

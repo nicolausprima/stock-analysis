@@ -1,8 +1,12 @@
 import os
 import sys
+import warnings
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+
+# Filter warning noise in logs
+warnings.filterwarnings("ignore")
 
 # Konfigurasi path untuk absolute import
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
