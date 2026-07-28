@@ -52,34 +52,7 @@ def get_latest_data(ticker: str, ihsg_returns: pd.DataFrame) -> pd.DataFrame:
     
     return latest_row
 
-def generate_reason(row: pd.Series) -> str:
-    """Menerjemahkan nilai teknikal ke dalam bahasa manusia."""
-    reasons = []
-    
-    # RSI (Momentum)
-    rsi = row.get('RSI_14', 50)
-    if rsi < 30:
-        reasons.append("Sangat Oversold (Obral Murah)")
-    elif rsi < 45:
-        reasons.append("Oversold (Koreksi Sehat)")
-        
-    # MACD (Trend)
-    macd_diff = row.get('MACD_Diff', 0)
-    if macd_diff > 0:
-        reasons.append("MACD Menguat (Uptrend)")
-        
-    # SMA (Major Trend)
-    if row.get('Close', 0) > row.get('SMA_50', 100000):
-        reasons.append("Harga di atas MA-50")
-        
-    # IHSG
-    if row.get('IHSG_Return', 0) > 0:
-        reasons.append("IHSG Mendukung (Hijau)")
-        
-    if not reasons:
-        reasons.append("Pola Volume & Momentum tersembunyi yang dikenali AI")
-        
-    return ", ".join(reasons)
+from dashboard.backend.routes.features import generate_reason
 
 def main():
     logging.info("=== 🚀 LIVE STOCK SCREENER INITIALIZED ===")

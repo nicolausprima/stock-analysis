@@ -26,10 +26,10 @@ def build_features_for_ticker(ticker: str, ihsg_returns: pd.DataFrame) -> pd.Dat
     df = add_technical_indicators(df)
     
     # 2. FASE 3: Lagged Returns (Sejarah masa lalu)
-    df['Return_1d'] = df['Close'].pct_change(1)
-    df['Return_2d'] = df['Close'].pct_change(2)
-    df['Return_3d'] = df['Close'].pct_change(3)
-    df['Return_5d'] = df['Close'].pct_change(5)
+    df['Return_1d'] = df['Close'].pct_change(1, fill_method=None)
+    df['Return_2d'] = df['Close'].pct_change(2, fill_method=None)
+    df['Return_3d'] = df['Close'].pct_change(3, fill_method=None)
+    df['Return_5d'] = df['Close'].pct_change(5, fill_method=None)
     
     # 3. FASE 3: Day of Week (0=Senin, 4=Jumat)
     df['Day_of_Week'] = df.index.dayofweek

@@ -54,8 +54,7 @@ def init_db():
     conn.commit()
     conn.close()
 
-# Jalankan inisialisasi database saat module di-load
-init_db()
+# Database initialization is handled inside request handlers via init_db()
 
 class SignalInsert(BaseModel):
     ticker: str
@@ -97,6 +96,7 @@ def save_signals_to_db(signals: list[dict]):
 @router.get("/audit/track-record")
 def get_track_record():
     """Mengambil riwayat semua sinyal yang tersimpan dari database."""
+    init_db()
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
