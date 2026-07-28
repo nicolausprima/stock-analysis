@@ -109,7 +109,7 @@ def get_track_record():
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
+    cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
     rows = cursor.fetchall()
 
     if not rows:
@@ -122,7 +122,7 @@ def get_track_record():
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
+        cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
         rows = cursor.fetchall()
     
     result = []
@@ -264,6 +264,13 @@ def run_audit():
                 new_status = "LOSS"
                 real_ret = -1.5
                 break
+
+        # Jika transaksi sudah lewat masa simpan (>1 hari bursa) & belum sentuh TP/SL, tutup pada harga Close terbaru
+        if new_status == "PENDING" and len(df) >= 2:
+            latest_close = float(df["Close"].iloc[-1])
+            ret_pct = round(((latest_close - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
+            new_status = "WIN" if ret_pct >= 0 else "LOSS"
+            real_ret = ret_pct if new_status == "WIN" else -1.5
 
         if new_status != "PENDING":
             cursor.execute("""
