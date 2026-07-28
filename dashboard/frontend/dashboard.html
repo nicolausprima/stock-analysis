@@ -58,22 +58,22 @@
                 Live Market Analysis
             </div>
             <h1 class="hero-title" id="hero-heading">
-                Temukan Saham<br>Terbaik dengan<br><span class="text-gradient">Kecerdasan AI</span>
+                Discover Top Stocks<br>Powered by<br><span class="text-gradient">AI Intelligence</span>
             </h1>
             <p class="hero-desc">
-                Model XGBoost menganalisis <strong>700+ saham BEI</strong> setiap hari
-                dengan 20+ indikator teknikal &amp; Quant Engine.
+                XGBoost model analyzes <strong>700+ IDX stocks</strong> daily
+                using 20+ technical indicators &amp; Quant Engine.
             </p>
             <div class="hero-stats">
-                <div class="hstat"><span class="hstat-n">700+</span><span class="hstat-l">Saham</span></div>
+                <div class="hstat"><span class="hstat-n">700+</span><span class="hstat-l">Stocks</span></div>
                 <div class="hstat-div"></div>
-                <div class="hstat"><span class="hstat-n">20+</span><span class="hstat-l">Indikator</span></div>
+                <div class="hstat"><span class="hstat-n">20+</span><span class="hstat-l">Indicators</span></div>
                 <div class="hstat-div"></div>
-                <div class="hstat"><span class="hstat-n">+3.0%</span><span class="hstat-l">Target/Hari</span></div>
+                <div class="hstat"><span class="hstat-n">+3.0%</span><span class="hstat-l">Daily Target</span></div>
             </div>
-            <button id="scan-btn" class="btn-scan" aria-label="Pindai pasar dan dapatkan rekomendasi saham">
+            <button id="scan-btn" class="btn-scan" aria-label="Scan market and get stock recommendations">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                Pindai Pasar Sekarang
+                Scan Market Now
             </button>
         </div>
 
@@ -85,13 +85,13 @@
                         <div class="hisg-label">IHSG · Jakarta Composite</div>
                         <div id="hero-ihsg-price" class="hisg-price">—</div>
                     </div>
-                    <div class="chart-range-tabs" role="group" aria-label="Rentang waktu">
+                    <div class="chart-range-tabs" role="group" aria-label="Time range">
                         <button class="chart-tab active" id="tab-1d" onclick="switchIhsgRange(1)">1D</button>
                         <button class="chart-tab" id="tab-60d" onclick="switchIhsgRange(60)">60D</button>
                     </div>
                 </div>
                 <div class="hisg-desc-wrap">
-                    <p id="ihsg-desc" class="hisg-sub">Pindai pasar untuk melihat grafik</p>
+                    <p id="ihsg-desc" class="hisg-sub">Scan market to view chart</p>
                 </div>
                 <div id="ihsg-chart" class="ihsg-chart-container"></div>
             </div>
@@ -106,51 +106,51 @@
 <main class="main" id="main-content">
 
     <!-- Loader -->
-    <div id="loader" class="loader hidden" role="status" aria-label="Sedang memuat">
+    <div id="loader" class="loader hidden" role="status" aria-label="Loading">
         <div class="loader-box glass-card">
             <div class="spin-ring" aria-hidden="true"><div></div><div></div><div></div></div>
-            <p class="loader-title">Menganalisis pasar...</p>
-            <p class="loader-sub">Memproses 700+ saham BEI &amp; Feature Embedding</p>
+            <p class="loader-title">Analyzing market...</p>
+            <p class="loader-sub">Processing 700+ IDX stocks &amp; Feature Embeddings</p>
         </div>
     </div>
 
     <!-- Error -->
     <div id="error-box" class="alert-error hidden" role="alert" aria-live="assertive">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div><strong>Terjadi Kesalahan</strong><p id="error-text"></p></div>
+        <div><strong>An Error Occurred</strong><p id="error-text"></p></div>
     </div>
 
     <!-- Empty State -->
     <div id="empty-state" class="empty-state">
-        <p class="es-label">Cara kerja StockAI</p>
+        <p class="es-label">How StockAI Works</p>
         <div class="feat-grid">
             <div class="feat-card glass-card">
                 <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 </div>
-                <h3>Data Real-time</h3>
-                <p>Harga terkini langsung dari Yahoo Finance setiap scan.</p>
+                <h3>Real-time Data</h3>
+                <p>Latest prices fetched directly from Yahoo Finance upon scanning.</p>
             </div>
             <div class="feat-card glass-card">
                 <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 </div>
-                <h3>20+ Indikator</h3>
-                <p>RSI, MACD, BB, OBV, ATR, VWAP, SMA &amp; Bandarmologi.</p>
+                <h3>20+ Indicators</h3>
+                <p>RSI, MACD, BB, OBV, ATR, VWAP, SMA &amp; Flow Analysis.</p>
             </div>
             <div class="feat-card glass-card">
                 <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                 </div>
-                <h3>Model XGBoost</h3>
-                <p>Dilatih 5 tahun historis dengan Optuna tuning.</p>
+                <h3>XGBoost Model</h3>
+                <p>Trained on 5 years of historical data with Optuna tuning.</p>
             </div>
             <div class="feat-card glass-card">
                 <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 </div>
-                <h3>Top 10 Transparan</h3>
-                <p>Target harga, stop loss, dan alasan AI yang jelas.</p>
+                <h3>Transparent Top 10</h3>
+                <p>Clear price targets, stop losses, and AI reasoning.</p>
             </div>
         </div>
     </div>
@@ -158,10 +158,10 @@
     <!-- Main View Switcher Tabs -->
     <div class="main-tabs-bar" style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 12px; flex-wrap: wrap;">
         <button id="tab-btn-recom" class="btn-scan" style="padding: 10px 20px; font-size: 14px; background: var(--c-charcoal); color: #FFF; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s;" onclick="switchMainTab('recom')">
-            🚀 Rekomendasi Sinyal Beli Esok Hari
+            🚀 Tomorrow's Buy Signal Recommendations
         </button>
         <button id="tab-btn-audit" class="btn-scan" style="padding: 10px 20px; font-size: 14px; background: rgba(0,0,0,0.05); color: var(--c-charcoal); border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;" onclick="switchMainTab('audit')">
-            📊 Performa &amp; Track Record 6 Bulan
+            📊 6-Month Performance &amp; Track Record
         </button>
     </div>
 
@@ -171,32 +171,32 @@
         <!-- Section header -->
         <div class="section-hd">
             <div class="section-hd-left">
-                <h2>Top 10 Rekomendasi Sinyal Beli Esok Hari</h2>
+                <h2>Top 10 Buy Signal Recommendations for Tomorrow</h2>
                 <span class="chip green">BUY SIGNAL</span>
             </div>
             <p class="section-note">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                Beli Open esok · Target +3.0% · Stop Loss -1.5% · (Dianalisis dari Data Pasar Terakhir)
+                Buy at tomorrow's Open · Target +3.0% · Stop Loss -1.5% · (Analyzed from Latest Market Data)
             </p>
         </div>
 
         <!-- Table -->
         <div class="table-card glass-card">
-            <div class="table-scroll" role="region" aria-label="Tabel rekomendasi saham" tabindex="0">
-                <table class="stock-table" aria-label="Top 10 rekomendasi saham">
+            <div class="table-scroll" role="region" aria-label="Stock recommendation table" tabindex="0">
+                <table class="stock-table" aria-label="Top 10 stock recommendations">
                     <thead>
                         <tr>
                             <th scope="col">#</th>
-                            <th scope="col">Saham</th>
-                            <th scope="col">Harga</th>
+                            <th scope="col">Stock</th>
+                            <th scope="col">Price</th>
                             <th scope="col">Target Profit</th>
                             <th scope="col">Stop Loss</th>
                             <th scope="col">RSI (14)</th>
                             <th scope="col">MACD</th>
-                            <th scope="col">Tren</th>
-                            <th scope="col">Sentimen</th>
+                            <th scope="col">Trend</th>
+                            <th scope="col">Sentiment</th>
                             <th scope="col">AI Score</th>
-                            <th scope="col">Sinyal</th>
+                            <th scope="col">Signal</th>
                         </tr>
                     </thead>
                     <tbody id="table-body"></tbody>
@@ -206,10 +206,10 @@
 
         <!-- Cards -->
         <div class="cards-hd">
-            <h3>Analisis Detail (Target Transaksi Esok Hari)</h3>
-            <p>Breakdown indikator teknikal &amp; alasan opini AI untuk eksekusi perdagangan esok hari</p>
+            <h3>Detailed Analysis (Tomorrow's Transaction Targets)</h3>
+            <p>Breakdown of technical indicators &amp; AI reasoning for tomorrow's trade execution</p>
         </div>
-        <div class="cards-grid" id="cards-grid" role="list" aria-label="Kartu analisis saham"></div>
+        <div class="cards-grid" id="cards-grid" role="list" aria-label="Stock analysis cards"></div>
 
     </div>
 
@@ -218,12 +218,12 @@
 
         <div class="cards-hd" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
             <div>
-                <h3>Performa &amp; Audit Track Record Akumulasi</h3>
-                <p>Statistik harian, grafik pertumbuhan modal (Equity Curve), dan rekapitulasi per bulan</p>
+                <h3>Performance &amp; Cumulative Track Record Audit</h3>
+                <p>Daily statistics, Equity Curve growth chart, and monthly recap</p>
             </div>
             <button id="seed-sim-btn" class="btn-scan" style="padding: 8px 16px; font-size: 13px; background: rgba(28, 28, 28, 0.08); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12);" onclick="runAuditSimulationSeed()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                Simulasi Performance 6 Bulan
+                Run 6-Month Performance Simulation
             </button>
         </div>
 
@@ -237,20 +237,20 @@
             <div class="glass-card" style="padding: 16px; border-radius: 12px;">
                 <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Total WIN / LOSS</div>
                 <div id="stat-win-loss" style="font-family: var(--font-accent); font-size: 24px; font-weight: 700; color: var(--c-charcoal); margin-top: 4px;">—</div>
-                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Sinyal Terkonfirmasi Audit</div>
+                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Audit-Confirmed Signals</div>
             </div>
             <div class="glass-card" style="padding: 16px; border-radius: 12px;">
-                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Kumulatif Profit (%)</div>
+                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Cumulative Profit (%)</div>
                 <div id="stat-total-profit" style="font-family: var(--font-accent); font-size: 28px; font-weight: 700; color: var(--c-green); margin-top: 4px;">—</div>
-                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Tanpa Compound Multiplier</div>
+                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Without Compound Multiplier</div>
             </div>
         </div>
 
         <!-- Equity Curve Chart -->
         <div class="table-card glass-card" style="padding: 20px; margin-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="font-family: var(--font-accent); font-size: 16px; font-weight: 600; color: var(--c-charcoal); margin:0;">Grafik Pertumbuhan Ekuitas (Equity Curve %)</h4>
-                <span style="font-size: 12px; color: var(--c-soft-gray);">Aktivitas Sinyal Historis</span>
+                <h4 style="font-family: var(--font-accent); font-size: 16px; font-weight: 600; color: var(--c-charcoal); margin:0;">Equity Curve Growth Chart (Cumulative %)</h4>
+                <span style="font-size: 12px; color: var(--c-soft-gray);">Historical Signal Activity</span>
             </div>
             <div id="audit-equity-chart" style="width: 100%; height: 220px;"></div>
         </div>
@@ -258,30 +258,30 @@
         <!-- Monthly Recap Table -->
         <div class="cards-hd" style="margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
             <div>
-                <h3>Rekapitulasi Performa Per Bulan</h3>
-                <p>Rincian akurasi sinyal dan imbal hasil bulanan</p>
+                <h3>Monthly Performance Recap</h3>
+                <p>Breakdown of signal accuracy and monthly returns</p>
             </div>
             <button id="toggle-monthly-btn" class="btn-scan" style="padding: 6px 14px; font-size: 12px; background: rgba(0,0,0,0.04); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12); display: none;" onclick="toggleMonthlyRecap()">
-                Lihat Selengkapnya ↓
+                View More ↓
             </button>
         </div>
         <div class="table-card glass-card" style="margin-bottom: 24px;">
-            <div class="table-scroll" role="region" aria-label="Tabel rekap bulanan" tabindex="0">
+            <div class="table-scroll" role="region" aria-label="Monthly recap table" tabindex="0">
                 <table class="stock-table" id="monthly-recap-table">
                     <thead>
                         <tr>
-                            <th scope="col">Bulan</th>
-                            <th scope="col">Total Sinyal</th>
+                            <th scope="col">Month</th>
+                            <th scope="col">Total Signals</th>
                             <th scope="col">WIN</th>
                             <th scope="col">LOSS</th>
                             <th scope="col">Win Rate (%)</th>
-                            <th scope="col">Return Bulanan (%)</th>
+                            <th scope="col">Monthly Return (%)</th>
                         </tr>
                     </thead>
                     <tbody id="monthly-recap-body">
                         <tr>
                             <td colspan="6" style="text-align: center; padding: 20px; color: var(--c-soft-gray);">
-                                Memuat rekapitulasi bulanan...
+                                Loading monthly recap...
                             </td>
                         </tr>
                     </tbody>
@@ -292,31 +292,31 @@
         <!-- Daily Signal Audit Table -->
         <div class="cards-hd" style="margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
             <div>
-                <h3>Log Detail Sinyal Harian</h3>
-                <p>Riwayat individual sinyal yang terdaftar dan diaudit oleh sistem</p>
+                <h3>Daily Signal Audit Log</h3>
+                <p>Individual history of registered signals audited by the system</p>
             </div>
             <button id="toggle-audit-btn" class="btn-scan" style="padding: 6px 14px; font-size: 12px; background: rgba(0,0,0,0.04); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12); display: none;" onclick="toggleAuditLog()">
-                Lihat Selengkapnya ↓
+                View More ↓
             </button>
         </div>
         <div class="table-card glass-card" style="margin-bottom: var(--sp-8);">
-            <div class="table-scroll" role="region" aria-label="Tabel track record sinyal" tabindex="0">
+            <div class="table-scroll" role="region" aria-label="Signal track record table" tabindex="0">
                 <table class="stock-table" id="audit-table">
                     <thead>
                         <tr>
-                            <th scope="col">Tanggal Audit / Trading</th>
-                            <th scope="col">Saham</th>
-                            <th scope="col">Harga Entry</th>
+                            <th scope="col">Audit / Trading Date</th>
+                            <th scope="col">Stock</th>
+                            <th scope="col">Entry Price</th>
                             <th scope="col">Target Profit</th>
                             <th scope="col">Stop Loss</th>
                             <th scope="col">AI Score</th>
-                            <th scope="col">Status Audit</th>
+                            <th scope="col">Audit Status</th>
                         </tr>
                     </thead>
                     <tbody id="audit-table-body">
                         <tr>
                             <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-soft-gray);">
-                                Memuat data track record...
+                                Loading track record data...
                             </td>
                         </tr>
                     </tbody>
@@ -331,10 +331,10 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
             <div class="risk-body">
-                <h4>Manajemen Risiko</h4>
-                <p>Rekomendasi AI adalah alat bantu — bukan jaminan keuntungan.</p>
+                <h4>Risk Management</h4>
+                <p>AI recommendations are analytical tools — not guaranteed profit advice.</p>
                 <div class="risk-pills">
-                    <span class="rpill"><span class="rpill-lbl">BELI</span> Harga Open esok</span>
+                    <span class="rpill"><span class="rpill-lbl">BUY</span> Tomorrow's Open Price</span>
                     <span class="rpill"><span class="rpill-lbl red">STOP LOSS</span> –1.5%</span>
                     <span class="rpill"><span class="rpill-lbl green">TAKE PROFIT</span> +3.0%</span>
                 </div>

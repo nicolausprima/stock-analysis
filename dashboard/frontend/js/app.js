@@ -40,13 +40,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!res.ok) throw new Error(data.detail || 'Server error');
             if (!data.data?.length) throw new Error(
-                'Tidak ada sinyal beli ditemukan. Kondisi pasar sedang tidak kondusif saat ini.'
+                'No buy signals found. Current market conditions are not conducive.'
             );
 
             buildTable(data.data);
             buildCards(data.data);
             results.classList.remove('hidden');
-            if (lastScan) lastScan.textContent = 'Updated ' + new Date().toLocaleTimeString('id-ID');
+            if (lastScan) lastScan.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US');
             loadTrackRecord();
 
             // Smooth scroll to results
@@ -77,8 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const macdClass      = s.macd_signal.toLowerCase();
             const trendClass     = s.trend.toLowerCase();
             const isBuy          = s.signal === 1;
-            const sentStatus     = s.sentiment_status || 'NETRAL';
-            const sentImpact     = s.sentiment_impact || 'NETRAL';
+            const sentStatus     = s.sentiment_status || 'NEUTRAL';
+            const sentImpact     = s.sentiment_impact || 'NEUTRAL';
             const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
 
             const tpPct = (s.close_price > 0 && s.target_price > 0)
@@ -142,8 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const trendClass     = s.trend.toLowerCase();
             const rsiClass       = rc === 'green' ? 'bullish' : rc === 'red' ? 'bearish' : 'uptrend';
             const isBuy          = s.signal === 1;
-            const sentStatus     = s.sentiment_status || 'NETRAL';
-            const sentImpact     = s.sentiment_impact || 'NETRAL';
+            const sentStatus     = s.sentiment_status || 'NEUTRAL';
+            const sentImpact     = s.sentiment_impact || 'NEUTRAL';
             const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
 
             const tpPct = (s.close_price > 0 && s.target_price > 0)
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'detail-card';
             card.setAttribute('role', 'listitem');
-            card.setAttribute('aria-label', `Saham ${s.ticker.replace('.JK','')} dengan AI Score ${s.probability.toFixed(1)}%`);
+            card.setAttribute('aria-label', `Stock ${s.ticker.replace('.JK','')} with AI Score ${s.probability.toFixed(1)}%`);
             card.innerHTML = `
                 <div class="dc-head">
                     <div>
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <div class="dc-prices">
                     <div class="dc-price-col">
-                        <div class="dc-plbl">Harga</div>
+                        <div class="dc-plbl">Price</div>
                         <div class="dc-pval primary">${s.close_price > 0 ? idr(s.close_price) : '—'}</div>
                     </div>
                     <div class="dc-price-col">
@@ -204,9 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="ma-box-${s.ticker.replace('.JK', '')}" style="display:none;" class="multi-agent-card"></div>
 
                 <div class="dc-reason">
-                    <span class="dc-reason-lbl">Analisis AI Terpadu (Teknikal & Berita)</span>
+                    <span class="dc-reason-lbl">Integrated AI Analysis (Technicals &amp; News)</span>
                     <div id="narasi-${s.ticker.replace('.JK', '')}">
-                        <div class="ai-loading">Menganalisis teknikal & sentimen dengan AI...</div>
+                        <div class="ai-loading">Analyzing technicals &amp; sentiment with AI...</div>
                     </div>
                 </div>
 
@@ -244,17 +244,17 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.chart-tab').forEach(t => t.classList.remove('active'));
         document.getElementById(days === 1 ? 'tab-1d' : 'tab-60d').classList.add('active');
         ihsgDesc.textContent = days === 1
-            ? 'Pergerakan harga hari ini (interval 5 menit)'
-            : 'Tren pasar keseluruhan selama 60 hari terakhir';
+            ? "Today's price movement (5-min interval)"
+            : 'Overall market trend over the past 60 days';
 
         if (typeof LightweightCharts === 'undefined') {
-            ihsgPriceVal.textContent = 'Error: Library tidak termuat';
+            ihsgPriceVal.textContent = 'Error: Library not loaded';
             return;
         }
 
         const { data, intraday } = await fetchChartData('IHSG', days);
         if (!data || data.length === 0) {
-            ihsgPriceVal.textContent = 'Data tidak tersedia';
+            ihsgPriceVal.textContent = 'Data unavailable';
             return;
         }
 
@@ -416,7 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (box.style.display === 'none') {
                 box.style.display = 'block';
                 if (!loaded) {
-                    box.innerHTML = '<div class="ai-loading">Memproses analisis 4 agen (Technical, Sentiment, Bull/Bear Debate, Risk Manager)...</div>';
+                    box.innerHTML = '<div class="ai-loading">Processing 4-Agent Analysis (Technical, Sentiment, Bull/Bear Debate, Risk Manager)...</div>';
                     try {
                         const res = await fetch('/api/narasi/multi-agent', {
                             method: 'POST',
@@ -430,8 +430,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 macd_signal: s.macd_signal,
                                 trend: s.trend,
                                 probability: s.probability,
-                                sentiment_status: s.sentiment_status || 'NETRAL',
-                                sentiment_impact: s.sentiment_impact || 'NETRAL'
+                                sentiment_status: s.sentiment_status || 'NEUTRAL',
+                                sentiment_impact: s.sentiment_impact || 'NEUTRAL'
                             })
                         });
                         const json = await res.json();
@@ -442,21 +442,21 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             box.innerHTML = `
                                 <div class="ma-header">
-                                    <div class="ma-title">Konsensus Multi-Agent Framework</div>
+                                    <div class="ma-title">Multi-Agent Framework Consensus</div>
                                     <span class="risk-pill ${verdictBadgeClass}">${d.risk_verdict}</span>
                                 </div>
                                 <div class="ma-subcard bull">
-                                    <div class="ma-card-label label-bull">Bull Case (Analisis Pembeli)</div>
+                                    <div class="ma-card-label label-bull">Bull Case (Buyer Analysis)</div>
                                     <div>${d.bull_case}</div>
                                 </div>
                                 <div class="ma-subcard bear">
-                                    <div class="ma-card-label label-bear">Bear Case (Kewaspadaan Penjual)</div>
+                                    <div class="ma-card-label label-bear">Bear Case (Seller Caution)</div>
                                     <div>${d.bear_case}</div>
                                 </div>
                                 <div class="ma-subcard risk">
                                     <div class="ma-card-label label-risk">Risk Manager Verdict</div>
                                     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
-                                        <span>Risk/Reward Ratio Target:</span>
+                                        <span>Target Risk/Reward Ratio:</span>
                                         <span class="risk-pill pill-rr">${d.risk_reward_ratio}x R:R</span>
                                     </div>
                                 </div>
@@ -464,7 +464,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             loaded = true;
                         } else {
-                            box.innerHTML = `<span style="color:var(--c-red);font-size:12.5px;padding:8px">Gagal memuat konsensus agent: ${json.detail || 'Error'}</span>`;
+                            box.innerHTML = `<span style="color:var(--c-red);font-size:12.5px;padding:8px">Failed to load agent consensus: ${json.detail || 'Error'}</span>`;
                         }
                     } catch (err) {
                         box.innerHTML = `<span style="color:var(--c-red);font-size:12.5px;padding:8px">Error: ${err.message}</span>`;
@@ -535,20 +535,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
                                 <div>
                                     <h4 style="font-family: var(--font-accent); font-size: 18px; font-weight: 700; color: var(--c-charcoal); margin:0;">
-                                        🔥 Hasil Audit Trading Hari Ini (${data.date})
+                                        🔥 Today's Trading Audit Results (${data.date})
                                     </h4>
                                     <p style="font-size: 13px; color: var(--c-soft-gray); margin: 4px 0 0 0;">
-                                        Evaluasi sinyal perdagangan yang berjalan pada hari bursa ini
+                                        Evaluation of trading signals executed on this market day
                                     </p>
                                 </div>
                                 <span class="chip ${data.total_gain >= 0 ? 'green' : 'red'}" style="font-size: 14px; font-weight: 700;">
-                                    Gain Harian: ${gainSign}${data.total_gain.toFixed(1)}%
+                                    Daily Gain: ${gainSign}${data.total_gain.toFixed(1)}%
                                 </span>
                             </div>
 
                             <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; font-size: 13px; font-weight: 500;">
-                                <span>Hasil Sinyal: <strong style="color: var(--c-green);">${data.win_count} WIN</strong> / <strong style="color: var(--c-red);">${data.loss_count} LOSS</strong> ${data.pending_count > 0 ? `/ <strong>${data.pending_count} PENDING</strong>` : ''}</span>
-                                <span>Win Rate Hari Ini: <strong>${data.win_rate.toFixed(1)}%</strong></span>
+                                <span>Signal Outcome: <strong style="color: var(--c-green);">${data.win_count} WIN</strong> / <strong style="color: var(--c-red);">${data.loss_count} LOSS</strong> ${data.pending_count > 0 ? `/ <strong>${data.pending_count} PENDING</strong>` : ''}</span>
+                                <span>Today's Win Rate: <strong>${data.win_rate.toFixed(1)}%</strong></span>
                             </div>
 
                             <div class="table-scroll" tabindex="0">
@@ -556,12 +556,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th>Saham</th>
-                                            <th>Harga Entry</th>
+                                            <th>Stock</th>
+                                            <th>Entry Price</th>
                                             <th>Target Profit</th>
                                             <th>Stop Loss</th>
                                             <th>AI Score</th>
-                                            <th>Status Audit</th>
+                                            <th>Audit Status</th>
                                         </tr>
                                     </thead>
                                     <tbody>${signalsHtml}</tbody>
@@ -626,7 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body.innerHTML = `
                         <tr>
                             <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-soft-gray); font-size: 14px;">
-                                Belum ada riwayat sinyal di database. Klik <strong>Simulasi Performance 6 Bulan</strong> untuk uji coba.
+                                No signal history in database. Click <strong>Run 6-Month Performance Simulation</strong> to test.
                             </td>
                         </tr>
                     `;
@@ -635,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body.innerHTML = `
                     <tr>
                         <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-red); font-size: 14px;">
-                            Gagal memuat track record: ${err.message}
+                            Failed to load track record: ${err.message}
                         </td>
                     </tr>
                 `;
@@ -686,8 +686,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (allAuditData.length > 5) {
                     toggleBtn.style.display = 'inline-block';
                     toggleBtn.textContent = isAuditExpanded 
-                        ? 'Sembunyikan ↑' 
-                        : `Lihat Selengkapnya (${allAuditData.length - 5} Sinyal Lagi) ↓`;
+                        ? 'Hide ↑' 
+                        : `View More (${allAuditData.length - 5} More Signals) ↓`;
                 } else {
                     toggleBtn.style.display = 'none';
                 }
@@ -770,7 +770,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 monthlyBody.innerHTML = `
                     <tr>
                         <td colspan="6" style="text-align: center; padding: 20px; color: var(--c-soft-gray);">
-                            Belum ada data rekapitulasi bulanan.
+                            No monthly recap data available yet.
                         </td>
                     </tr>
                 `;
@@ -786,7 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isPos = m.monthly_profit_pct >= 0;
                 row.innerHTML = `
                     <td style="font-family: var(--font-accent); font-weight:600;">${m.month_name}</td>
-                    <td>${m.total_signals} Sinyal</td>
+                    <td>${m.total_signals} Signals</td>
                     <td style="color: var(--c-green); font-weight:600;">${m.win_count} WIN</td>
                     <td style="color: var(--c-red); font-weight:600;">${m.loss_count} LOSS</td>
                     <td><span class="badge ${m.win_rate >= 60 ? 'uptrend' : 'bearish'}">${m.win_rate.toFixed(1)}%</span></td>
@@ -799,8 +799,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (allMonthlyData.length > 3) {
                     toggleBtn.style.display = 'inline-block';
                     toggleBtn.textContent = isMonthlyExpanded 
-                        ? 'Sembunyikan ↑' 
-                        : `Lihat Selengkapnya (${allMonthlyData.length - 3} Bulan Lagi) ↓`;
+                        ? 'Hide ↑' 
+                        : `View More (${allMonthlyData.length - 3} More Months) ↓`;
                 } else {
                     toggleBtn.style.display = 'none';
                 }
@@ -821,7 +821,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const btn = document.getElementById('seed-sim-btn');
             if (btn) {
                 btn.disabled = true;
-                btn.textContent = 'Menghasilkan simulasi...';
+                btn.textContent = 'Generating simulation...';
             }
 
             try {
@@ -830,14 +830,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.ok && data.status === 'success') {
                     await runAuditAndLoad();
                 } else {
-                    alert('Gagal menghasilkan simulasi: ' + (data.message || 'Error'));
+                    alert('Failed to generate simulation: ' + (data.message || 'Error'));
                 }
             } catch (err) {
-                alert('Error simulasi: ' + err.message);
+                alert('Simulation error: ' + err.message);
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Simulasi Performance 6 Bulan`;
+                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Run 6-Month Performance Simulation`;
                 }
             }
         };
