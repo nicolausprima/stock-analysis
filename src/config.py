@@ -22,7 +22,7 @@ try:
 except ImportError:
     pass
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7963365997:AAFD9S77X6g9bY6b3rZ1N3H4s0n2v9m1x8Q")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 @lru_cache(maxsize=1)

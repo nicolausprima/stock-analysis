@@ -878,7 +878,7 @@ strong {
 
 .cards-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: var(--sp-6);
     margin-bottom: var(--sp-10);
 }
@@ -890,6 +890,8 @@ strong {
     border-radius: 8px;
     padding: var(--sp-8) 28px 24px 28px;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .detail-card:hover {
@@ -994,13 +996,15 @@ strong {
 
 .dc-reason {
     font-family: var(--font-primary);
-    font-size: 16px;
-    line-height: 26.4px;
+    font-size: 14px;
+    line-height: 22px;
     color: var(--c-charcoal);
     padding: var(--sp-3) var(--sp-4);
     background-color: var(--c-bg);
     border-left: 2px solid var(--c-charcoal);
     border-radius: 0 4px 4px 0;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
 .dc-reason-lbl {
