@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const slPct = (s.entry_price > 0 && s.stop_loss > 0)
                             ? (((s.stop_loss - s.entry_price) / s.entry_price) * 100).toFixed(1)
                             : '-1.5';
-                        const retVal = s.status === 'LOSS' ? -1.5 : (s.return_pct != null ? s.return_pct : (s.status === 'WIN' ? parseFloat(tpPct) : 0));
+                        const retVal = s.status === 'LOSS' ? -1.5 : (s.return_pct != null ? s.return_pct : 0);
                         const retSign = retVal >= 0 ? '+' : '';
                         const badge = s.status === 'WIN' ? `<span class="badge bullish">WIN ${retSign}${retVal.toFixed(1)}% ✅</span>` :
                                       (s.status === 'LOSS' ? `<span class="badge bearish">LOSS ${retVal.toFixed(1)}% ❌</span>` : '<span class="badge netral">PENDING ⏳</span>');
@@ -671,7 +671,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? (((s.stop_loss - s.entry_price) / s.entry_price) * 100).toFixed(1)
                     : '-1.5';
 
-                const retVal = s.status === 'LOSS' ? -1.5 : (s.return_pct != null ? s.return_pct : (s.status === 'WIN' ? parseFloat(tpPct) : 0));
+                const retVal = s.status === 'LOSS' ? -1.5 : (s.return_pct != null ? s.return_pct : 0);
                 const retSign = retVal >= 0 ? '+' : '';
                 const badge = s.status === 'WIN' ? `<span class="badge bullish">WIN ${retSign}${retVal.toFixed(1)}% ✅</span>` :
                               (s.status === 'LOSS' ? `<span class="badge bearish">LOSS ${retVal.toFixed(1)}% ❌</span>` : `<span class="badge netral">PENDING ⏳</span>`);

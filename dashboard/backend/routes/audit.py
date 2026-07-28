@@ -145,7 +145,7 @@ def get_track_record():
             if st == "WIN" and entry_p > 0 and target_p > 0:
                 real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
             else:
-                real_ret = 3.0 if st == "WIN" else 0.0
+                real_ret = 0.0
 
         c_at = r["created_at"] or ""
         try:
@@ -328,12 +328,10 @@ def get_audit_recap():
             if st == "LOSS":
                 ret = -1.5
             elif ret is None:
-                entry_p = r["entry_price"]
-                target_p = r["target_price"]
                 if st == "WIN" and entry_p > 0 and target_p > 0:
                     ret = round(((target_p - entry_p) / entry_p) * 100, 1)
                 else:
-                    ret = 3.0 if st == "WIN" else -1.5
+                    ret = 0.0
             total_profit_pct += ret
     total_profit_pct = round(total_profit_pct, 1)
 
@@ -486,11 +484,13 @@ def get_today_audit_summary():
 
         if st == "LOSS":
             real_ret = -1.5
+        elif st == "PENDING":
+            real_ret = 0.0
         elif real_ret is None:
             if st == "WIN" and entry_p > 0 and target_p > 0:
                 real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
             else:
-                real_ret = 3.0 if st == "WIN" else (-1.5 if st == "LOSS" else 0.0)
+                real_ret = 0.0
 
         if st == "WIN":
             win_cnt += 1
