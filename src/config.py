@@ -1,17 +1,8 @@
 import os
-from pathlib import Path
-
-# --- DIRECTORY PATHS ---
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-DATA_DIR = PROJECT_ROOT / "data"
-RAW_DATA_DIR = DATA_DIR / "raw"
-PROCESSED_DATA_DIR = DATA_DIR / "processed"
-PRICE_DATA_DIR = RAW_DATA_DIR / "price"
-
-TICKER_LIST_FILE = DATA_DIR / "tickers.txt"
-DB_PATH = DATA_DIR / "stock_market.db"
-CACHE_FILE = DATA_DIR / "latest_recommendations.json"
+from src.utils.paths import (
+    PROJECT_ROOT, DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR,
+    PRICE_DATA_DIR, TICKER_LIST_FILE, DB_PATH, CACHE_FILE
+)
 
 # Ensure directories exist
 PRICE_DATA_DIR.mkdir(parents=True, exist_ok=True)
