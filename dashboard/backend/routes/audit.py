@@ -142,10 +142,7 @@ def get_track_record():
         elif st == "PENDING":
             real_ret = 0.0
         elif real_ret is None:
-            if st == "WIN" and entry_p > 0 and target_p > 0:
-                real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
-            else:
-                real_ret = 0.0
+            real_ret = 0.0
 
         c_at = r["created_at"] or ""
         try:
@@ -487,10 +484,7 @@ def get_today_audit_summary():
         elif st == "PENDING":
             real_ret = 0.0
         elif real_ret is None:
-            if st == "WIN" and entry_p > 0 and target_p > 0:
-                real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
-            else:
-                real_ret = 0.0
+            real_ret = 0.0
 
         if st == "WIN":
             win_cnt += 1
