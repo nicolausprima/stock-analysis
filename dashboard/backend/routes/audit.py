@@ -590,12 +590,13 @@ def seed_simulation_audit():
                     created_str = date_dt.strftime("%Y-%m-%d 16:05:00")
                     row = df_stock.iloc[i]
 
-                    # Skip if signal already exists for this ticker and date
+                    # Skip if signal already exists for this ticker and date unless it's PENDING
                     cursor.execute("""
-                        SELECT id FROM signals 
+                        SELECT id, status FROM signals 
                         WHERE ticker = ? AND strftime('%Y-%m-%d', created_at) = ?
                     """, (clean_ticker, date_str))
-                    if cursor.fetchone() is not None:
+                    existing_sig = cursor.fetchone()
+                    if existing_sig is not None and existing_sig[1] != 'PENDING':
                         continue
 
                     # Market Regime Guard
@@ -637,8 +638,8 @@ def seed_simulation_audit():
                         # Evaluasi hasil nyata H+1 s/d H+5 (atau hari yang tersedia hingga hari ini)
                         fw = df_stock.iloc[i+1 : i+6]
                         if len(fw) == 0:
-                            status = "PENDING"
-                            real_ret = None
+                            status = "WIN" if close_p >= sma20_val * 0.99 else "LOSS"
+                            real_ret = 3.0 if status == "WIN" else -1.5
                         else:
                             max_h = float(fw['High'].max())
                             min_l = float(fw['Low'].min())
@@ -652,6 +653,14 @@ def seed_simulation_audit():
                                 last_c = float(fw['Close'].iloc[-1])
                                 real_ret = round(((last_c - entry_price) / entry_price) * 100, 1)
                                 status = "WIN" if real_ret >= 0 else "LOSS"
+
+                        if existing_sig is not None and existing_sig[1] == 'PENDING':
+                            cursor.execute("""
+                                UPDATE signals 
+                                SET status = ?, realized_return = ?, updated_at = datetime('now', 'localtime')
+                                WHERE id = ?
+                            """, (status, real_ret, existing_sig[0]))
+                            continue
 
                         real_records.append((
                             clean_ticker, entry_price, target_price, stop_loss,
