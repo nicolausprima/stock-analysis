@@ -126,7 +126,7 @@ def get_track_record():
         except Exception as e:
             print(f"[AUDIT] Auto run_audit warning: {e}")
 
-    cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
+    cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
     rows = cursor.fetchall()
     
     result = []
