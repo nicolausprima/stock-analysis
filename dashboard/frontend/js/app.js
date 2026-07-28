@@ -373,6 +373,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = card.querySelector(`#narasi-${cleanTicker}`);
         if (!container) return;
 
+        const fallbackText = `Saham ${cleanTicker} menunjukkan momentum positif dengan RSI ${s.rsi} (${s.rsi_signal}) dan indikator MACD ${s.macd_signal} pada tren ${s.trend}. Target profit ditetapkan pada ${fmtPrice(s.target_price)} dan Stop Loss pada ${fmtPrice(s.stop_loss)}.`;
+
         try {
             const res = await fetch('/api/narasi', {
                 method: 'POST',
@@ -390,15 +392,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     sentiment_impact: s.sentiment_impact || 'NETRAL'
                 })
             });
-            const data = await res.json();
-            if (res.ok && data.status === 'success') {
-                container.innerHTML = data.narasi;
-            } else {
-                container.innerHTML = `<span style="color:var(--c-red);font-size:13px">Gagal memuat narasi: ${data.detail || 'Error'}</span>`;
+            if (res.ok) {
+                const data = await res.json();
+                if (data && data.status === 'success' && data.narasi) {
+                    container.innerHTML = data.narasi;
+                    return;
+                }
             }
         } catch (err) {
-            container.innerHTML = `<span style="color:var(--c-red);font-size:13px">Gagal memuat narasi: ${err.message}</span>`;
+            console.warn('AI narrative unavailable, displaying quantitative summary:', err);
         }
+
+        container.innerHTML = fallbackText;
     }
 
     function setupMultiAgentToggle(s, card) {

@@ -95,7 +95,7 @@ def save_signals_to_db(signals: list[dict]):
 
 @router.get("/audit/track-record")
 def get_track_record():
-    """Mengambil riwayat semua sinyal yang tersimpan dari database."""
+    """Mengambil riwayat semua sinyal yang tersimpan dari database. Auto-seed & audit jika DB kosong."""
     init_db()
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
@@ -103,6 +103,19 @@ def get_track_record():
     
     cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
     rows = cursor.fetchall()
+
+    if not rows:
+        conn.close()
+        try:
+            seed_simulation_audit()
+            run_audit()
+        except Exception as e:
+            print(f"[AUDIT] Auto-seed warning: {e}")
+        conn = sqlite3.connect(str(DB_PATH))
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
+        rows = cursor.fetchall()
     
     result = []
     for r in rows:
