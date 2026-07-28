@@ -94,8 +94,13 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
 
     all_latest = []
     
+    # Fast 1-query bulk read from SQLite database
+    history_dict = get_all_histories_from_db(limit_days=100)
+
     for ticker in TICKERS:
-        df = get_ticker_history_from_db(ticker, limit_days=100)
+        df = history_dict.get(ticker, pd.DataFrame())
+        if df.empty or len(df) < 20:
+            df = get_ticker_history_from_db(ticker, limit_days=100)
         if df.empty or len(df) < 20:
             continue
             

@@ -103,3 +103,34 @@ def get_ticker_history_from_db(ticker: str, limit_days: int = 100) -> pd.DataFra
         df.set_index('date', inplace=True)
         df.sort_index(ascending=True, inplace=True)
     return df
+
+def get_all_histories_from_db(limit_days: int = 100) -> dict:
+    """Mengambil riwayat data harga seluruh 700+ ticker dari SQLite dalam 1 query tunggal (bulk fast read)."""
+    _ensure_valid_db(DB_PATH)
+    init_market_db()
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        query = """
+            SELECT ticker as Ticker, date, open as Open, high as High, low as Low, close as Close, volume as Volume
+            FROM daily_prices
+            ORDER BY date ASC
+        """
+        full_df = pd.read_sql_query(query, conn)
+        conn.close()
+
+        if full_df.empty:
+            return {}
+
+        result = {}
+        for ticker_name, group in full_df.groupby("Ticker"):
+            clean_t = str(ticker_name).strip()
+            df = group.tail(limit_days).drop(columns=["Ticker"]).copy()
+            df['date'] = pd.to_datetime(df['date'])
+            df.set_index('date', inplace=True)
+            df.sort_index(inplace=True)
+            result[clean_t] = df
+
+        return result
+    except Exception as e:
+        print(f"[MARKET_DB] Error bulk reading database: {e}")
+        return {}
