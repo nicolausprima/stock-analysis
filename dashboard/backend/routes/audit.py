@@ -95,13 +95,20 @@ def save_signals_to_db(signals: list[dict]):
 
 @router.get("/audit/track-record")
 def get_track_record():
-    """Mengambil riwayat semua sinyal yang tersimpan dari database. Auto-seed & audit jika DB kosong."""
+    """Mengambil riwayat semua sinyal yang tersimpan dari database. Evaluasi audit otomatis & auto-seed jika DB kosong."""
     init_db()
+    
+    # Auto-evaluasi sinyal pending terhadap harga terbaru
+    try:
+        run_audit()
+    except Exception as e:
+        print(f"[AUDIT] Auto run_audit warning: {e}")
+
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
+    cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
     rows = cursor.fetchall()
 
     if not rows:
@@ -114,7 +121,7 @@ def get_track_record():
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
+        cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
         rows = cursor.fetchall()
     
     result = []
