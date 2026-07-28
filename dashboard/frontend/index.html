@@ -52,10 +52,10 @@ a { color: inherit; text-decoration: none; }
 }
 .hero-glow {
     position: absolute;
-    width: 600px;
-    height: 600px;
+    width: 700px;
+    height: 700px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(9,9,11,0.03) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255,255,255,1) 0%, transparent 80%);
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -70,9 +70,9 @@ a { color: inherit; text-decoration: none; }
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
-    opacity: 0.12;
+    opacity: 0.65;
     mix-blend-mode: multiply;
-    filter: contrast(120%) brightness(95%);
+    filter: contrast(105%) brightness(100%);
     pointer-events: none;
     z-index: 0;
 }
@@ -89,31 +89,32 @@ a { color: inherit; text-decoration: none; }
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 14px;
+    padding: 6px 16px;
     border-radius: 100px;
     font-size: 13px;
     font-weight: 500;
-    color: #52525b;
-    background: rgba(9,9,11,0.04);
-    border: 1px solid rgba(9,9,11,0.1);
+    color: #18181b;
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     margin-bottom: 28px;
-    transition: border-color 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s;
     cursor: default;
 }
-.pill:hover { border-color: rgba(9,9,11,0.2); }
-.pill-arrow { font-size: 11px; opacity: 0.6; }
+.pill:hover { border-color: #d4d4d8; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.pill-arrow { font-size: 11px; color: #71717a; }
 
 .hero h1 {
     font-size: clamp(36px, 6vw, 64px);
-    font-weight: 700;
+    font-weight: 800;
     line-height: 1.15;
     color: #09090b;
     margin-bottom: 8px;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
 }
 .hero h1 .line1 {
     display: block;
-    font-weight: 600;
+    font-weight: 700;
 }
 .hero h1 .rotator-wrap {
     display: block;
@@ -129,7 +130,7 @@ a { color: inherit; text-decoration: none; }
     display: block;
     height: 1.15em;
     line-height: 1.15;
-    background: linear-gradient(135deg, #09090b 0%, #3f3f46 100%);
+    background: linear-gradient(135deg, #09090b 0%, #27272a 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -139,7 +140,8 @@ a { color: inherit; text-decoration: none; }
 
 .hero-desc {
     font-size: clamp(15px, 1.5vw, 17px);
-    color: #52525b;
+    color: #3f3f46;
+    font-weight: 450;
     max-width: 580px;
     margin: 20px auto 36px;
     line-height: 1.7;
@@ -160,12 +162,13 @@ a { color: inherit; text-decoration: none; }
     border-radius: 100px;
     font-size: 14px;
     font-weight: 500;
-    background: rgba(9,9,11,0.04);
-    border: 1px solid rgba(9,9,11,0.15);
-    color: #09090b;
-    transition: background 0.2s, border-color 0.2s;
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    color: #18181b;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
-.btn-outline:hover { background: rgba(9,9,11,0.08); border-color: rgba(9,9,11,0.25); }
+.btn-outline:hover { background: #f4f4f5; border-color: #d4d4d8; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
 .btn-solid {
     display: inline-flex;
     align-items: center;
@@ -177,8 +180,10 @@ a { color: inherit; text-decoration: none; }
     background: #09090b;
     color: #ffffff;
     border: none;
+    box-shadow: 0 4px 14px rgba(9,9,11,0.15);
     transition: opacity 0.2s, transform 0.2s;
 }
+.btn-solid:hover { opacity: 0.92; transform: translateY(-1px); }
 .btn-solid:hover { opacity: 0.92; transform: translateY(-1px); }
 
 .stats-bar {
