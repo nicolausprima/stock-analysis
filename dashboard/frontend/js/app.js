@@ -152,11 +152,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const slPct = (s.close_price > 0 && s.stop_loss > 0)
                 ? (((s.stop_loss - s.close_price) / s.close_price) * 100).toFixed(1)
                 : '-1.5';
-
             const card = document.createElement('div');
             card.className = 'detail-card';
             card.setAttribute('role', 'listitem');
-            card.setAttribute('aria-label', `Stock ${s.ticker.replace('.JK','')} with AI Score ${s.probability.toFixed(1)}%`);
+            card.setAttribute('aria-label', `Stock ${s.ticker.replace('.JK','')} with Quant Score ${s.probability.toFixed(1)}%`);
             card.innerHTML = `
                 <div class="dc-head">
                     <div>
@@ -165,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div>
                         <div class="dc-score">${s.probability.toFixed(1)}%</div>
-                        <div class="dc-score-lbl">AI Score</div>
+                        <div class="dc-score-lbl">Quant Score</div>
                     </div>
                 </div>
 
@@ -204,11 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="ma-box-${s.ticker.replace('.JK', '')}" style="display:none;" class="multi-agent-card"></div>
 
                 <div class="dc-reason">
-                    <span class="dc-reason-lbl">Integrated AI Analysis (Technicals &amp; News)</span>
+                    <span class="dc-reason-lbl">Quantitative Analysis (Technicals &amp; News)</span>
                     <div id="narasi-${s.ticker.replace('.JK', '')}">
-                        <div class="ai-loading">Analyzing technicals &amp; sentiment with AI...</div>
+                        <div class="ai-loading">Analyzing technicals &amp; sentiment data...</div>
                     </div>
-                </div>
+                </div>`;  </div>
 
             `;
 
@@ -560,7 +559,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                             <th>Entry Price</th>
                                             <th>Target Profit</th>
                                             <th>Stop Loss</th>
-                                            <th>AI Score</th>
+                                            <th>Quant Score</th>
                                             <th>Audit Status</th>
                                         </tr>
                                     </thead>
