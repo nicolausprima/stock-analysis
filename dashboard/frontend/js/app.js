@@ -616,7 +616,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await res.json();
 
                 if (res.ok && data.status === 'success' && data.data?.length > 0) {
-                    allAuditData = data.data;
+                    allAuditData = data.data.sort((a, b) => {
+                        const dA = a.trading_date || (a.updated_at || a.created_at).split(' ')[0];
+                        const dB = b.trading_date || (b.updated_at || b.created_at).split(' ')[0];
+                        return dB.localeCompare(dA);
+                    });
                     renderAuditTable();
                 } else {
                     allAuditData = [];

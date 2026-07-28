@@ -149,6 +149,10 @@ def get_track_record():
         })
         
     conn.close()
+
+    # Sort strictly by trading_date DESC, created_at DESC, id DESC
+    result.sort(key=lambda x: (x["trading_date"], x["created_at"] or "", x["id"]), reverse=True)
+
     return {"status": "success", "data": result}
 
 @router.get("/audit/run")
