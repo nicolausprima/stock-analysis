@@ -96,25 +96,23 @@ def save_signals_to_db(signals: list[dict]):
 
 @router.get("/audit/track-record")
 def get_track_record():
-    """Mengambil riwayat semua sinyal yang tersimpan dari database. Evaluasi audit otomatis & auto-seed jika DB kosong."""
+    """Mengambil riwayat semua sinyal yang tersimpan dari database. Auto-seed jika DB kosong atau data tertinggal."""
     init_db()
     
-    # Auto-evaluasi sinyal pending terhadap harga terbaru
-    try:
-        run_audit()
-    except Exception as e:
-        print(f"[AUDIT] Auto run_audit warning: {e}")
-
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
-    cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
-    rows = cursor.fetchall()
-
-    if not rows:
+    cursor.execute("SELECT strftime('%Y-%m-%d', created_at) as latest_dt FROM signals ORDER BY id DESC LIMIT 1")
+    latest_row = cursor.fetchone()
+    
+    yesterday_str = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+    
+    # Jika DB kosong atau sinyal terbaru lebih tua dari kemarin, jalankan auto-seed bursa terbaru
+    if (not latest_row) or (latest_row["latest_dt"] and latest_row["latest_dt"] < yesterday_str):
         conn.close()
         try:
+            print("[AUDIT] Data terdeteksi usang, menjalankan auto-seed bursa terbaru...")
             seed_simulation_audit()
             run_audit()
         except Exception as e:
@@ -122,8 +120,14 @@ def get_track_record():
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
-        rows = cursor.fetchall()
+    else:
+        try:
+            run_audit()
+        except Exception as e:
+            print(f"[AUDIT] Auto run_audit warning: {e}")
+
+    cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
+    rows = cursor.fetchall()
     
     result = []
     for r in rows:
