@@ -243,12 +243,17 @@ def run_audit():
         if df.empty:
             continue
 
+        new_status = "PENDING"
+        real_ret = None
+        has_future_candles = False
+
         for row_idx, row in df.iterrows():
             row_date_str = str(row_idx.date() if hasattr(row_idx, 'date') else row_idx)[:10]
             # Abaikan candle pada atau sebelum tanggal pembuatan sinyal (hanya evaluasi hari bursa setelah sinyal dibuat)
             if row_date_str <= sig_date_str:
                 continue
 
+            has_future_candles = True
             high = float(row["High"])
             low = float(row["Low"])
 
@@ -269,17 +274,19 @@ def run_audit():
                 real_ret = -1.5
                 break
 
-        # Jika TP/SL belum tercapai dan bursa sudah tutup / tanggal lalu, evaluasi posisi berdasarkan Close terbaru:
-        # Profit -> WIN (+persentase riil), Loss -> LOSS (-1.5% max)
-        if new_status == "PENDING" and (not df.empty):
+        # Jika TP/SL belum tercapai dan ADA hari bursa setelah tanggal sinyal:
+        if new_status == "PENDING" and has_future_candles:
             latest_close = float(df["Close"].iloc[-1])
             ret_pct = round(((latest_close - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
-            if ret_pct >= 0:
+            if ret_pct > 0:
                 new_status = "WIN"
                 real_ret = ret_pct
-            else:
+            elif ret_pct < 0:
                 new_status = "LOSS"
-                real_ret = -1.5
+                real_ret = max(-1.5, ret_pct)
+            else:
+                new_status = "PENDING"
+                real_ret = 0.0
 
         if new_status != "PENDING":
             cursor.execute("""
@@ -642,32 +649,32 @@ def seed_simulation_audit():
                         # Evaluasi hasil nyata H+1 s/d H+5 (atau hari yang tersedia hingga hari ini)
                         fw = df_stock.iloc[i+1 : i+6]
                         if len(fw) == 0:
-                            status = "WIN"
+                            status = "PENDING"
                             real_ret = 0.0
                         else:
                             max_h = float(fw['High'].max())
                             min_l = float(fw['Low'].min())
                             if max_h >= target_price and min_l <= stop_loss:
-                                # SL hit sebelum TP (worst-case scenario) → LOSS -1.5%
                                 status = "LOSS"
                                 real_ret = -1.5
                             elif max_h >= target_price:
-                                # TP tercapai → WIN, realized return = TP return
                                 status = "WIN"
                                 real_ret = round(((target_price - entry_price) / entry_price) * 100, 1)
                             elif min_l <= stop_loss:
                                 status = "LOSS"
                                 real_ret = -1.5
                             else:
-                                # TP/SL belum tercapai: jika untung gunakan % riil, jika rugi cap di -1.5%
                                 last_c = float(fw['Close'].iloc[-1])
                                 ret_pct = round(((last_c - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
-                                if ret_pct >= 0:
+                                if ret_pct > 0:
                                     status = "WIN"
                                     real_ret = ret_pct
-                                else:
+                                elif ret_pct < 0:
                                     status = "LOSS"
-                                    real_ret = -1.5
+                                    real_ret = max(-1.5, ret_pct)
+                                else:
+                                    status = "PENDING"
+                                    real_ret = 0.0
 
                         if existing_sig is not None and existing_sig[1] == 'PENDING':
                             cursor.execute("""
