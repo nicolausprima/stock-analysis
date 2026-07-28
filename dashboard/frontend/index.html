@@ -254,117 +254,90 @@ a { color: inherit; text-decoration: none; }
     margin: 10px auto 0;
     line-height: 1.7;
 }
-.features-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-}
-.feat-card {
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 14px;
-    overflow: hidden;
-    padding: 0;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.feat-card:hover {
-    transform: translateY(-6px);
-    border-color: rgba(255,255,255,0.22);
-}
-.feat-img-wrap {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    max-height: 190px;
-    overflow: hidden;
-    position: relative;
-    background: #09090b;
-}
-.feat-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.92;
-    transition: opacity 0.35s ease, transform 0.35s ease;
-}
-.feat-card:hover .feat-img-wrap img {
-    opacity: 1;
-    transform: scale(1.03);
-}
-.feat-content {
-    padding: 22px 22px 26px;
-}
-.feat-card h3 {
-    font-size: 17px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: #fff;
-}
-.feat-card p {
-    font-size: 14px;
-    color: rgba(255,255,255,0.75);
-    line-height: 1.7;
-}
-
-.steps-grid {
+.features-grid, .steps-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
 }
 
-.step-card {
+.feat-card, .step-card {
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 14px;
+    border-radius: 12px;
     overflow: hidden;
-    padding: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    gap: 16px;
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.step-card:hover {
-    transform: translateY(-6px);
+.feat-card:hover, .step-card:hover {
+    transform: translateY(-4px);
     border-color: rgba(255, 255, 255, 0.22);
 }
-.step-img-wrap {
+
+.card-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+.card-index-tag {
+    font-family: var(--font-mono, monospace);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.45);
+    text-transform: uppercase;
+}
+.card-badge-pill {
+    font-family: var(--font-mono, monospace);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+}
+
+.feat-img-wrap, .step-img-wrap {
     width: 100%;
     aspect-ratio: 16 / 10;
-    max-height: 190px;
+    border-radius: 8px;
     overflow: hidden;
     position: relative;
     background: #09090b;
+    border: 1px solid rgba(255, 255, 255, 0.06);
 }
-.step-img-wrap img {
+.feat-img-wrap img, .step-img-wrap img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     opacity: 0.92;
     transition: opacity 0.35s ease, transform 0.35s ease;
 }
-.step-card:hover .step-img-wrap img {
+.feat-card:hover .feat-img-wrap img, .step-card:hover .step-img-wrap img {
     opacity: 1;
-    transform: scale(1.03);
+    transform: scale(1.02);
 }
-.step-content {
-    padding: 22px 22px 26px;
-    text-align: left;
-}
-.step-num {
-    font-size: 11px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.5);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-bottom: 4px;
-}
-.step-card h3 {
-    font-size: 17px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    color: #ffffff;
-}
-.step-card p {
+
+.card-desc {
     font-size: 14px;
-    color: rgba(255,255,255,0.85);
+    color: rgba(255, 255, 255, 0.7);
     line-height: 1.6;
 }
+
 
 .cta-section {
     background: #0c0c0d;
@@ -486,31 +459,37 @@ a { color: inherit; text-decoration: none; }
     </div>
     <div class="features-grid">
         <div class="feat-card reveal">
+            <div class="card-header-top">
+                <span class="card-index-tag">#01 CONNECT</span>
+                <span class="card-badge-pill">REAL-TIME</span>
+            </div>
+            <h3 class="card-title">Makro &amp; Sentimen Pasar</h3>
             <div class="feat-img-wrap">
                 <img src="nike_panel_1.png?v=1785244050" alt="Makro & Sentimen Pasar" loading="lazy">
             </div>
-            <div class="feat-content">
-                <h3>Makro &amp; Sentimen Pasar</h3>
-                <p>Evaluasi otomatis terhadap tren IHSG, nilai tukar USD/IDR, serta analisis sentimen berita pasar secara real-time.</p>
-            </div>
+            <p class="card-desc">Evaluasi otomatis terhadap tren IHSG, nilai tukar USD/IDR, serta analisis sentimen berita pasar secara real-time.</p>
         </div>
         <div class="feat-card reveal">
+            <div class="card-header-top">
+                <span class="card-index-tag">#02 QUANT ML</span>
+                <span class="card-badge-pill">XGBOOST ENGINE</span>
+            </div>
+            <h3 class="card-title">XGBoost Quant Engine</h3>
             <div class="feat-img-wrap">
                 <img src="nike_panel_2.png?v=1785244050" alt="XGBoost Quant Engine" loading="lazy">
             </div>
-            <div class="feat-content">
-                <h3>XGBoost Quant Engine</h3>
-                <p>Dilatih dengan 5 tahun data historis BEI, 20+ indikator teknikal (RSI, MACD, BB, OBV, VWAP) &amp; hyperparameter tuning Optuna.</p>
-            </div>
+            <p class="card-desc">Dilatih dengan 5 tahun data historis BEI, 20+ indikator teknikal (RSI, MACD, BB, OBV, VWAP) &amp; hyperparameter tuning Optuna.</p>
         </div>
         <div class="feat-card reveal">
+            <div class="card-header-top">
+                <span class="card-index-tag">#03 AUDIT RISK</span>
+                <span class="card-badge-pill">+3.0% TP TARGET</span>
+            </div>
+            <h3 class="card-title">Multi-Agent &amp; Daily Audit</h3>
             <div class="feat-img-wrap">
                 <img src="nike_panel_3.png?v=1785244050" alt="Multi-Agent & Daily Audit" loading="lazy">
             </div>
-            <div class="feat-content">
-                <h3>Multi-Agent &amp; Daily Audit</h3>
-                <p>Konsensus sinyal teknikal &amp; sentimen dengan manajemen risiko disiplin (Target Profit +3.0%, Stop Loss -1.5%).</p>
-            </div>
+            <p class="card-desc">Konsensus sinyal teknikal &amp; sentimen dengan manajemen risiko disiplin (Target Profit +3.0%, Stop Loss -1.5%).</p>
         </div>
     </div>
 </section>
@@ -523,34 +502,37 @@ a { color: inherit; text-decoration: none; }
     </div>
     <div class="steps-grid">
         <div class="step-card reveal">
+            <div class="card-header-top">
+                <span class="card-index-tag">STEP #01</span>
+                <span class="card-badge-pill">DATA STREAM</span>
+            </div>
+            <h3 class="card-title">Data Collection</h3>
             <div class="step-img-wrap">
                 <img src="step_img_1.png?v=1785240612" alt="Data Collection" loading="lazy">
             </div>
-            <div class="step-content">
-                <div class="step-num">01 / DATA STREAM</div>
-                <h3>Data Collection</h3>
-                <p>Batch download 700+ ticker BEI dari Yahoo Finance dalam chunks 50 saham secara teratur.</p>
-            </div>
+            <p class="card-desc">Batch download 700+ ticker BEI dari Yahoo Finance dalam chunks 50 saham secara teratur.</p>
         </div>
         <div class="step-card reveal">
+            <div class="card-header-top">
+                <span class="card-index-tag">STEP #02</span>
+                <span class="card-badge-pill">FEATURE MATRIX</span>
+            </div>
+            <h3 class="card-title">Quant &amp; Feature Engine</h3>
             <div class="step-img-wrap">
                 <img src="step_img_2.png?v=1785240612" alt="Quant & Feature Engine" loading="lazy">
             </div>
-            <div class="step-content">
-                <div class="step-num">02 / FEATURE MATRIX</div>
-                <h3>Quant &amp; Feature Engine</h3>
-                <p>Kalkulasi 20+ indikator teknikal presisi serta ekstraksi embedding vector karakteristik saham.</p>
-            </div>
+            <p class="card-desc">Kalkulasi 20+ indikator teknikal presisi serta ekstraksi embedding vector karakteristik saham.</p>
         </div>
         <div class="step-card reveal">
+            <div class="card-header-top">
+                <span class="card-index-tag">STEP #03</span>
+                <span class="card-badge-pill">AI CONSENSUS</span>
+            </div>
+            <h3 class="card-title">Signal &amp; AI Output</h3>
             <div class="step-img-wrap">
                 <img src="step_img_3.png?v=1785240612" alt="Signal & AI Output" loading="lazy">
             </div>
-            <div class="step-content">
-                <div class="step-num">03 / AI CONSENSUS</div>
-                <h3>Signal &amp; AI Output</h3>
-                <p>Hasil Top 10 rekomendasi saham terbaik lengkap dengan target profit, stop loss, dan penjelasan AI.</p>
-            </div>
+            <p class="card-desc">Hasil Top 10 rekomendasi saham terbaik lengkap dengan target profit, stop loss, dan penjelasan AI.</p>
         </div>
     </div>
 </section>
