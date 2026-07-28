@@ -305,22 +305,22 @@ def start_background_scheduler():
             today_str = time.strftime("%Y-%m-%d")
             now_time = time.strftime("%H:%M")
 
-            schedules = {
-                "08:30": run_morning_premarket_job,
-                "12:00": run_midday_recap_job,
-                "15:30": run_bsjp_radar_job,
-                "16:05": run_daily_after_market_job
-            }
+            schedules = [
+                ("08:30", "08:45", run_morning_premarket_job),
+                ("12:00", "12:15", run_midday_recap_job),
+                ("15:30", "15:45", run_bsjp_radar_job),
+                ("16:05", "16:20", run_daily_after_market_job)
+            ]
 
-            for sched_time, job_fn in schedules.items():
-                if now_time == sched_time and last_run.get(sched_time) != today_str:
+            for sched_time, end_window, job_fn in schedules:
+                if (sched_time <= now_time <= end_window) and last_run.get(sched_time) != today_str:
                     last_run[sched_time] = today_str
                     try:
                         job_fn()
                     except Exception as e:
                         print(f"[SCHEDULER] Error running {sched_time} job: {str(e)}")
 
-            time.sleep(25)
+            time.sleep(20)
             
     thread = threading.Thread(target=loop, daemon=True)
     thread.start()

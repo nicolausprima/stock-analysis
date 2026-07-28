@@ -13,13 +13,23 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
+CONFIG_JSON = PROJECT_ROOT / "data" / "telegram_config.json"
+
 def get_active_chat_id() -> str:
     """
     Mengambil TELEGRAM_CHAT_ID. Jika belum terisi di .env,
-    secara otomatis mendeteksi chat_id dari /getUpdates Telegram API.
+    secara otomatis mendeteksi chat_id dari /getUpdates Telegram API atau data/telegram_config.json.
     """
     if TELEGRAM_CHAT_ID and len(TELEGRAM_CHAT_ID.strip()) > 0:
         return TELEGRAM_CHAT_ID.strip()
+
+    if CONFIG_JSON.exists():
+        try:
+            cfg = json.loads(CONFIG_JSON.read_text(encoding="utf-8"))
+            if cfg.get("chat_id"):
+                return str(cfg["chat_id"])
+        except Exception:
+            pass
 
     # Coba auto-detect dari getUpdates
     if not TELEGRAM_BOT_TOKEN:
@@ -33,33 +43,21 @@ def get_active_chat_id() -> str:
             message = last_update.get("message") or last_update.get("channel_post")
             if message and "chat" in message:
                 chat_id = str(message["chat"]["id"])
-                _update_env_chat_id(chat_id)
+                _save_dynamic_chat_id(chat_id)
                 return chat_id
     except Exception as e:
         print(f"[TELEGRAM] Error auto-detecting chat_id: {str(e)}")
 
     return ""
 
-def _update_env_chat_id(chat_id: str):
-    """Menyimpan chat_id yang terdeteksi ke file .env."""
-    env_path = PROJECT_ROOT / ".env"
-    if not env_path.exists():
-        return
-
+def _save_dynamic_chat_id(chat_id: str):
+    """Menyimpan chat_id yang terdeteksi ke file data/telegram_config.json tanpa mengubah .env."""
     try:
-        content = env_path.read_text(encoding="utf-8")
-        if 'TELEGRAM_CHAT_ID=""' in content or 'TELEGRAM_CHAT_ID=' in content:
-            lines = content.splitlines()
-            new_lines = []
-            for line in lines:
-                if line.startswith("TELEGRAM_CHAT_ID="):
-                    new_lines.append(f'TELEGRAM_CHAT_ID="{chat_id}"')
-                else:
-                    new_lines.append(line)
-            env_path.write_text("\n".join(new_lines), encoding="utf-8")
-            print(f"[TELEGRAM] Chat ID {chat_id} berhasil disimpan ke file .env!")
+        CONFIG_JSON.parent.mkdir(parents=True, exist_ok=True)
+        CONFIG_JSON.write_text(json.dumps({"chat_id": chat_id}), encoding="utf-8")
+        print(f"[TELEGRAM] Chat ID {chat_id} berhasil disimpan ke data/telegram_config.json!")
     except Exception as e:
-        print(f"[TELEGRAM] Gagal menyimpan chat_id ke .env: {str(e)}")
+        print(f"[TELEGRAM] Gagal menyimpan chat_id: {str(e)}")
 
 def send_telegram_message(html_text: str, target_chat_id: str = None) -> dict:
     """

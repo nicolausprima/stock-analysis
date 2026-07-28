@@ -43,7 +43,7 @@ def init_market_db():
     conn.close()
 
 def save_daily_prices(combined_df: pd.DataFrame):
-    """Menyimpan DataFrame harga harian ke database SQLite dengan transaksi cepat."""
+    """Menyimpan DataFrame harga harian ke database SQLite dengan transaksi cepat (vectorized)."""
     if combined_df.empty:
         return
     
@@ -51,15 +51,23 @@ def save_daily_prices(combined_df: pd.DataFrame):
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.cursor()
     
+    df_reset = combined_df.reset_index()
+    date_col = 'Date' if 'Date' in df_reset.columns else df_reset.columns[0]
+
     records = []
-    for idx, row in combined_df.iterrows():
-        ticker = row.get("Ticker", "")
-        date_str = str(idx).split(" ")[0]
-        open_p = float(row.get("Open", 0.0))
-        high_p = float(row.get("High", 0.0))
-        low_p = float(row.get("Low", 0.0))
-        close_p = float(row.get("Close", 0.0))
-        vol = float(row.get("Volume", 0.0))
+    for row in df_reset.to_dict('records'):
+        ticker = str(row.get("Ticker", "")).strip()
+        dt_val = row.get(date_col, "")
+        if hasattr(dt_val, "strftime"):
+            date_str = dt_val.strftime("%Y-%m-%d")
+        else:
+            date_str = str(dt_val).split("T")[0].split(" ")[0]
+
+        open_p = float(row.get("Open", 0.0) or 0.0)
+        high_p = float(row.get("High", 0.0) or 0.0)
+        low_p = float(row.get("Low", 0.0) or 0.0)
+        close_p = float(row.get("Close", 0.0) or 0.0)
+        vol = float(row.get("Volume", 0.0) or 0.0)
         
         if ticker and close_p > 0:
             records.append((ticker, date_str, open_p, high_p, low_p, close_p, vol))

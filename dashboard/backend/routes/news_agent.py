@@ -15,7 +15,7 @@ def fetch_news(request: NewsRequest):
     try:
         # Ambil berita menggunakan Yahoo Finance
         yf_ticker = yf.Ticker(f"{ticker}.JK" if not ticker.endswith(".JK") else ticker)
-        news_data = yf_ticker.news
+        news_data = yf_ticker.news or []
         raw_news = "\n".join([f"- {n.get('title')}: {n.get('summary', '')}" for n in news_data[:3]])
         
         if not raw_news.strip():
