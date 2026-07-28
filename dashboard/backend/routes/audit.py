@@ -65,6 +65,7 @@ class SignalInsert(BaseModel):
 
 def save_signals_to_db(signals: list[dict]):
     """Menyimpan list sinyal baru ke database. Menghindari duplikasi ticker pada hari kalender yang sama."""
+    init_db()
     conn = sqlite3.connect(str(DB_PATH))
     cursor = conn.cursor()
     
@@ -134,11 +135,13 @@ def get_track_record():
 
         if st == "LOSS":
             real_ret = -1.5
+        elif st == "PENDING":
+            real_ret = 0.0
         elif real_ret is None:
             if st == "WIN" and entry_p > 0 and target_p > 0:
                 real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
             else:
-                real_ret = 3.0 if st == "WIN" else -1.5
+                real_ret = 3.0 if st == "WIN" else 0.0
 
         c_at = r["created_at"] or ""
         try:
@@ -181,6 +184,7 @@ def run_audit():
     import io
     import contextlib
 
+    init_db()
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
@@ -499,7 +503,7 @@ def get_today_audit_summary():
 
     return {
         "status": "success",
-        "date": today_str,
+        "date": audit_date,
         "total_signals": len(today_signals),
         "win_count": win_cnt,
         "loss_count": loss_cnt,
