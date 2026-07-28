@@ -275,8 +275,12 @@ def run_audit():
         if new_status == "PENDING" and (not df.empty) and sig_date_str < today_date_str:
             latest_close = float(df["Close"].iloc[-1])
             ret_pct = round(((latest_close - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
-            new_status = "WIN" if ret_pct >= 0 else "LOSS"
-            real_ret = ret_pct if new_status == "WIN" else -1.5
+            if ret_pct > 0:
+                new_status = "WIN"
+                real_ret = ret_pct
+            elif ret_pct < 0:
+                new_status = "LOSS"
+                real_ret = -1.5
 
         if new_status != "PENDING":
             cursor.execute("""
@@ -642,12 +646,15 @@ def seed_simulation_audit():
                         # Evaluasi hasil nyata H+1 s/d H+5 (atau hari yang tersedia hingga hari ini)
                         fw = df_stock.iloc[i+1 : i+6]
                         if len(fw) == 0:
-                            status = "WIN" if close_p >= sma20_val * 0.99 else "LOSS"
-                            real_ret = 3.0 if status == "WIN" else -1.5
+                            status = "PENDING"
+                            real_ret = None
                         else:
                             max_h = float(fw['High'].max())
                             min_l = float(fw['Low'].min())
-                            if max_h >= target_price:
+                            if max_h >= target_price and min_l <= stop_loss:
+                                status = "LOSS"
+                                real_ret = -1.5
+                            elif max_h >= target_price:
                                 status = "WIN"
                                 real_ret = round(((max_h - entry_price) / entry_price) * 100, 1)
                             elif min_l <= stop_loss:
@@ -655,8 +662,16 @@ def seed_simulation_audit():
                                 real_ret = -1.5
                             else:
                                 last_c = float(fw['Close'].iloc[-1])
-                                real_ret = round(((last_c - entry_price) / entry_price) * 100, 1)
-                                status = "WIN" if real_ret >= 0 else "LOSS"
+                                ret_pct = round(((last_c - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
+                                if ret_pct > 0:
+                                    status = "WIN"
+                                    real_ret = ret_pct
+                                elif ret_pct < 0:
+                                    status = "LOSS"
+                                    real_ret = -1.5
+                                else:
+                                    status = "PENDING"
+                                    real_ret = None
 
                         if existing_sig is not None and existing_sig[1] == 'PENDING':
                             cursor.execute("""
