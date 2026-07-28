@@ -207,15 +207,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div id="narasi-${s.ticker.replace('.JK', '')}">
                         <div class="ai-loading">Analyzing technicals &amp; sentiment data...</div>
                     </div>
-                </div>`;  </div>
-
+                </div>
             `;
 
             cardsGrid.appendChild(card);
             fetchNarrative(s, card);
             setupMultiAgentToggle(s, card);
         });
-
     }
 
     // Charting Logic
