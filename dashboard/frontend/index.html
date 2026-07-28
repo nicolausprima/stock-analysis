@@ -386,325 +386,6 @@ a { color: inherit; text-decoration: none; }
     .steps-grid { grid-template-columns: 1fr; }
     .hero h1 { font-size: 28px; }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-.hero-inner {
-    position: relative;
-    z-index: 1;
-    max-width: 720px;
-    width: 100%;
-    text-align: center;
-}
-
-.pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 100px;
-    font-size: 13px;
-    font-weight: 500;
-    color: rgba(255,255,255,0.7);
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.08);
-    margin-bottom: 28px;
-    transition: border-color 0.2s;
-    cursor: default;
-}
-.pill:hover { border-color: rgba(255,255,255,0.15); }
-.pill-arrow { font-size: 11px; opacity: 0.5; }
-
-.hero h1 {
-    font-size: clamp(36px, 6vw, 64px);
-    font-weight: 700;
-    line-height: 1.15;
-    color: #fff;
-    margin-bottom: 8px;
-    letter-spacing: -0.02em;
-}
-.hero h1 .line1 {
-    display: block;
-    font-weight: 600;
-}
-.hero h1 .rotator-wrap {
-    display: block;
-    height: 1.15em;
-    overflow: hidden;
-    position: relative;
-}
-.hero h1 .rotator {
-    display: block;
-    position: relative;
-}
-.hero h1 .rotator span {
-    display: block;
-    height: 1.15em;
-    line-height: 1.15;
-    background: linear-gradient(135deg, #fff 0%, #e8e0d8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    will-change: opacity, transform, filter;
-    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-
-.hero-desc {
-    font-size: clamp(15px, 1.5vw, 17px);
-    color: rgba(255,255,255,0.55);
-    max-width: 580px;
-    margin: 20px auto 36px;
-    line-height: 1.7;
-}
-
-.hero-actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-.btn-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 24px;
-    border-radius: 100px;
-    font-size: 14px;
-    font-weight: 500;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    color: rgba(255,255,255,0.8);
-    transition: background 0.2s, border-color 0.2s;
-}
-.btn-outline:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
-.btn-solid {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 28px;
-    border-radius: 100px;
-    font-size: 14px;
-    font-weight: 600;
-    background: #fff;
-    color: #09090b;
-    border: none;
-    transition: opacity 0.2s;
-}
-.btn-solid:hover { opacity: 0.9; }
-
-.stats-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    border-top: 1px solid rgba(255,255,255,0.06);
-    background: #0c0c0d;
-}
-.stat-item {
-    padding: 36px 24px;
-    text-align: center;
-    border-right: 1px solid rgba(255,255,255,0.06);
-}
-.stat-item:last-child { border-right: none; }
-.stat-num {
-    font-size: 32px;
-    font-weight: 700;
-    line-height: 1.1;
-    color: #fff;
-    letter-spacing: -0.02em;
-}
-.stat-label {
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: rgba(255,255,255,0.35);
-    margin-top: 4px;
-}
-
-.section {
-    padding: 48px 24px;
-    max-width: 1100px;
-    margin: 0 auto;
-}
-.section-header { text-align: center; margin-bottom: 36px; }
-
-.section-tag {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: rgba(255,255,255,0.6);
-    margin-bottom: 12px;
-}
-.section-title {
-    font-size: clamp(30px, 4vw, 44px);
-    font-weight: 700;
-    line-height: 1.15;
-    color: #fff;
-    max-width: 550px;
-    margin: 0 auto;
-    letter-spacing: -0.02em;
-}
-.section-desc {
-    font-size: 15px;
-    color: rgba(255,255,255,0.75);
-    max-width: 480px;
-    margin: 10px auto 0;
-    line-height: 1.7;
-}
-.features-grid, .steps-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-}
-
-.feat-card, .step-card {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 24px;
-    gap: 16px;
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.feat-card:hover, .step-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(255, 255, 255, 0.22);
-}
-
-.card-header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-.card-index-tag {
-    font-family: var(--font-mono, monospace);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    color: rgba(255, 255, 255, 0.45);
-    text-transform: uppercase;
-}
-.card-badge-pill {
-    font-family: var(--font-mono, monospace);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 3px 8px;
-    border-radius: 4px;
-    background: rgba(255, 255, 255, 0.04);
-}
-
-.card-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #ffffff;
-    letter-spacing: -0.01em;
-    line-height: 1.3;
-}
-
-.feat-img-wrap, .step-img-wrap {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-    background: #09090b;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-.feat-img-wrap img, .step-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.92;
-    transition: opacity 0.35s ease, transform 0.35s ease;
-}
-.feat-card:hover .feat-img-wrap img, .step-card:hover .step-img-wrap img {
-    opacity: 1;
-    transform: scale(1.02);
-}
-
-.card-desc {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
-    line-height: 1.6;
-}
-
-
-.cta-section {
-    background: #0c0c0d;
-    text-align: center;
-    padding: 50px 24px;
-    border-top: 1px solid rgba(255,255,255,0.06);
-}
-
-.cta-section h2 {
-    font-size: clamp(28px, 3.5vw, 40px);
-    font-weight: 700;
-    margin-bottom: 10px;
-    color: #fff;
-    letter-spacing: -0.02em;
-}
-.cta-section p {
-    color: rgba(255,255,255,0.5);
-    margin-bottom: 28px;
-    font-size: 15px;
-}
-.cta-section .btn-solid {
-    font-size: 15px;
-    padding: 14px 32px;
-}
-
-.footer {
-    padding: 28px 24px;
-    text-align: center;
-    font-size: 12px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(255,255,255,0.2);
-    border-top: 1px solid rgba(255,255,255,0.04);
-}
-
-.reveal {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
-}
-.reveal.visible { opacity: 1; transform: translateY(0); }
-
-@media (max-width: 768px) {
-    .stats-bar { grid-template-columns: repeat(2, 1fr); }
-    .stat-item:nth-child(2) { border-right: none; }
-    .stat-item { padding: 24px 16px; }
-    .stat-num { font-size: 26px; }
-    .section { padding: 60px 20px; }
-    .features-grid { grid-template-columns: 1fr; }
-    .steps-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 480px) {
-    .steps-grid { grid-template-columns: 1fr; }
-    .hero h1 { font-size: 28px; }
-}
 </style>
 
 </head>
@@ -712,16 +393,9 @@ a { color: inherit; text-decoration: none; }
 
 <section class="hero">
     <!-- CREATION OF ADAM AI GENERATED DITHER HANDS BACKGROUND -->
-    <div class="hero-bg-adam" style="background-image: url('creation_of_adam_dither_hands.png?v=1785240612');"></div>
+    <div class="hero-bg-adam" style="background-image: url('creation_of_adam_dither_hands.png?v=1785247500');"></div>
     <div class="hero-glow"></div>
     <div class="hero-inner">
-
-
-
-
-
-
-
         <div class="pill">
             Screening Saham BEI Berbasis AI
             <span class="pill-arrow">→</span>
@@ -775,7 +449,7 @@ a { color: inherit; text-decoration: none; }
             </div>
             <h3 class="card-title">Makro &amp; Sentimen Pasar</h3>
             <div class="feat-img-wrap">
-                <img src="nike_panel_1.png?v=1785246470" alt="Makro & Sentimen Pasar" loading="lazy">
+                <img src="nike_panel_1.png?v=1785247500" alt="Makro & Sentimen Pasar" loading="lazy">
             </div>
             <p class="card-desc">Evaluasi otomatis terhadap tren IHSG, nilai tukar USD/IDR, serta analisis sentimen berita pasar secara real-time.</p>
         </div>
@@ -786,7 +460,7 @@ a { color: inherit; text-decoration: none; }
             </div>
             <h3 class="card-title">XGBoost Quant Engine</h3>
             <div class="feat-img-wrap">
-                <img src="nike_panel_2.png?v=1785246470" alt="XGBoost Quant Engine" loading="lazy">
+                <img src="nike_panel_2.png?v=1785247500" alt="XGBoost Quant Engine" loading="lazy">
             </div>
             <p class="card-desc">Dilatih dengan 5 tahun data historis BEI, 20+ indikator teknikal (RSI, MACD, BB, OBV, VWAP) &amp; hyperparameter tuning Optuna.</p>
         </div>
@@ -797,7 +471,7 @@ a { color: inherit; text-decoration: none; }
             </div>
             <h3 class="card-title">Multi-Agent &amp; Daily Audit</h3>
             <div class="feat-img-wrap">
-                <img src="nike_panel_3.png?v=1785246470" alt="Multi-Agent & Daily Audit" loading="lazy">
+                <img src="nike_panel_3.png?v=1785247500" alt="Multi-Agent & Daily Audit" loading="lazy">
             </div>
             <p class="card-desc">Konsensus sinyal teknikal &amp; sentimen dengan manajemen risiko disiplin (Target Profit +3.0%, Stop Loss -1.5%).</p>
         </div>
@@ -818,7 +492,7 @@ a { color: inherit; text-decoration: none; }
             </div>
             <h3 class="card-title">Data Collection</h3>
             <div class="step-img-wrap">
-                <img src="step_img_1.png?v=1785246470" alt="Data Collection" loading="lazy">
+                <img src="step_img_1.png?v=1785247500" alt="Data Collection" loading="lazy">
             </div>
             <p class="card-desc">Batch download 700+ ticker BEI dari Yahoo Finance dalam chunks 50 saham secara teratur.</p>
         </div>
@@ -829,7 +503,7 @@ a { color: inherit; text-decoration: none; }
             </div>
             <h3 class="card-title">Quant &amp; Feature Engine</h3>
             <div class="step-img-wrap">
-                <img src="step_img_2.png?v=1785246470" alt="Quant & Feature Engine" loading="lazy">
+                <img src="step_img_2.png?v=1785247500" alt="Quant & Feature Engine" loading="lazy">
             </div>
             <p class="card-desc">Kalkulasi 20+ indikator teknikal presisi serta ekstraksi embedding vector karakteristik saham.</p>
         </div>
@@ -840,7 +514,7 @@ a { color: inherit; text-decoration: none; }
             </div>
             <h3 class="card-title">Signal &amp; AI Output</h3>
             <div class="step-img-wrap">
-                <img src="step_img_3.png?v=1785246470" alt="Signal & AI Output" loading="lazy">
+                <img src="step_img_3.png?v=1785247500" alt="Signal & AI Output" loading="lazy">
             </div>
             <p class="card-desc">Hasil Top 10 rekomendasi saham terbaik lengkap dengan target profit, stop loss, dan penjelasan AI.</p>
         </div>
