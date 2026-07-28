@@ -112,11 +112,11 @@ def get_track_record():
         st = r["status"]
         real_ret = r["realized_return"]
 
-        if real_ret is None:
+        if st == "LOSS":
+            real_ret = -1.5
+        elif real_ret is None:
             if st == "WIN" and entry_p > 0 and target_p > 0:
                 real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
-            elif st == "LOSS" and entry_p > 0 and stop_p > 0:
-                real_ret = round(((stop_p - entry_p) / entry_p) * 100, 1)
             else:
                 real_ret = 3.0 if st == "WIN" else -1.5
 
@@ -165,38 +165,21 @@ def run_audit():
     pending_signals = cursor.fetchall()
 
     updated_count = 0
-    today_str = datetime.now().strftime("%Y-%m-%d")
-
-    # Buka koneksi ke stock_market.db untuk pencarian lokal cepat
-    market_db_path = PROJECT_ROOT / "data" / "stock_market.db"
+    market_db_path = PROJECT_ROOT / 'data' / 'stock_market.db'
 
     for sig in pending_signals:
         sig_id = sig["id"]
-        ticker = sig["ticker"]
-        entry_price = sig["entry_price"]
-        target_price = sig["target_price"]
-        stop_loss = sig["stop_loss"]
+        clean_ticker = sig["ticker"]
+        yf_ticker = clean_ticker if clean_ticker.endswith(".JK") else f"{clean_ticker}.JK"
+        entry_price = float(sig["entry_price"])
+        target_price = float(sig["target_price"])
+        stop_loss = float(sig["stop_loss"])
+        created_at_str = sig["created_at"]
 
-        # Parse created_at
         try:
-            created_dt = datetime.strptime(sig["created_at"], "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            created_dt = datetime.now() - timedelta(days=1)
-
-        start_dt_val = created_dt + timedelta(days=1)
-        start_date = start_dt_val.strftime("%Y-%m-%d")
-
-        # Jika start_date masih di masa depan, belum ada data H+1 untuk di-audit
-        if start_date > today_str:
-            continue
-
-        # Jika start_date == hari ini, cek jam: hanya audit setelah market close (>= 16:00 WIB)
-        now_hour = datetime.now().hour
-        if start_date == today_str and now_hour < 16:
-            continue
-
-        yf_ticker = f"{ticker}.JK" if not ticker.endswith(".JK") else ticker
-        clean_ticker = yf_ticker.replace(".JK", "")
+            start_date = (datetime.strptime(created_at_str.split(" ")[0], "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+        except Exception:
+            start_date = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
 
         df = pd.DataFrame()
 
@@ -242,7 +225,7 @@ def run_audit():
 
             if is_tp and is_sl:
                 new_status = "LOSS"
-                real_ret = round(((low - entry_price) / entry_price) * 100, 1) if entry_price > 0 else -1.5
+                real_ret = -1.5
                 break
             elif is_tp:
                 new_status = "WIN"
@@ -251,7 +234,7 @@ def run_audit():
                 break
             elif is_sl:
                 new_status = "LOSS"
-                real_ret = round(((low - entry_price) / entry_price) * 100, 1) if entry_price > 0 else -1.5
+                real_ret = -1.5
                 break
 
         if new_status != "PENDING":
@@ -297,14 +280,13 @@ def get_audit_recap():
         st = r["status"]
         if st in ["WIN", "LOSS"]:
             ret = r["realized_return"]
-            if ret is None:
+            if st == "LOSS":
+                ret = -1.5
+            elif ret is None:
                 entry_p = r["entry_price"]
                 target_p = r["target_price"]
-                stop_p = r["stop_loss"]
                 if st == "WIN" and entry_p > 0 and target_p > 0:
                     ret = round(((target_p - entry_p) / entry_p) * 100, 1)
-                elif st == "LOSS" and entry_p > 0 and stop_p > 0:
-                    ret = round(((stop_p - entry_p) / entry_p) * 100, 1)
                 else:
                     ret = 3.0 if st == "WIN" else -1.5
             total_profit_pct += ret
@@ -347,13 +329,13 @@ def get_audit_recap():
         stop_p = r["stop_loss"]
         real_ret = r["realized_return"]
 
-        if real_ret is None and st in ["WIN", "LOSS"]:
-            if st == "WIN" and entry_p > 0 and target_p > 0:
+        if st == "LOSS":
+            real_ret = -1.5
+        elif real_ret is None and st == "WIN":
+            if entry_p > 0 and target_p > 0:
                 real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
-            elif st == "LOSS" and entry_p > 0 and stop_p > 0:
-                real_ret = round(((stop_p - entry_p) / entry_p) * 100, 1)
             else:
-                real_ret = 3.0 if st == "WIN" else -1.5
+                real_ret = 3.0
 
         if st == "WIN":
             m_data["win_count"] += 1
@@ -457,11 +439,11 @@ def get_today_audit_summary():
         stop_p = r["stop_loss"]
         real_ret = r["realized_return"]
 
-        if real_ret is None:
+        if st == "LOSS":
+            real_ret = -1.5
+        elif real_ret is None:
             if st == "WIN" and entry_p > 0 and target_p > 0:
                 real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
-            elif st == "LOSS" and entry_p > 0 and stop_p > 0:
-                real_ret = round(((stop_p - entry_p) / entry_p) * 100, 1)
             else:
                 real_ret = 3.0 if st == "WIN" else (-1.5 if st == "LOSS" else 0.0)
 

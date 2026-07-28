@@ -415,7 +415,7 @@ a { color: inherit; text-decoration: none; }
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
                 Join Telegram Bot
             </a>
-            <a href="/dashboard" class="btn-solid">
+            <a href="dashboard.html" class="btn-solid">
                 View Stock Recommendations
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </a>
@@ -521,7 +521,7 @@ a { color: inherit; text-decoration: none; }
 <section class="cta-section">
     <h2>Start Screening</h2>
     <p>Analyze 700+ IDX stocks in seconds.</p>
-    <a href="/dashboard" class="btn-solid">Start Screening →</a>
+    <a href="dashboard.html" class="btn-solid">Start Screening →</a>
 </section>
 
 <footer class="footer">For Educational Purposes</footer>
@@ -586,7 +586,7 @@ document.addEventListener('DOMContentLoaded', function() {
 document.querySelectorAll('a[href="/dashboard"], a[href="dashboard.html"]').forEach(function(link) {
     link.addEventListener('click', function(e) {
         e.preventDefault();
-        var targetUrl = this.getAttribute('href');
+        var targetUrl = window.location.protocol === 'file:' ? 'dashboard.html' : this.getAttribute('href');
         document.body.classList.remove('page-loaded');
         document.body.classList.add('page-exiting');
         setTimeout(function() {
