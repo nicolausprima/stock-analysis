@@ -243,9 +243,12 @@ def run_audit():
         if df.empty:
             continue
 
-        new_status = "PENDING"
-        real_ret = None
-        for _, row in df.iterrows():
+        for row_idx, row in df.iterrows():
+            row_date_str = str(row_idx.date() if hasattr(row_idx, 'date') else row_idx)[:10]
+            # Abaikan candle pada atau sebelum tanggal pembuatan sinyal (hanya evaluasi hari bursa setelah sinyal dibuat)
+            if row_date_str <= sig_date_str:
+                continue
+
             high = float(row["High"])
             low = float(row["Low"])
 
