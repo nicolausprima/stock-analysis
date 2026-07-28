@@ -265,8 +265,10 @@ def run_audit():
                 real_ret = -1.5
                 break
 
-        # Jika transaksi sudah lewat masa simpan (>1 hari bursa) & belum sentuh TP/SL, tutup pada harga Close terbaru
-        if new_status == "PENDING" and len(df) >= 2:
+        # Jika transaksi tanggal pembuatannya sudah lewat (< hari ini) & belum sentuh TP/SL, tutup pada harga Close terbaru
+        sig_date_str = created_at_str.split(" ")[0]
+        today_date_str = datetime.now().strftime("%Y-%m-%d")
+        if new_status == "PENDING" and (not df.empty) and sig_date_str < today_date_str:
             latest_close = float(df["Close"].iloc[-1])
             ret_pct = round(((latest_close - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
             new_status = "WIN" if ret_pct >= 0 else "LOSS"
@@ -645,14 +647,11 @@ def seed_simulation_audit():
                                 real_ret = round(((max_h - entry_price) / entry_price) * 100, 1)
                             elif min_l <= stop_loss:
                                 status = "LOSS"
-                                real_ret = round(((min_l - entry_price) / entry_price) * 100, 1)
-                            elif len(fw) < 5:
-                                status = "PENDING"
-                                real_ret = None
+                                real_ret = -1.5
                             else:
                                 last_c = float(fw['Close'].iloc[-1])
                                 real_ret = round(((last_c - entry_price) / entry_price) * 100, 1)
-                                status = "WIN" if real_ret >= 0.5 else "LOSS"
+                                status = "WIN" if real_ret >= 0 else "LOSS"
 
                         real_records.append((
                             clean_ticker, entry_price, target_price, stop_loss,
