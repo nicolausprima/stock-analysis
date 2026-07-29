@@ -276,10 +276,17 @@ def run_audit():
         real_ret = None
         has_future_candles = False
 
+        now_audit = datetime.now()
+        today_date_str_audit = now_audit.strftime("%Y-%m-%d")
+        market_open_audit = now_audit.hour < 16  # BEI tutup ~16:00 WIB
+
         for row_idx, row in df.iterrows():
             row_date_str = str(row_idx.date() if hasattr(row_idx, 'date') else row_idx)[:10]
-            # Abaikan candle pada atau sebelum tanggal pembuatan sinyal (hanya evaluasi hari bursa setelah sinyal dibuat)
+            # Abaikan candle pada atau sebelum tanggal pembuatan sinyal
             if row_date_str <= sig_date_str:
+                continue
+            # Jika bursa MASIH BUKA, skip candle hari ini (data belum tutup/parsial)
+            if market_open_audit and row_date_str >= today_date_str_audit:
                 continue
 
             has_future_candles = True
