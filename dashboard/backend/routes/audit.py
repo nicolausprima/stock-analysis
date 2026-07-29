@@ -126,13 +126,16 @@ def get_track_record():
         except Exception as e:
             print(f"[AUDIT] Auto run_audit warning: {e}")
 
-    # Hapus sinyal yang di-seed salah: created_at hari ini jam 16:05 (seed berjalan di hari yang masih buka)
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    cursor.execute("""
-        DELETE FROM signals 
-        WHERE strftime('%Y-%m-%d', created_at) = ? AND created_at LIKE '%16:05:00'
-    """, (today_str,))
-    conn.commit()
+    # Hapus sinyal yang di-seed salah: created_at hari ini jam 16:05 hanya jika bursa MASIH BUKA
+    now_local = datetime.now()
+    today_str = now_local.strftime("%Y-%m-%d")
+    market_open = now_local.hour < 16  # Bursa BEI tutup sekitar 16:00 WIB
+    if market_open:
+        cursor.execute("""
+            DELETE FROM signals 
+            WHERE strftime('%Y-%m-%d', created_at) = ? AND created_at LIKE '%16:05:00'
+        """, (today_str,))
+        conn.commit()
 
     cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
     rows = cursor.fetchall()
@@ -620,15 +623,29 @@ def seed_simulation_audit():
                 df_stock['SMA20'] = df_stock['Close'].rolling(20).mean()
                 df_stock['Vol_SMA20'] = df_stock['Volume'].rolling(20).mean()
 
-                # Loop semua hari historis hingga KEMARIN (jangan proses hari ini - data belum tutup)
-                today_date_str = datetime.now().strftime("%Y-%m-%d")
+                # Loop semua hari historis dengan time-awareness:
+                # - Bursa MASIH BUKA (sebelum 16:00 WIB): skip hari ini, data belum lengkap
+                # - Bursa SUDAH TUTUP (setelah 16:00 WIB): proses hari ini, simpan sebagai PENDING (butuh data besok)
+                now_seed = datetime.now()
+                today_date_str = now_seed.strftime("%Y-%m-%d")
+                market_closed = now_seed.hour >= 16  # BEI tutup ~16:00 WIB
+
                 for i in range(20, len(df_stock)):
                     date_dt = df_stock.index[i]
                     date_str = date_dt.strftime("%Y-%m-%d")
-                    # Skip candle hari ini (bursa masih buka, data belum lengkap)
-                    if date_str >= today_date_str:
+
+                    if not market_closed and date_str >= today_date_str:
+                        # Bursa masih buka: skip hari ini dan masa depan
                         continue
-                    created_str = date_dt.strftime("%Y-%m-%d 16:05:00")
+                    elif date_str > today_date_str:
+                        # Jangan proses candle masa depan (tidak mungkin ada, tapi guard)
+                        continue
+
+                    # created_str: gunakan waktu sebenarnya untuk hari ini, 16:05 untuk hari lampau
+                    if date_str == today_date_str:
+                        created_str = now_seed.strftime("%Y-%m-%d %H:%M:%S")
+                    else:
+                        created_str = date_dt.strftime("%Y-%m-%d 16:05:00")
                     row = df_stock.iloc[i]
 
                     # Skip if signal already exists for this ticker and date unless it's PENDING
