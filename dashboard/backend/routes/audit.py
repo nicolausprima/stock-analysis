@@ -184,6 +184,14 @@ def get_track_record():
         except Exception:
             trade_date_str = (r["updated_at"] or c_at).split(" ")[0]
 
+        # Jika bursa masih buka dan trading_date = hari ini, paksa tampil PENDING di response (tanpa ubah DB)
+        if market_open and trade_date_str == today_str:
+            display_status = "PENDING"
+            display_ret = 0.0
+        else:
+            display_status = st
+            display_ret = real_ret
+
         result.append({
             "id": r["id"],
             "ticker": r["ticker"],
@@ -191,9 +199,9 @@ def get_track_record():
             "target_price": r["target_price"],
             "stop_loss": r["stop_loss"],
             "probability": r["probability"],
-            "status": r["status"],
-            "return_pct": real_ret,
-            "realized_return": real_ret,
+            "status": display_status,
+            "return_pct": display_ret,
+            "realized_return": display_ret,
             "created_at": r["created_at"],
             "updated_at": r["updated_at"],
             "trading_date": trade_date_str
