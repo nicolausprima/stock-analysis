@@ -147,13 +147,18 @@ def get_track_record():
         c_at = r["created_at"] or ""
         try:
             dt = datetime.strptime(c_at, "%Y-%m-%d %H:%M:%S")
-            td = dt + timedelta(days=1)
-            # Skip weekend: Sabtu -> Senin (+2), Minggu -> Senin (+1)
-            if td.weekday() == 5:   # Saturday
-                td += timedelta(days=2)
-            elif td.weekday() == 6: # Sunday
-                td += timedelta(days=1)
-            trade_date_str = td.strftime("%Y-%m-%d")
+            # Sinyal post-market (jam >= 15:00 WIB) -> trading_date = hari bursa berikutnya
+            # Sinyal intraday (jam < 15:00 WIB)    -> trading_date = hari yang sama
+            if dt.hour >= 15:
+                td = dt + timedelta(days=1)
+                # Skip weekend: Sabtu -> Senin (+2), Minggu -> Senin (+1)
+                if td.weekday() == 5:
+                    td += timedelta(days=2)
+                elif td.weekday() == 6:
+                    td += timedelta(days=1)
+                trade_date_str = td.strftime("%Y-%m-%d")
+            else:
+                trade_date_str = dt.strftime("%Y-%m-%d")
         except Exception:
             trade_date_str = (r["updated_at"] or c_at).split(" ")[0]
 
@@ -204,6 +209,19 @@ def run_audit():
         target_price = float(sig["target_price"])
         stop_loss = float(sig["stop_loss"])
         created_at_str = sig["created_at"]
+        # Tentukan sig_date_str (tanggal referensi sinyal):
+        # Sinyal post-market (jam >= 15:00) -> evaluasi mulai hari BERIKUTNYA
+        # Sinyal intraday (jam < 15:00) -> evaluasi mulai hari YANG SAMA
+        try:
+            sig_dt_obj = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
+            if sig_dt_obj.hour >= 15:
+                # Post-market: evaluasi dari hari pembuatan (tidak skip hari sendiri)
+                sig_date_str = sig_dt_obj.strftime("%Y-%m-%d")
+            else:
+                # Intraday: sama dengan hari pembuatan, tapi skip candle hari itu juga
+                sig_date_str = sig_dt_obj.strftime("%Y-%m-%d")
+        except Exception:
+            sig_date_str = created_at_str.split(" ")[0]
 
         try:
             start_date = (datetime.strptime(created_at_str.split(" ")[0], "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
