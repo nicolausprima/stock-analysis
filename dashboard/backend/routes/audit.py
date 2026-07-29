@@ -129,12 +129,23 @@ def get_track_record():
     # Hapus sinyal yang di-seed salah: created_at hari ini jam 16:05 hanya jika bursa MASIH BUKA
     now_local = datetime.now()
     today_str = now_local.strftime("%Y-%m-%d")
+    yesterday_str = (now_local - timedelta(days=1)).strftime("%Y-%m-%d")
     market_open = now_local.hour < 16  # Bursa BEI tutup sekitar 16:00 WIB
     if market_open:
+        # Hapus seed salah (hari ini jam 16:05)
         cursor.execute("""
             DELETE FROM signals 
             WHERE strftime('%Y-%m-%d', created_at) = ? AND created_at LIKE '%16:05:00'
         """, (today_str,))
+        # Reset sinyal kemarin (trading_date hari ini) yang terlanjur dievaluasi pakai data intraday hari ini
+        # Ini terjadi jika run_audit dijalankan sebelum fix di-deploy
+        cursor.execute("""
+            UPDATE signals
+            SET status = 'PENDING', realized_return = NULL, updated_at = datetime('now', 'localtime')
+            WHERE status IN ('WIN', 'LOSS')
+            AND strftime('%Y-%m-%d', created_at) = ?
+            AND strftime('%Y-%m-%d', COALESCE(updated_at, created_at)) = ?
+        """, (yesterday_str, today_str))
         conn.commit()
 
     cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
