@@ -1,11 +1,15 @@
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import pandas as pd
 import yfinance as yf
 from pathlib import Path
+
+def get_wib_now() -> datetime:
+    """Mengembalikan datetime saat ini dalam WIB (Asia/Jakarta, UTC+7) yang akurat di mana pun server di-deploy."""
+    return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7)))
 
 # Konfigurasi path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
@@ -127,7 +131,7 @@ def get_track_record():
             print(f"[AUDIT] Auto run_audit warning: {e}")
 
     # Hapus sinyal yang di-seed salah: created_at hari ini jam 16:05 hanya jika bursa MASIH BUKA
-    now_local = datetime.now()
+    now_local = get_wib_now()
     today_str = now_local.strftime("%Y-%m-%d")
     yesterday_str = (now_local - timedelta(days=1)).strftime("%Y-%m-%d")
     market_open = now_local.hour < 16  # Bursa BEI tutup sekitar 16:00 WIB
@@ -295,7 +299,7 @@ def run_audit():
         real_ret = None
         has_future_candles = False
 
-        now_audit = datetime.now()
+        now_audit = get_wib_now()
         today_date_str_audit = now_audit.strftime("%Y-%m-%d")
         market_open_audit = now_audit.hour < 16  # BEI tutup ~16:00 WIB
 
@@ -652,7 +656,7 @@ def seed_simulation_audit():
                 # Loop semua hari historis dengan time-awareness:
                 # - Bursa MASIH BUKA (sebelum 16:00 WIB): skip hari ini, data belum lengkap
                 # - Bursa SUDAH TUTUP (setelah 16:00 WIB): proses hari ini, simpan sebagai PENDING (butuh data besok)
-                now_seed = datetime.now()
+                now_seed = get_wib_now()
                 today_date_str = now_seed.strftime("%Y-%m-%d")
                 market_closed = now_seed.hour >= 16  # BEI tutup ~16:00 WIB
 
