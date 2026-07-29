@@ -126,6 +126,14 @@ def get_track_record():
         except Exception as e:
             print(f"[AUDIT] Auto run_audit warning: {e}")
 
+    # Hapus sinyal yang di-seed salah: created_at hari ini jam 16:05 (seed berjalan di hari yang masih buka)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    cursor.execute("""
+        DELETE FROM signals 
+        WHERE strftime('%Y-%m-%d', created_at) = ? AND created_at LIKE '%16:05:00'
+    """, (today_str,))
+    conn.commit()
+
     cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
     rows = cursor.fetchall()
     
@@ -612,10 +620,14 @@ def seed_simulation_audit():
                 df_stock['SMA20'] = df_stock['Close'].rolling(20).mean()
                 df_stock['Vol_SMA20'] = df_stock['Volume'].rolling(20).mean()
 
-                # Loop semua hari historis hingga hari ini
+                # Loop semua hari historis hingga KEMARIN (jangan proses hari ini - data belum tutup)
+                today_date_str = datetime.now().strftime("%Y-%m-%d")
                 for i in range(20, len(df_stock)):
                     date_dt = df_stock.index[i]
                     date_str = date_dt.strftime("%Y-%m-%d")
+                    # Skip candle hari ini (bursa masih buka, data belum lengkap)
+                    if date_str >= today_date_str:
+                        continue
                     created_str = date_dt.strftime("%Y-%m-%d 16:05:00")
                     row = df_stock.iloc[i]
 
