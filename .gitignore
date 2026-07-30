@@ -41,12 +41,21 @@ airflow-webserver.pid
 *.env
 secrets.yaml
 
-# ── OS & Editor ─────────────────────────────────────────
+# ── OS, Editor & AI Assistants ──────────────────────────
 .DS_Store
 Thumbs.db
 .idea/
 .vscode/
+.claude/
+.agents/
 *.swp
+
+# ── Internal Documentation / Agent Docs ────────────────
+AGENTS.md
+CLAUDE.md
+DESIGN.md
+PROJECT_OVERVIEW.md
+AUDIT_REVIEW.md
 
 # ── Docker ───────────────────────────────────────────────
 # (docker-compose.yml dan Dockerfile tetap di-track)
