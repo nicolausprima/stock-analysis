@@ -27,7 +27,7 @@
     /* Typography Fonts */
     --font-primary: 'Epilogue', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     --font-accent: 'Fraunces', Georgia, "Times New Roman", serif;
-    --font-ui: Arial, Helvetica, sans-serif;
+    --font-ui: 'Space Grotesk', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, sans-serif;
 
     /* Depth & Elevation (Warm-tinted shadows) */
     --shadow-ground: none;
@@ -234,7 +234,7 @@ strong {
     margin-bottom: var(--sp-5);
 }
 
-.text-gradient {
+.hero-accent {
     font-family: var(--font-accent);
     font-style: italic;
     font-weight: 600;
@@ -787,8 +787,12 @@ strong {
     margin-top: 2px;
 }
 
-.td-price, .td-target, .td-sl {
+.td-price {
     font-weight: 500;
+}
+
+.td-target, .td-sl {
+    font-weight: 600;
 }
 
 .td-target { color: var(--c-charcoal); }
@@ -1455,3 +1459,302 @@ strong {
 .detail-card:nth-child(8)  { animation-delay: 0.40s; }
 .detail-card:nth-child(9)  { animation-delay: 0.45s; }
 .detail-card:nth-child(10) { animation-delay: 0.50s; }
+
+/* ── Utility & Dashboard Refactor Classes ────────────────── */
+.hidden {
+    display: none !important;
+}
+
+/* Visible focus ring for keyboard navigation */
+:focus-visible {
+    outline: 2px solid var(--c-charcoal);
+    outline-offset: 2px;
+}
+
+/* Tabular figures for data-heavy displays */
+.hstat-n, .hisg-price, .td-price, .td-target, .td-sl,
+.rsi-val, .score-val, .dc-score, .dc-pval, .stat-val {
+    font-variant-numeric: tabular-nums;
+}
+
+/* Main view switcher tabs */
+.main-tabs-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--c-border);
+    flex-wrap: wrap;
+}
+
+.main-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 20px;
+    font-family: var(--font-primary);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    background: rgba(0, 0, 0, 0.05);
+    color: var(--c-charcoal);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.main-tab-btn svg {
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.main-tab-btn.is-active {
+    background: var(--c-charcoal);
+    color: #FFF;
+    border-color: var(--c-charcoal);
+}
+
+/* Section rows that split title (left) and action (right) */
+.hd-split {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.hd-split--tight {
+    margin-top: 16px;
+    margin-bottom: 12px;
+}
+
+/* Audit stat cards */
+.audit-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    padding: 16px;
+    border-radius: 12px;
+}
+
+.stat-lbl {
+    font-size: 12px;
+    color: var(--c-soft-gray);
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
+.stat-val {
+    font-family: var(--font-accent);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--c-charcoal);
+    margin-top: 4px;
+}
+
+.stat-val--sm { font-size: 24px; }
+.stat-val--pos { color: var(--c-green); }
+.stat-val--neg { color: var(--c-red); }
+
+.stat-sub {
+    font-size: 11px;
+    color: var(--c-soft-gray);
+    margin-top: 2px;
+}
+
+.stat-sub--pos { color: var(--c-green); }
+
+/* Panels (equity chart, summaries) */
+.panel-card {
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.panel-hd {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.panel-title {
+    font-family: var(--font-accent);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--c-charcoal);
+    margin: 0;
+}
+
+.panel-note {
+    font-size: 12px;
+    color: var(--c-soft-gray);
+}
+
+.panel-chart {
+    width: 100%;
+    height: 220px;
+}
+
+/* Secondary / ghost buttons */
+.btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    height: auto;
+    font-size: 13px;
+    background: rgba(28, 28, 28, 0.08);
+    color: var(--c-charcoal);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* View-more toggle buttons */
+.btn-toggle {
+    display: none;
+    padding: 6px 14px;
+    height: auto;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--c-charcoal);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.btn-toggle.shown {
+    display: inline-flex;
+}
+
+/* Table helpers */
+.table-empty {
+    text-align: center;
+    padding: 24px;
+    color: var(--c-soft-gray);
+    font-size: 14px;
+}
+
+.table-empty--err { color: var(--c-red); }
+
+.td-ticker-cell {
+    font-family: var(--font-accent);
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.td-pct {
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 2px;
+}
+
+.td-target .td-pct { color: var(--c-green); }
+.td-sl .td-pct { color: var(--c-red); }
+
+.td-month-cell {
+    font-family: var(--font-accent);
+    font-weight: 600;
+}
+
+.td-win  { color: var(--c-green); font-weight: 600; }
+.td-loss { color: var(--c-red); font-weight: 600; }
+
+.td-profit { font-weight: 700; }
+.td-profit.pos { color: var(--c-green); }
+.td-profit.neg { color: var(--c-red); }
+
+/* Price placeholders */
+.price-null {
+    color: #94a3b8;
+    font-style: italic;
+}
+
+/* Percent spans inside detail-card price columns */
+.dc-pct {
+    font-size: 11px;
+    font-weight: 600;
+}
+
+/* Compact signal pill */
+.sig-pill--sm {
+    font-size: 10px;
+    padding: 2px 8px;
+}
+
+/* Chart placeholder messages */
+.chart-msg { font-size: 12px; padding: 8px; }
+.chart-msg--sm { font-size: 10px; padding: 0; }
+.chart-msg--err { color: var(--c-red); }
+.chart-msg--muted { color: var(--c-soft-gray); }
+
+/* Today's audit summary card */
+.today-card {
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.today-hd {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.today-title {
+    font-family: var(--font-accent);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--c-charcoal);
+    margin: 0;
+}
+
+.today-sub {
+    font-size: 13px;
+    color: var(--c-soft-gray);
+    margin: 4px 0 0 0;
+}
+
+.today-chip {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.today-meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.today-meta .win  { color: var(--c-green); }
+.today-meta .loss { color: var(--c-red); }
+
+/* Multi-agent consensus extras */
+.ma-rr-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+}
+
+.ma-err {
+    display: block;
+    color: var(--c-red);
+    font-size: 12.5px;
+    padding: 8px;
+}
+
+/* Audit section offset */
+.audit-section {
+    margin-top: var(--sp-6);
+}

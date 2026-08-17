@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StockAI | XGBoost Day Trading Screener</title>
     <meta name="description" content="XGBoost stock screener for Indonesian market — 700+ BEI stocks analyzed daily">
-    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="js/lightweight-charts.js"></script>
-    <link rel="stylesheet" href="css/style.css?v=20">
+    <link rel="stylesheet" href="css/style.css?v=21">
     <style>
     body {
         opacity: 0;
@@ -58,7 +58,7 @@
                 Live Market Analysis
             </div>
             <h1 class="hero-title" id="hero-heading">
-                Discover Top Stocks<br>with<br><span class="text-gradient">Machine Learning</span>
+                Discover Top Stocks<br>with<br><span class="hero-accent">Machine Learning</span>
             </h1>
             <p class="hero-desc">
                 XGBoost model analyzes <strong>700+ IDX stocks</strong> daily
@@ -98,8 +98,6 @@
         </div>
 
     </div>
-    <div class="hero-blob blob-a" aria-hidden="true"></div>
-    <div class="hero-blob blob-b" aria-hidden="true"></div>
 </section>
 
 <!-- MAIN -->
@@ -156,12 +154,12 @@
     </div>
 
     <!-- Main View Switcher Tabs -->
-    <div class="main-tabs-bar" style="display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 12px; flex-wrap: wrap;">
-        <button id="tab-btn-recom" class="btn-scan" style="padding: 10px 20px; font-size: 14px; background: var(--c-charcoal); color: #FFF; border-radius: 10px; border: none; cursor: pointer; transition: all 0.2s;" onclick="switchMainTab('recom')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:6px;"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>Tomorrow's Buy Signal Recommendations
+    <div class="main-tabs-bar">
+        <button id="tab-btn-recom" class="main-tab-btn is-active" onclick="switchMainTab('recom')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>Tomorrow's Buy Signal Recommendations
         </button>
-        <button id="tab-btn-audit" class="btn-scan" style="padding: 10px 20px; font-size: 14px; background: rgba(0,0,0,0.05); color: var(--c-charcoal); border-radius: 10px; border: 1px solid rgba(0,0,0,0.1); cursor: pointer; transition: all 0.2s;" onclick="switchMainTab('audit')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:6px;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>6-Month Performance &amp; Track Record
+        <button id="tab-btn-audit" class="main-tab-btn" onclick="switchMainTab('audit')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>6-Month Performance &amp; Track Record
         </button>
     </div>
 
@@ -214,58 +212,58 @@
     </div>
 
     <!-- Permanent Track Record Audit & Monthly Recap Section -->
-    <section class="audit-section" id="audit-section" style="margin-top: var(--sp-6);">
+    <section class="audit-section" id="audit-section">
 
-        <div class="cards-hd" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 16px;">
+        <div class="cards-hd hd-split">
             <div>
                 <h3>Performance &amp; Cumulative Track Record Audit</h3>
                 <p>Daily statistics, Equity Curve growth chart, and monthly recap</p>
             </div>
-            <button id="seed-sim-btn" class="btn-scan" style="padding: 8px 16px; font-size: 13px; background: rgba(28, 28, 28, 0.08); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12);" onclick="runAuditSimulationSeed()">
+            <button id="seed-sim-btn" class="btn-scan btn-ghost" onclick="runAuditSimulationSeed()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
                 Run 6-Month Performance Simulation
             </button>
         </div>
 
         <!-- Audit Summary Cards -->
-        <div class="audit-stats-grid" id="audit-stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
-            <div class="glass-card" style="padding: 16px; border-radius: 12px;">
-                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Overall Win Rate</div>
-                <div id="stat-win-rate" style="font-family: var(--font-accent); font-size: 28px; font-weight: 700; color: var(--c-charcoal); margin-top: 4px;">—</div>
-                <div style="font-size: 11px; color: var(--c-green); margin-top: 2px;">Target Profit +3.0% / SL -1.5%</div>
+        <div class="audit-stats-grid" id="audit-stats-grid">
+            <div class="glass-card stat-card">
+                <div class="stat-lbl">Overall Win Rate</div>
+                <div id="stat-win-rate" class="stat-val">—</div>
+                <div class="stat-sub stat-sub--pos">Target Profit +3.0% / SL -1.5%</div>
             </div>
-            <div class="glass-card" style="padding: 16px; border-radius: 12px;">
-                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Total WIN / LOSS</div>
-                <div id="stat-win-loss" style="font-family: var(--font-accent); font-size: 24px; font-weight: 700; color: var(--c-charcoal); margin-top: 4px;">—</div>
-                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Audit-Confirmed Signals</div>
+            <div class="glass-card stat-card">
+                <div class="stat-lbl">Total WIN / LOSS</div>
+                <div id="stat-win-loss" class="stat-val stat-val--sm">—</div>
+                <div class="stat-sub">Audit-Confirmed Signals</div>
             </div>
-            <div class="glass-card" style="padding: 16px; border-radius: 12px;">
-                <div style="font-size: 12px; color: var(--c-soft-gray); text-transform: uppercase; font-weight: 600;">Cumulative Profit (%)</div>
-                <div id="stat-total-profit" style="font-family: var(--font-accent); font-size: 28px; font-weight: 700; color: var(--c-green); margin-top: 4px;">—</div>
-                <div style="font-size: 11px; color: var(--c-soft-gray); margin-top: 2px;">Without Compound Multiplier</div>
+            <div class="glass-card stat-card">
+                <div class="stat-lbl">Cumulative Profit (%)</div>
+                <div id="stat-total-profit" class="stat-val stat-val--pos">—</div>
+                <div class="stat-sub">Without Compound Multiplier</div>
             </div>
         </div>
 
         <!-- Equity Curve Chart -->
-        <div class="table-card glass-card" style="padding: 20px; margin-bottom: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                <h4 style="font-family: var(--font-accent); font-size: 16px; font-weight: 600; color: var(--c-charcoal); margin:0;">Equity Curve Growth Chart (Cumulative %)</h4>
-                <span style="font-size: 12px; color: var(--c-soft-gray);">Historical Signal Activity</span>
+        <div class="panel-card glass-card">
+            <div class="panel-hd">
+                <h4 class="panel-title">Equity Curve Growth Chart (Cumulative %)</h4>
+                <span class="panel-note">Historical Signal Activity</span>
             </div>
-            <div id="audit-equity-chart" style="width: 100%; height: 220px;"></div>
+            <div id="audit-equity-chart" class="panel-chart"></div>
         </div>
 
         <!-- Monthly Recap Table -->
-        <div class="cards-hd" style="margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div class="cards-hd hd-split hd-split--tight">
             <div>
                 <h3>Monthly Performance Recap</h3>
                 <p>Breakdown of signal accuracy and monthly returns</p>
             </div>
-            <button id="toggle-monthly-btn" class="btn-scan" style="padding: 6px 14px; font-size: 12px; background: rgba(0,0,0,0.04); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12); display: none;" onclick="toggleMonthlyRecap()">
+            <button id="toggle-monthly-btn" class="btn-scan btn-toggle" onclick="toggleMonthlyRecap()">
                 View More ↓
             </button>
         </div>
-        <div class="table-card glass-card" style="margin-bottom: 24px;">
+        <div class="table-card glass-card">
             <div class="table-scroll" role="region" aria-label="Monthly recap table" tabindex="0">
                 <table class="stock-table" id="monthly-recap-table">
                     <thead>
@@ -280,7 +278,7 @@
                     </thead>
                     <tbody id="monthly-recap-body">
                         <tr>
-                            <td colspan="6" style="text-align: center; padding: 20px; color: var(--c-soft-gray);">
+                            <td colspan="6" class="table-empty">
                                 Loading monthly recap...
                             </td>
                         </tr>
@@ -290,16 +288,16 @@
         </div>
 
         <!-- Daily Signal Audit Table -->
-        <div class="cards-hd" style="margin-top: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div class="cards-hd hd-split hd-split--tight">
             <div>
                 <h3>Daily Signal Audit Log</h3>
                 <p>Individual history of registered signals audited by the system</p>
             </div>
-            <button id="toggle-audit-btn" class="btn-scan" style="padding: 6px 14px; font-size: 12px; background: rgba(0,0,0,0.04); color: var(--c-charcoal); border: 1px solid rgba(0,0,0,0.12); display: none;" onclick="toggleAuditLog()">
+            <button id="toggle-audit-btn" class="btn-scan btn-toggle" onclick="toggleAuditLog()">
                 View More ↓
             </button>
         </div>
-        <div class="table-card glass-card" style="margin-bottom: var(--sp-8);">
+        <div class="table-card glass-card">
             <div class="table-scroll" role="region" aria-label="Signal track record table" tabindex="0">
                 <table class="stock-table" id="audit-table">
                     <thead>
@@ -315,7 +313,7 @@
                     </thead>
                     <tbody id="audit-table-body">
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-soft-gray);">
+                            <td colspan="7" class="table-empty">
                                 Loading track record data...
                             </td>
                         </tr>
@@ -348,7 +346,7 @@
     <p class="footer-note">For Educational Purpose</p>
 </footer>
 
-<script src="js/app.js?v=9999999"></script>
+<script src="js/app.js?v=21"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     requestAnimationFrame(function() {

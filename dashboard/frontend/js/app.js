@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }).format(v);
     const fmtPrice = v => (v && v > 0)
         ? idr(v)
-        : '<span style="color:#94a3b8;font-style:italic">—</span>';
+        : '<span class="price-null">—</span>';
 
     const rsiColor = r => r < 40 ? 'green' : r > 65 ? 'red' : 'amber';
     const rsiW     = r => Math.min(Math.max(r, 0), 100);
@@ -96,14 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="t-code">${s.ticker}</div>
                 </td>
                 <td class="td-price">${fmtPrice(s.close_price)}</td>
-                <td class="td-target">
-                    <span style="font-weight:600; color:var(--c-green);">${fmtPrice(s.target_price)}</span>
-                    <span style="font-size:11px; font-weight:600; color:var(--c-green); margin-left:2px;">(+${tpPct}%)</span>
-                </td>
-                <td class="td-sl">
-                    <span style="font-weight:600; color:var(--c-red);">${fmtPrice(s.stop_loss)}</span>
-                    <span style="font-size:11px; font-weight:600; color:var(--c-red); margin-left:2px;">(${slPct}%)</span>
-                </td>
+                <td class="td-target">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
+                <td class="td-sl">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
                 <td>
                     <div class="rsi-cell">
                         <span class="rsi-val">${s.rsi}</span>
@@ -175,11 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                     <div class="dc-price-col">
                         <div class="dc-plbl">Target Profit</div>
-                        <div class="dc-pval green">${s.target_price > 0 ? idr(s.target_price) : '—'} <span style="font-size:11px; font-weight:600;">(+${tpPct}%)</span></div>
+                        <div class="dc-pval green">${s.target_price > 0 ? idr(s.target_price) : '—'} <span class="dc-pct">(+${tpPct}%)</span></div>
                     </div>
                     <div class="dc-price-col">
                         <div class="dc-plbl">Stop Loss</div>
-                        <div class="dc-pval red">${s.stop_loss > 0 ? idr(s.stop_loss) : '—'} <span style="font-size:11px; font-weight:600;">(${slPct}%)</span></div>
+                        <div class="dc-pval red">${s.stop_loss > 0 ? idr(s.stop_loss) : '—'} <span class="dc-pct">(${slPct}%)</span></div>
                     </div>
                 </div>
 
@@ -190,7 +184,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="badge ${trendClass}">${s.trend}</span>
                     <span class="badge ${rsiClass}">RSI ${s.rsi}</span>
                     <span class="badge ${sentBadgeClass}">${sentImpact}</span>
-                    <span class="sig-pill ${isBuy ? 'buy' : 'watch'}" style="font-size:10px;padding:2px 8px">
+                    <span class="sig-pill sig-pill--sm ${isBuy ? 'buy' : 'watch'}">
                         <span class="sig-dot ${isBuy ? 'green' : 'blue'}"></span>
                         ${isBuy ? 'BUY' : 'WATCH'}
                     </span>
@@ -200,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </button>
                 </div>
 
-                <div id="ma-box-${s.ticker.replace('.JK', '')}" style="display:none;" class="multi-agent-card"></div>
+                <div id="ma-box-${s.ticker.replace('.JK', '')}" class="multi-agent-card hidden"></div>
 
                 <div class="dc-reason">
                     <span class="dc-reason-lbl">Quantitative Analysis (Technicals &amp; News)</span>
@@ -296,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (ihsgChartDiv.clientWidth > 0) chart.resize(ihsgChartDiv.clientWidth, 200);
             });
         } catch (e) {
-            ihsgChartDiv.innerHTML = '<p style="color:var(--c-red);font-size:12px;padding:8px">Chart error: ' + (e.message || e) + '</p>';
+            ihsgChartDiv.innerHTML = '<p class="chart-msg chart-msg--err">Chart error: ' + (e.message || e) + '</p>';
             ihsgPriceVal.textContent = 'Error';
             console.error('IHSG Chart Error:', e);
         }
@@ -316,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const { data } = await fetchChartData(cleanTicker, 60);
             if (!data || data.length === 0) {
-                container.innerHTML = '<span style="font-size:10px;color:var(--c-muted)">No chart data</span>';
+                container.innerHTML = '<span class="chart-msg chart-msg--sm chart-msg--muted">No chart data</span>';
                 continue;
             }
 
@@ -362,7 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 areaSeries.setData(data);
                 chart.timeScale().fitContent();
             } catch (e) {
-                container.innerHTML = '<span style="font-size:10px;color:var(--c-red)">Chart Error</span>';
+                container.innerHTML = '<span class="chart-msg chart-msg--sm chart-msg--err">Chart Error</span>';
                 console.error(e);
             }
         }
@@ -415,8 +409,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let loaded = false;
 
         btn.addEventListener('click', async () => {
-            if (box.style.display === 'none') {
-                box.style.display = 'block';
+            if (box.classList.contains('hidden')) {
+                box.classList.remove('hidden');
                 if (!loaded) {
                     box.innerHTML = '<div class="ai-loading">Processing 4-Agent Analysis (Technical, Sentiment, Bull/Bear Debate, Risk Manager)...</div>';
                     try {
@@ -457,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                                 <div class="ma-subcard risk">
                                     <div class="ma-card-label label-risk">Risk Manager Verdict</div>
-                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+                                    <div class="ma-rr-row">
                                         <span>Target Risk/Reward Ratio:</span>
                                         <span class="risk-pill pill-rr">${d.risk_reward_ratio}x R:R</span>
                                     </div>
@@ -466,15 +460,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             loaded = true;
                         } else {
-                            box.innerHTML = `<span style="color:var(--c-red);font-size:12.5px;padding:8px">Failed to load agent consensus: ${json.detail || 'Error'}</span>`;
+                            box.innerHTML = `<span class="ma-err">Failed to load agent consensus: ${json.detail || 'Error'}</span>`;
                         }
                     } catch (err) {
-                        box.innerHTML = `<span style="color:var(--c-red);font-size:12.5px;padding:8px">Error: ${err.message}</span>`;
+                        box.innerHTML = `<span class="ma-err">Error: ${err.message}</span>`;
                     }
 
                 }
             } else {
-                box.style.display = 'none';
+                box.classList.add('hidden');
             }
         });
     }
@@ -520,10 +514,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         signalsHtml += `
                             <tr>
                                 <td>${idx + 1}</td>
-                                <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
+                                <td class="td-ticker-cell">${s.ticker}</td>
                                 <td>${fmtPrice(s.entry_price)}</td>
-                                <td style="color: var(--c-green); font-weight:600;">${fmtPrice(s.target_price)} <span style="font-size:11px; font-weight:600; color:var(--c-green);">(+${tpPct}%)</span></td>
-                                <td style="color: var(--c-red); font-weight:600;">${fmtPrice(s.stop_loss)} <span style="font-size:11px; font-weight:600; color:var(--c-red);">(${slPct}%)</span></td>
+                                <td class="td-win">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
+                                <td class="td-loss">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
                                 <td>${s.probability.toFixed(1)}%</td>
                                 <td>${badge}</td>
                             </tr>
@@ -533,23 +527,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     const gainSign = data.total_gain >= 0 ? '+' : '';
 
                     container.innerHTML = `
-                        <div class="glass-card" style="padding: 20px; border-radius: 12px; margin-bottom: 16px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <div class="glass-card today-card">
+                            <div class="today-hd">
                                 <div>
-                                    <h4 style="font-family: var(--font-accent); font-size: 18px; font-weight: 700; color: var(--c-charcoal); margin:0;">
-                                        🔥 Today's Trading Audit Results (${data.date})
+                                    <h4 class="today-title">
+                                        Today's Trading Audit Results (${data.date})
                                     </h4>
-                                    <p style="font-size: 13px; color: var(--c-soft-gray); margin: 4px 0 0 0;">
+                                    <p class="today-sub">
                                         Evaluation of trading signals executed on this market day
                                     </p>
                                 </div>
-                                <span class="chip ${data.total_gain >= 0 ? 'green' : 'red'}" style="font-size: 14px; font-weight: 700;">
+                                <span class="chip ${data.total_gain >= 0 ? 'green' : 'red'} today-chip">
                                     Daily Gain: ${gainSign}${data.total_gain.toFixed(1)}%
                                 </span>
                             </div>
 
-                            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; font-size: 13px; font-weight: 500;">
-                                <span>Signal Outcome: <strong style="color: var(--c-green);">${data.win_count} WIN</strong> / <strong style="color: var(--c-red);">${data.loss_count} LOSS</strong> ${data.pending_count > 0 ? `/ <strong>${data.pending_count} PENDING</strong>` : ''}</span>
+                            <div class="today-meta">
+                                <span>Signal Outcome: <strong class="win">${data.win_count} WIN</strong> / <strong class="loss">${data.loss_count} LOSS</strong> ${data.pending_count > 0 ? `/ <strong>${data.pending_count} PENDING</strong>` : ''}</span>
                                 <span>Today's Win Rate: <strong>${data.win_rate.toFixed(1)}%</strong></span>
                             </div>
 
@@ -585,29 +579,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const btnRecom = document.getElementById('tab-btn-recom');
             const btnAudit = document.getElementById('tab-btn-audit');
 
+            const setActive = (activeBtn, inactiveBtn) => {
+                activeBtn.classList.add('is-active');
+                inactiveBtn.classList.remove('is-active');
+            };
+
             if (tabName === 'recom') {
                 if (resultsDiv) resultsDiv.classList.remove('hidden');
                 if (auditSec) auditSec.style.display = 'block';
-                if (btnRecom) {
-                    btnRecom.style.background = 'var(--c-charcoal)';
-                    btnRecom.style.color = '#FFF';
-                }
-                if (btnAudit) {
-                    btnAudit.style.background = 'rgba(0,0,0,0.05)';
-                    btnAudit.style.color = 'var(--c-charcoal)';
-                }
+                if (btnRecom && btnAudit) setActive(btnRecom, btnAudit);
                 if (resultsDiv) resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else if (tabName === 'audit') {
                 if (resultsDiv) resultsDiv.classList.remove('hidden');
                 if (auditSec) auditSec.style.display = 'block';
-                if (btnAudit) {
-                    btnAudit.style.background = 'var(--c-charcoal)';
-                    btnAudit.style.color = '#FFF';
-                }
-                if (btnRecom) {
-                    btnRecom.style.background = 'rgba(0,0,0,0.05)';
-                    btnRecom.style.color = 'var(--c-charcoal)';
-                }
+                if (btnRecom && btnAudit) setActive(btnAudit, btnRecom);
                 if (auditSec) auditSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         };
@@ -631,7 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     allAuditData = [];
                     body.innerHTML = `
                         <tr>
-                            <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-soft-gray); font-size: 14px;">
+                            <td colspan="7" class="table-empty">
                                 No signal history in database. Click <strong>Run 6-Month Performance Simulation</strong> to test.
                             </td>
                         </tr>
@@ -640,7 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (err) {
                 body.innerHTML = `
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 24px; color: var(--c-red); font-size: 14px;">
+                        <td colspan="7" class="table-empty table-empty--err">
                             Failed to load track record: ${err.message}
                         </td>
                     </tr>
@@ -654,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!body) return;
 
             if (allAuditData.length === 0) {
-                if (toggleBtn) toggleBtn.style.display = 'none';
+                if (toggleBtn) toggleBtn.classList.remove('shown');
                 return;
             }
 
@@ -678,10 +663,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 row.innerHTML = `
                     <td>${s.trading_date || (s.updated_at || s.created_at).split(' ')[0]}</td>
-                    <td style="font-family: var(--font-accent); font-weight:600; font-size: 16px;">${s.ticker}</td>
+                    <td class="td-ticker-cell">${s.ticker}</td>
                     <td>${fmtPrice(s.entry_price)}</td>
-                    <td style="color: var(--c-green); font-weight:600;">${fmtPrice(s.target_price)} <span style="font-size:11px; font-weight:600; color:var(--c-green);">(+${tpPct}%)</span></td>
-                    <td style="color: var(--c-red); font-weight:600;">${fmtPrice(s.stop_loss)} <span style="font-size:11px; font-weight:600; color:var(--c-red);">(${slPct}%)</span></td>
+                    <td class="td-win">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
+                    <td class="td-loss">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
                     <td>${s.probability.toFixed(1)}%</td>
                     <td>${badge}</td>
                 `;
@@ -690,12 +675,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (toggleBtn) {
                 if (allAuditData.length > 5) {
-                    toggleBtn.style.display = 'inline-block';
+                    toggleBtn.classList.add('shown');
                     toggleBtn.textContent = isAuditExpanded 
                         ? 'Hide ↑' 
                         : `View More (${allAuditData.length - 5} More Signals) ↓`;
                 } else {
-                    toggleBtn.style.display = 'none';
+                    toggleBtn.classList.remove('shown');
                 }
             }
         }
@@ -718,7 +703,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     winRateEl.textContent = s.win_rate > 0 ? `${s.win_rate.toFixed(1)}%` : '0.0%';
                     winLossEl.textContent = `${s.win_count} WIN / ${s.loss_count} LOSS`;
                     profitEl.textContent = `${s.total_profit_pct >= 0 ? '+' : ''}${s.total_profit_pct.toFixed(1)}%`;
-                    profitEl.style.color = s.total_profit_pct >= 0 ? 'var(--c-green)' : 'var(--c-red)';
+                    profitEl.classList.toggle('stat-val--neg', s.total_profit_pct < 0);
 
                     // Save monthly data & render table
                     allMonthlyData = data.monthly_breakdown || [];
@@ -775,12 +760,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (allMonthlyData.length === 0) {
                 monthlyBody.innerHTML = `
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 20px; color: var(--c-soft-gray);">
+                        <td colspan="6" class="table-empty">
                             No monthly recap data available yet.
                         </td>
                     </tr>
                 `;
-                if (toggleBtn) toggleBtn.style.display = 'none';
+                if (toggleBtn) toggleBtn.classList.remove('shown');
                 return;
             }
 
@@ -791,24 +776,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 const row = document.createElement('tr');
                 const isPos = m.monthly_profit_pct >= 0;
                 row.innerHTML = `
-                    <td style="font-family: var(--font-accent); font-weight:600;">${m.month_name}</td>
+                    <td class="td-month-cell">${m.month_name}</td>
                     <td>${m.total_signals} Signals</td>
-                    <td style="color: var(--c-green); font-weight:600;">${m.win_count} WIN</td>
-                    <td style="color: var(--c-red); font-weight:600;">${m.loss_count} LOSS</td>
+                    <td class="td-win">${m.win_count} WIN</td>
+                    <td class="td-loss">${m.loss_count} LOSS</td>
                     <td><span class="badge ${m.win_rate >= 60 ? 'uptrend' : 'bearish'}">${m.win_rate.toFixed(1)}%</span></td>
-                    <td style="font-weight:700; color: ${isPos ? 'var(--c-green)' : 'var(--c-red)'}">${isPos ? '+' : ''}${m.monthly_profit_pct.toFixed(1)}%</td>
+                    <td class="td-profit ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : ''}${m.monthly_profit_pct.toFixed(1)}%</td>
                 `;
                 monthlyBody.appendChild(row);
             });
 
             if (toggleBtn) {
                 if (allMonthlyData.length > 3) {
-                    toggleBtn.style.display = 'inline-block';
+                    toggleBtn.classList.add('shown');
                     toggleBtn.textContent = isMonthlyExpanded 
                         ? 'Hide ↑' 
                         : `View More (${allMonthlyData.length - 3} More Months) ↓`;
                 } else {
-                    toggleBtn.style.display = 'none';
+                    toggleBtn.classList.remove('shown');
                 }
             }
         }
