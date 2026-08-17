@@ -90,9 +90,10 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
                 narrative = parse_and_clean_response(response.text)
                 return {"status": "success", "narasi": narrative}
                 
+        rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
         ticker_clean = req.ticker.replace(".JK", "")
         fallback_narrative = (
-            f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({req.rsi_signal}) "
+            f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
             f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
             f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+3.0%) dan Stop Loss pada Rp {req.stop_loss:,.0f} (-1.5%)."
         )
@@ -112,9 +113,10 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
 
         # Graceful fallback: Jika LLM proxy tidak dapat dijangkau (misal pada cloud deployment Render),
         # kembalikan narasi analisis kuantitatif terstruktur yang bersih tanpa error.
+        rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
         ticker_clean = req.ticker.replace(".JK", "")
         fallback_narrative = (
-            f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({req.rsi_signal}) "
+            f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
             f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
             f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+3.0%) dan Stop Loss pada Rp {req.stop_loss:,.0f} (-1.5%)."
         )

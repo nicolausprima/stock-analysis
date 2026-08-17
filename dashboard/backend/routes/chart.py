@@ -10,6 +10,7 @@ router = APIRouter()
 _chart_cache = {}
 CACHE_TTL_INTRADAY = 60    # 1 menit
 CACHE_TTL_DAILY = 300      # 5 menit
+CACHE_MAX_ENTRIES = 500    # Batasi ukuran cache agar memori tidak bocor
 
 @router.get("/chart/{ticker}")
 def get_chart_data(ticker: str, days: int = 60):
@@ -28,6 +29,9 @@ def get_chart_data(ticker: str, days: int = 60):
         cached_time, cached_result = _chart_cache[cache_key]
         if now - cached_time < ttl:
             return cached_result
+        else:
+            # Entri kedaluwarsa: hapus agar tidak menumpuk
+            del _chart_cache[cache_key]
 
     try:
         if clean_ticker == "IHSG":
@@ -62,6 +66,12 @@ def get_chart_data(ticker: str, days: int = 60):
                 chart_data.append({"time": dt.strftime('%Y-%m-%d'), "value": round(float(price), 2)})
 
         result = {"status": "success", "data": chart_data, "intraday": days == 1}
+
+        # Eviction: buang entri termua jika cache penuh
+        if len(_chart_cache) >= CACHE_MAX_ENTRIES:
+            oldest_key = min(_chart_cache, key=lambda k: _chart_cache[k][0])
+            _chart_cache.pop(oldest_key, None)
+
         _chart_cache[cache_key] = (now, result)
         return result
 

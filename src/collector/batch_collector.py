@@ -46,6 +46,8 @@ def download_universe_in_batches(tickers_list=None, batch_size=BATCH_SIZE, delay
             else:
                 for t in chunk:
                     try:
+                        if not isinstance(df_batch.columns, pd.MultiIndex):
+                            break
                         if t in df_batch.columns.levels[0]:
                             df_single = df_batch[t].dropna(how="all").copy()
                             if not df_single.empty and df_single['Close'].notna().any():

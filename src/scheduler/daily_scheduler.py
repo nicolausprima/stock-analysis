@@ -1,6 +1,7 @@
 import json
 import os
 import time
+from datetime import datetime, timedelta, timezone
 import pandas as pd
 import numpy as np
 import yfinance as yf
@@ -8,6 +9,10 @@ import joblib
 from pathlib import Path
 import sys
 import threading
+
+def _get_wib_now():
+    """Mengembalikan datetime saat ini dalam WIB (UTC+7) yang akurat di mana pun server di-deploy."""
+    return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7)))
 
 
 # Absolute import resolution
@@ -307,8 +312,9 @@ def start_background_scheduler():
     def loop():
         last_run = {}
         while True:
-            today_str = time.strftime("%Y-%m-%d")
-            now_time = time.strftime("%H:%M")
+            wib_now = _get_wib_now()
+            today_str = wib_now.strftime("%Y-%m-%d")
+            now_time = wib_now.strftime("%H:%M")
 
             schedules = [
                 ("08:30", "08:45", run_morning_premarket_job),

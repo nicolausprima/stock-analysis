@@ -34,5 +34,10 @@ def get_tickers():
         tickers = [line.strip() for line in f if line.strip()]
     return tickers
 
+def reload_tickers():
+    """Invalidate cache dan baca ulang tickers.txt (dipanggil setelah file di-update)."""
+    get_tickers.cache_clear()
+    return get_tickers()
+
 TICKERS = get_tickers()
 

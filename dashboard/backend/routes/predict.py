@@ -1,8 +1,10 @@
 from fastapi import APIRouter, HTTPException
 import json
 import os
+import asyncio
 from pathlib import Path
 import sys
+from concurrent.futures import ThreadPoolExecutor
 
 
 # Konfigurasi path untuk absolute import
@@ -13,9 +15,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.config import CACHE_FILE
 
 router = APIRouter()
+_executor = ThreadPoolExecutor(max_workers=2)
 
 @router.get("/recommendations")
-def get_recommendations(force: bool = False):
+async def get_recommendations(force: bool = False):
     """
     Mengembalikan rekomendasi Top 10.
     - Default (force=false): baca dari cache JSON untuk load instan.
@@ -23,7 +26,7 @@ def get_recommendations(force: bool = False):
     """
     # Mode fresh scan: bypass cache
     if force:
-        return _run_fresh_scan()
+        return await asyncio.get_event_loop().run_in_executor(_executor, _run_fresh_scan)
 
     # Mode instan: baca cache jika ada dan valid
     cache = _read_cache()
@@ -31,7 +34,7 @@ def get_recommendations(force: bool = False):
         return cache
 
     # Cache tidak tersedia: coba scan langsung
-    return _run_fresh_scan()
+    return await asyncio.get_event_loop().run_in_executor(_executor, _run_fresh_scan)
 
 
 def _read_cache():
@@ -233,11 +236,11 @@ def _fallback_response():
 
 
 @router.get("/sync")
-def sync_market_data():
+async def sync_market_data():
     """Endpoint manual untuk memaksa sinkronisasi batch data 700+ saham & kalkulasi rekomendasi baru."""
     try:
         from src.scheduler.daily_scheduler import run_daily_after_market_job
-        res = run_daily_after_market_job()
+        res = await asyncio.get_event_loop().run_in_executor(_executor, run_daily_after_market_job)
         return {"status": "success", "message": "Sinkronisasi data 700+ saham selesai.", "data": res}
 
     except Exception as err:

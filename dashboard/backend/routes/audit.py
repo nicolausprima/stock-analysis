@@ -23,19 +23,24 @@ router = APIRouter()
 def _ensure_valid_db(db_file: Path):
     """Pastikan file SQLite valid. Jika pointer LFS / corrupt, hapus agar re-created."""
     if db_file.exists():
+        invalid = False
         try:
             with open(db_file, 'rb') as f:
                 header = f.read(16)
                 if header and not header.startswith(b'SQLite format 3'):
-                    f.close()
-                    db_file.unlink()
+                    invalid = True
         except Exception:
             pass
+        if invalid:
+            try:
+                db_file.unlink()
+            except Exception:
+                pass
 
 def init_db():
     """Menginisialisasi database SQLite dan membuat tabel signals jika belum ada."""
     _ensure_valid_db(DB_PATH)
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS signals (
@@ -70,11 +75,11 @@ class SignalInsert(BaseModel):
 def save_signals_to_db(signals: list[dict]):
     """Menyimpan list sinyal baru ke database. Menghindari duplikasi ticker pada hari kalender yang sama."""
     init_db()
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
     
-    # Dapatkan tanggal hari ini (YYYY-MM-DD) di local time
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    # Dapatkan tanggal hari ini (YYYY-MM-DD) di WIB (UTC+7)
+    today_str = get_wib_now().strftime("%Y-%m-%d")
     
     for s in signals:
         ticker = s["ticker"]
@@ -103,7 +108,7 @@ def get_track_record():
     """Mengambil riwayat semua sinyal yang tersimpan dari database. Auto-seed jika DB kosong atau data tertinggal."""
     init_db()
     
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
     
@@ -121,7 +126,7 @@ def get_track_record():
             run_audit()
         except Exception as e:
             print(f"[AUDIT] Auto-seed warning: {e}")
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
     else:
@@ -225,7 +230,7 @@ def run_audit():
     import contextlib
 
     init_db()
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -267,7 +272,7 @@ def run_audit():
         # 1. Coba ambil data dari database lokal stock_market.db terlebih dahulu
         if market_db_path.exists():
             try:
-                m_conn = sqlite3.connect(str(market_db_path))
+                m_conn = sqlite3.connect(str(market_db_path), check_same_thread=False)
                 query = """
                     SELECT date, high as High, low as Low, close as Close 
                     FROM daily_prices 
@@ -369,7 +374,8 @@ def get_audit_recap():
     - Breakdown performa per bulan
     - Data kurva ekuitas kumulatif (Equity Curve Chart)
     """
-    conn = sqlite3.connect(str(DB_PATH))
+    init_db()
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
@@ -393,8 +399,10 @@ def get_audit_recap():
             if st == "LOSS":
                 ret = -1.5
             elif ret is None:
-                if st == "WIN" and entry_p > 0 and target_p > 0:
-                    ret = round(((target_p - entry_p) / entry_p) * 100, 1)
+                r_entry = r["entry_price"]
+                r_target = r["target_price"]
+                if st == "WIN" and r_entry and r_target and r_entry > 0:
+                    ret = round(((r_target - r_entry) / r_entry) * 100, 1)
                 else:
                     ret = 0.0
             total_profit_pct += ret
@@ -499,12 +507,13 @@ def get_audit_recap():
 @router.get("/audit/today")
 def get_today_audit_summary():
     """Mengambil rincian sinyal audit khusus hari ini (WIN/LOSS/PENDING per saham)."""
-    conn = sqlite3.connect(str(DB_PATH))
+    init_db()
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
     # Cari tanggal batch sinyal yang diperdagangkan/diaudit hari ini
-    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_str = get_wib_now().strftime("%Y-%m-%d")
     cursor.execute("""
         SELECT DISTINCT strftime('%Y-%m-%d', created_at) as dt 
         FROM signals 
@@ -605,11 +614,12 @@ def seed_simulation_audit():
     4. Multi-Factor ML Technical Alignment
     Menghasilkan Win Rate 70%+ dengan performa positif berkelanjutan.
     """
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
 
     # DO NOT DELETE REAL AUDIT SIGNALS!
     # Instead, only insert missing backtest signals without deleting existing live records.
+    init_db()
 
     tickers_to_backtest = [
         "BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "TLKM.JK",

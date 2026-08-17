@@ -13,19 +13,24 @@ from src.config import DB_PATH
 def _ensure_valid_db(db_file: Path):
     """Pastikan file SQLite valid. Jika pointer LFS / corrupt, hapus agar re-created."""
     if db_file.exists():
+        invalid = False
         try:
             with open(db_file, 'rb') as f:
                 header = f.read(16)
                 if header and not header.startswith(b'SQLite format 3'):
-                    f.close()
-                    db_file.unlink()
+                    invalid = True
         except Exception:
             pass
+        if invalid:
+            try:
+                db_file.unlink()
+            except Exception:
+                pass
 
 def init_market_db():
     """Menginisialisasi tabel SQLite untuk menyimpan data pasar harian 700+ saham."""
     _ensure_valid_db(DB_PATH)
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS daily_prices (
@@ -48,7 +53,7 @@ def save_daily_prices(combined_df: pd.DataFrame):
         return
     
     init_market_db()
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     cursor = conn.cursor()
     
     df_reset = combined_df.reset_index()
@@ -85,7 +90,7 @@ def get_ticker_history_from_db(ticker: str, limit_days: int = 100) -> pd.DataFra
     _ensure_valid_db(DB_PATH)
     init_market_db()
     try:
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
         query = """
             SELECT date, open as Open, high as High, low as Low, close as Close, volume as Volume
             FROM daily_prices
@@ -109,7 +114,7 @@ def get_all_histories_from_db(limit_days: int = 100) -> dict:
     _ensure_valid_db(DB_PATH)
     init_market_db()
     try:
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
         query = """
             SELECT ticker as Ticker, date, open as Open, high as High, low as Low, close as Close, volume as Volume
             FROM daily_prices
