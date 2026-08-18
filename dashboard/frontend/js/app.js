@@ -179,7 +179,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 <div id="chart-${s.ticker.replace('.JK', '')}" class="mini-chart-container"></div>
 
+                <div class="dc-quant-metrics">
+                    ${s.sector ? `<span class="qm-tag"><span class="qm-lbl">Sektor:</span> <strong>${s.sector}</strong>${s.is_leading_sector ? ' ⚡' : ''}</span>` : ''}
+                    <span class="qm-tag"><span class="qm-lbl">Risk/Reward:</span> <strong>1:${s.risk_reward_ratio || '2.0'}</strong></span>
+                    <span class="qm-tag"><span class="qm-lbl">Saran Modal:</span> <strong style="color:var(--c-green);">${s.kelly_allocation || '10'}%</strong></span>
+                </div>
+
                 <div class="dc-badges">
+                    ${s.is_leading_sector ? '<span class="badge booster">⚡ Leading Sector</span>' : ''}
+                    ${s.rvol ? `<span class="badge ${s.rvol >= 1.2 ? 'booster' : 'neutral-sent'}">RVOL ${s.rvol}x</span>` : ''}
+                    ${s.adx ? `<span class="badge ${s.adx >= 25 ? 'bullish' : 'neutral-sent'}">ADX ${s.adx}</span>` : ''}
                     <span class="badge ${macdClass}">MACD ${s.macd_signal}</span>
                     <span class="badge ${trendClass}">${s.trend}</span>
                     <span class="badge ${rsiClass}">RSI ${s.rsi}</span>

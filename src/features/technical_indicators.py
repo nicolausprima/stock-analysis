@@ -50,8 +50,19 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df['ATR_14'] = ta.volatility.average_true_range(high=df['High'], low=df['Low'], close=df['Close'], window=14)
     
     # 4. TREND INDICATORS
+    # Average Directional Index (ADX) - Kekuatan Tren
+    df['ADX_14'] = ta.trend.adx(high=df['High'], low=df['Low'], close=df['Close'], window=14).fillna(20)
+    df['ADX_Pos'] = ta.trend.adx_pos(high=df['High'], low=df['Low'], close=df['Close'], window=14).fillna(20)
+    df['ADX_Neg'] = ta.trend.adx_neg(high=df['High'], low=df['Low'], close=df['Close'], window=14).fillna(20)
+
     # Simple Moving Averages (SMA)
     df['SMA_20'] = ta.trend.sma_indicator(close=df['Close'], window=20)
     df['SMA_50'] = ta.trend.sma_indicator(close=df['Close'], window=50)
     
+    # 5. RELATIVE VOLUME & VOLUME Z-SCORE (RVOL Breakout confirmation)
+    vol_sma20 = df['Volume'].rolling(20).mean().replace(0, 1)
+    vol_std20 = df['Volume'].rolling(20).std().replace(0, 1)
+    df['RVOL'] = (df['Volume'] / (vol_sma20 + 1e-9)).fillna(1.0)
+    df['Volume_Z'] = ((df['Volume'] - vol_sma20) / (vol_std20 + 1e-9)).fillna(0.0)
+
     return df

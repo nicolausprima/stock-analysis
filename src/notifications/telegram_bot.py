@@ -124,16 +124,29 @@ def send_morning_radar_broadcast(recommendations: list[dict]) -> dict:
         stop_p = format_idr(s.get('stop_loss', 0))
         score = s.get('probability', 0.0)
         reason = s.get('reason', 'Sinyal Momentum Bullish')
+        sector = s.get('sector', 'Umum')
+        is_leading = s.get('is_leading_sector', False)
+        kelly = s.get('kelly_allocation', 10.0)
+        rr = s.get('risk_reward_ratio', 2.0)
 
-        msg += f"<b>{idx}. 📈 {ticker_name}</b> ({s['ticker']})\n"
+        cp = s.get('close_price', 1)
+        tp_val = s.get('target_price', 1)
+        sl_val = s.get('stop_loss', 1)
+        tp_pct = ((tp_val - cp) / cp * 100) if cp > 0 else 3.0
+        sl_pct = ((sl_val - cp) / cp * 100) if cp > 0 else -1.5
+
+        sec_badge = f" [Sektor: {sector}{' ⚡' if is_leading else ''}]"
+
+        msg += f"<b>{idx}. 📈 {ticker_name}</b> ({s['ticker']}){sec_badge}\n"
         msg += f"   • 💵 <b>Target Entry (Open):</b> {close_p}\n"
-        msg += f"   • 🎯 <b>Target Profit (+3.0%):</b> {target_p}\n"
-        msg += f"   • 🛑 <b>Stop Loss (-1.5%):</b> {stop_p}\n"
+        msg += f"   • 🎯 <b>Target Profit (+{tp_pct:.1f}%):</b> {target_p}\n"
+        msg += f"   • 🛑 <b>Stop Loss ({sl_pct:.1f}%):</b> {stop_p}\n"
+        msg += f"   • 💰 <b>Saran Alokasi Modal:</b> <code>{kelly:.0f}% Portofolio</code> (R:R 1:{rr:.1f})\n"
         msg += f"   • 🤖 <b>AI Score:</b> <code>{score:.1f}%</code>\n"
         msg += f"   • 💡 <i>{reason}</i>\n\n"
 
     msg += f"───────────────────────\n"
-    msg += f"💡 <i>Tips: Pasang Automatic Order TP (+3.0%) dan SL (-1.5%) di aplikasi sekuritas Anda sebelum jam 09:00 WIB!</i>"
+    msg += f"💡 <i>Tips: Gunakan Automatic Order TP dan SL di aplikasi sekuritas Anda sebelum jam 09:00 WIB untuk eksekusi disiplin!</i>"
 
     return send_telegram_message(msg)
 

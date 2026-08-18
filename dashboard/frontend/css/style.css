@@ -1758,3 +1758,30 @@ strong {
 .audit-section {
     margin-top: var(--sp-6);
 }
+
+/* Quant Metrics & Kelly Position Sizing Badges */
+.dc-quant-metrics {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin-top: var(--sp-2);
+    margin-bottom: var(--sp-2);
+    flex-wrap: wrap;
+}
+
+.qm-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(28, 28, 28, 0.04);
+    border: 1px solid var(--c-border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11.5px;
+    color: var(--c-charcoal);
+}
+
+.qm-lbl {
+    color: var(--c-soft-gray);
+    font-weight: 500;
+}

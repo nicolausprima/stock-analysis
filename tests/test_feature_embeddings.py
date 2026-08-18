@@ -43,9 +43,9 @@ def test_feature_embeddings_shape_and_columns():
     
     expected_embed_cols = [
         'Embed_RSI_Norm', 'Embed_MACD_Diff', 'Embed_SMA20_Ratio',
-        'Embed_SMA50_Ratio', 'Embed_Volatility_ATR', 'Embed_Return_1d',
+        'Embed_SMA50_Ratio', 'Embed_ADX_Norm', 'Embed_Volatility_ATR', 'Embed_Return_1d',
         'Embed_Return_2d', 'Embed_Return_3d', 'Embed_Return_5d',
-        'Embed_Log_Volume', 'Embed_IHSG_Return'
+        'Embed_Log_Volume', 'Embed_RVOL', 'Embed_Volume_Z', 'Embed_IHSG_Return'
     ]
     
     for col in expected_embed_cols:

@@ -22,7 +22,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from src.config import TICKERS, CACHE_FILE, PROJECT_ROOT
 from src.collector.batch_collector import download_universe_in_batches
-from src.database.market_db import get_ticker_history_from_db
+from src.database.market_db import get_ticker_history_from_db, get_all_histories_from_db
 from src.features.technical_indicators import add_technical_indicators
 from src.features.embedding import extract_chart_feature_embeddings
 from dashboard.backend.routes.features import derive_signals, generate_reason
@@ -183,12 +183,22 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     if candidate_df.empty:
         candidate_df = combined_df.sort_values('Probability', ascending=False).head(15)
 
+    from src.agents.ihsg_macro_agent import get_ticker_sector
+    leading_sectors = macro_eval.get("sector_rotation", {}).get("leading_sectors", [])
+
     candidates = []
     for _, row in candidate_df.iterrows():
         signals = derive_signals(row)
+        sec = get_ticker_sector(row['Ticker'])
+        is_leading = sec in leading_sectors
+        # Sektor Booster: +2.0% probabilitas jika saham berada di sektor leading inflow
+        boosted_prob = min(98.5, float(row['Probability']) + (2.0 if is_leading else 0.0))
+
         candidates.append({
             "ticker": row['Ticker'],
-            "probability": float(row['Probability']),
+            "sector": sec,
+            "is_leading_sector": is_leading,
+            "probability": round(boosted_prob, 1),
             "signal": int(row.get('Signal', 0)),
             "close_price": signals['close_price'],
             "target_price": signals['target_price'],
@@ -197,6 +207,10 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             "rsi_signal": signals['rsi_signal'],
             "macd_signal": signals['macd_signal'],
             "trend": signals['trend'],
+            "adx": signals.get('adx', 20),
+            "rvol": signals.get('rvol', 1.0),
+            "risk_reward_ratio": signals.get('risk_reward_ratio', 2.0),
+            "kelly_allocation": signals.get('kelly_allocation', 10.0),
             "reason": generate_reason(row)
         })
 

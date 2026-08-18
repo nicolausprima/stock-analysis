@@ -21,6 +21,10 @@ def extract_chart_feature_embeddings(df: pd.DataFrame) -> pd.DataFrame:
 
     embeddings['Embed_SMA20_Ratio'] = (close - sma20) / sma20
     embeddings['Embed_SMA50_Ratio'] = (close - sma50) / sma50
+    
+    # ADX Trend Strength Normalization (>25 = strong trend)
+    adx = df.get('ADX_14', pd.Series(20, index=df.index)).fillna(20)
+    embeddings['Embed_ADX_Norm'] = (adx - 25.0) / 25.0
 
     # 3. Volatility & Risk Embeddings
     atr = df.get('ATR_14', pd.Series(0, index=df.index)).fillna(0)
@@ -32,9 +36,11 @@ def extract_chart_feature_embeddings(df: pd.DataFrame) -> pd.DataFrame:
     embeddings['Embed_Return_3d'] = df.get('Return_3d', pd.Series(0, index=df.index)).fillna(0)
     embeddings['Embed_Return_5d'] = df.get('Return_5d', pd.Series(0, index=df.index)).fillna(0)
 
-    # 5. Liquidity & Volume Profile Embeddings
+    # 5. Liquidity & Volume Profile Embeddings (RVOL & Volume Z-Score)
     volume = df.get('Volume', pd.Series(1, index=df.index)).fillna(1)
     embeddings['Embed_Log_Volume'] = np.log1p(volume)
+    embeddings['Embed_RVOL'] = np.clip(df.get('RVOL', pd.Series(1.0, index=df.index)).fillna(1.0) - 1.0, -1.0, 5.0)
+    embeddings['Embed_Volume_Z'] = np.clip(df.get('Volume_Z', pd.Series(0.0, index=df.index)).fillna(0.0), -3.0, 5.0)
     
     # 6. Market Relative Embedding
     embeddings['Embed_IHSG_Return'] = df.get('IHSG_Return', pd.Series(0, index=df.index)).fillna(0)

@@ -20,8 +20,11 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def prepare_test_environment():
-    """Memastikan folder data dan cache file rekomendasi selalu terisi dengan data valid sebelum testing."""
+    """Memastikan folder data, DB schema, dan cache file rekomendasi selalu terisi dengan data valid sebelum testing."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
+    from dashboard.backend.routes.audit import init_db
+    init_db()
+    
     dummy_cache = {
         "status": "success",
         "timestamp": "2026-07-20 16:05:00",
@@ -29,6 +32,8 @@ def prepare_test_environment():
         "data": [
             {
                 "ticker": "BBCA.JK",
+                "sector": "Finansial",
+                "is_leading_sector": True,
                 "probability": 78.5,
                 "signal": 1,
                 "close_price": 6475,
@@ -38,11 +43,14 @@ def prepare_test_environment():
                 "rsi_signal": "NETRAL",
                 "macd_signal": "BULLISH",
                 "trend": "UPTREND",
-                "reason": "MACD Golden Cross",
+                "adx": 28.0,
+                "rvol": 1.45,
+                "risk_reward_ratio": 2.0,
+                "kelly_allocation": 15.0,
+                "reason": "MACD Golden Cross, Volume Melonjak 1.5x (RVOL Breakout)",
                 "sentiment_status": "POSITIF",
                 "sentiment_impact": "BOOSTER (+3%)"
             }
-
         ]
     }
     with open(CACHE_FILE, "w") as f:

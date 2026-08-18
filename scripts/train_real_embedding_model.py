@@ -90,12 +90,12 @@ def train_on_real_historical_data():
     embed_df = extract_chart_feature_embeddings(full_df)
 
     feature_cols = [
-        'RSI_14', 'MACD_Diff', 'SMA_20', 'SMA_50', 'ATR_14',
+        'RSI_14', 'MACD_Diff', 'SMA_20', 'SMA_50', 'ATR_14', 'ADX_14', 'RVOL', 'Volume_Z',
         'Return_1d', 'Return_2d', 'Return_3d', 'Return_5d',
         'Embed_RSI_Norm', 'Embed_MACD_Diff', 'Embed_SMA20_Ratio',
-        'Embed_SMA50_Ratio', 'Embed_Volatility_ATR', 'Embed_Return_1d',
-        'Embed_Return_2d', 'Embed_Return_3d', 'Embed_Return_5d',
-        'Embed_Log_Volume', 'Embed_IHSG_Return'
+        'Embed_SMA50_Ratio', 'Embed_ADX_Norm', 'Embed_Volatility_ATR',
+        'Embed_Return_1d', 'Embed_Return_2d', 'Embed_Return_3d', 'Embed_Return_5d',
+        'Embed_Log_Volume', 'Embed_RVOL', 'Embed_Volume_Z', 'Embed_IHSG_Return'
     ]
 
     X = pd.concat([full_df, embed_df], axis=1)[feature_cols]

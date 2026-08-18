@@ -38,18 +38,26 @@ class SentimentAnalystAgent:
         )
 
 class MacroContextAgent:
-    """Agent specialized in evaluating domestic and global macroeconomic regime."""
-    def analyze(self, macro_data: Dict[str, Any]) -> str:
+    """Agent specialized in evaluating domestic, global macroeconomic regime, and IDX sector rotation."""
+    def analyze(self, macro_data: Dict[str, Any], ticker: str = "") -> str:
         mode = macro_data.get("mode", "NORMAL")
         score = macro_data.get("macro_score", 0.0)
         badge = macro_data.get("mode_badge", "MODE NORMAL")
+        sector_info = macro_data.get("sector_rotation", {})
+        leading = sector_info.get("leading_sectors", [])
         
+        from src.agents.ihsg_macro_agent import get_ticker_sector
+        stock_sector = get_ticker_sector(ticker) if ticker else "Umum"
+        is_leading = stock_sector in leading
+
+        sector_note = f" Sektor {stock_sector} masuk dalam Top 3 Leading Inflow ⚡." if is_leading else f" Sektor: {stock_sector}."
+
         if mode == "BLOCK":
-            return f"Analisis Makro: {badge} (Skor {score:+.1f}). Pasar dalam zona merah/downtrend tinggi. Risiko sistemik membatasi posisi beli."
+            return f"Analisis Makro: {badge} (Skor {score:+.1f}). Pasar dalam zona merah/downtrend tinggi. Risiko sistemik membatasi posisi beli.{sector_note}"
         elif mode == "CAUTIOUS":
-            return f"Analisis Makro: {badge} (Skor {score:+.1f}). Fluktuasi kurs/pasar global menuntut kewaspadaan ekstra. Filter diperketat."
+            return f"Analisis Makro: {badge} (Skor {score:+.1f}). Fluktuasi kurs/pasar menuntut kewaspadaan ekstra.{sector_note}"
         else:
-            return f"Analisis Makro: {badge} (Skor {score:+.1f}). Lingkungan makro kondusif mendukung pergerakan IHSG dan saham domestik."
+            return f"Analisis Makro: {badge} (Skor {score:+.1f}). Lingkungan makro kondusif mendukung saham domestik.{sector_note}"
 
 class BullBearDebateAgent:
     """Simulates a debate between Bull (upside factors) and Bear (risk factors)."""
@@ -113,14 +121,13 @@ class MultiAgentSystem:
         """Runs the multi-agent consensus workflow."""
         macro_info = macro_info or {}
         macro_mode = macro_info.get("mode", "NORMAL")
+        ticker = data.get("ticker", "SAHAM").replace(".JK", "")
 
         tech_out = self.technical_agent.analyze(data)
         sent_out = self.sentiment_agent.analyze(data)
-        macro_out = self.macro_agent.analyze(macro_info)
+        macro_out = self.macro_agent.analyze(macro_info, ticker=ticker)
         debate_out = self.debate_agent.debate(tech_out, sent_out, macro_out, data)
         risk_out = self.risk_manager.evaluate(debate_out, data, macro_mode=macro_mode)
-        
-        ticker = data.get("ticker", "SAHAM").replace(".JK", "")
         
         synthesis = (
             f"Konsensus Multi-Agent StockAI ({ticker}):\n"

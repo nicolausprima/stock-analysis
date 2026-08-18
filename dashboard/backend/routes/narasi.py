@@ -91,11 +91,13 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
                 return {"status": "success", "narasi": narrative}
                 
         rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
+        tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
+        sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
         ticker_clean = req.ticker.replace(".JK", "")
         fallback_narrative = (
             f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
             f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
-            f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+3.0%) dan Stop Loss pada Rp {req.stop_loss:,.0f} (-1.5%)."
+            f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+{tp_pct:.1f}%) dan Stop Loss pada Rp {req.stop_loss:,.0f} ({sl_pct:.1f}%)."
         )
         return {"status": "success", "narasi": fallback_narrative}
         
@@ -114,11 +116,13 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
         # Graceful fallback: Jika LLM proxy tidak dapat dijangkau (misal pada cloud deployment Render),
         # kembalikan narasi analisis kuantitatif terstruktur yang bersih tanpa error.
         rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
+        tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
+        sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
         ticker_clean = req.ticker.replace(".JK", "")
         fallback_narrative = (
             f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
             f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
-            f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+3.0%) dan Stop Loss pada Rp {req.stop_loss:,.0f} (-1.5%)."
+            f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+{tp_pct:.1f}%) dan Stop Loss pada Rp {req.stop_loss:,.0f} ({sl_pct:.1f}%)."
         )
         return {"status": "success", "narasi": fallback_narrative}
 

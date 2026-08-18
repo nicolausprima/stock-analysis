@@ -42,7 +42,8 @@ def test_technical_indicator_columns_present():
     
     expected_cols = [
         'OBV', 'ADI', 'VWAP', 'RSI_14', 'MACD', 'MACD_Signal', 
-        'MACD_Diff', 'BB_High', 'BB_Low', 'BB_Mid', 'ATR_14', 'SMA_20', 'SMA_50'
+        'MACD_Diff', 'BB_High', 'BB_Low', 'BB_Mid', 'ATR_14', 'SMA_20', 'SMA_50',
+        'ADX_14', 'RVOL', 'Volume_Z'
     ]
     
     for col in expected_cols:

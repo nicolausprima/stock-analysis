@@ -40,8 +40,12 @@ def get_chart_data(ticker: str, days: int = 60):
             yf_ticker = clean_ticker if ".JK" in clean_ticker or clean_ticker.startswith("^") else f"{clean_ticker}.JK"
 
         if days == 1:
-            # Intraday: data per 5 menit hari ini
+            # Intraday: data per 5 menit hari ini (fallback ke 5d jika bursa tutup/weekend)
             df = yf.download(yf_ticker, period="1d", interval="5m", progress=False)
+            if df.empty:
+                df = yf.download(yf_ticker, period="5d", interval="5m", progress=False)
+            if df.empty:
+                df = yf.download(yf_ticker, period="5d", progress=False)
         else:
             period_str = f"{days}d"
             df = yf.download(yf_ticker, period=period_str, progress=False)

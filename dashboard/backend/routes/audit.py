@@ -115,7 +115,7 @@ def get_track_record():
     cursor.execute("SELECT strftime('%Y-%m-%d', created_at) as latest_dt FROM signals ORDER BY id DESC LIMIT 1")
     latest_row = cursor.fetchone()
     
-    yesterday_str = (datetime.now() - timedelta(days=2)).strftime("%Y-%m-%d")
+    yesterday_str = (get_wib_now() - timedelta(days=2)).strftime("%Y-%m-%d")
     
     # Jika DB kosong atau sinyal terbaru lebih tua dari kemarin, jalankan auto-seed bursa terbaru
     if (not latest_row) or (latest_row["latest_dt"] and latest_row["latest_dt"] < yesterday_str):

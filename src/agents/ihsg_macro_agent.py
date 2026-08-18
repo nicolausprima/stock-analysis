@@ -6,20 +6,69 @@ from src.agents.news_macro_agent import NewsMacroAgent
 
 logger = logging.getLogger(__name__)
 
+# Pemetaan 11 Sektor Utama Bursa Efek Indonesia (BEI)
+IDX_SECTOR_MAP = {
+    "Energi": ["ADRO", "PTBA", "MEDC", "AKRA", "PGAS", "ITMG", "INDY", "DOID", "ENRG", "BUMI", "ELSA", "MBMA"],
+    "Finansial": ["BBCA", "BBRI", "BMRI", "BBNI", "BRIS", "BBTN", "BDMN", "BNGA", "MEGA", "ARTO", "BTPS"],
+    "Bahan Baku": ["MDKA", "INCO", "ANTM", "TPIA", "BRPT", "INKP", "TKIM", "AMMN", "NCKL", "NSSS", "TINS"],
+    "Infrastruktur": ["TLKM", "ISAT", "EXCL", "JSMR", "TOWR", "TBIG", "PGEO", "CENT", "BREN"],
+    "Konsumer Primer": ["ICBP", "INDF", "UNVR", "MYOR", "CPIN", "JPFA", "KLBF", "AMRT", "CMRY", "GGRM", "HMSP"],
+    "Konsumer Non-Primer": ["ASII", "ACES", "MAPI", "ERAA", "AUTO", "MAPA", "RALS"],
+    "Kesehatan": ["KLBF", "MIKA", "HEAL", "SILO", "SIDO", "PRDA", "TSPC"],
+    "Teknologi": ["GOTO", "BUKA", "EMTK", "MTDL", "WIFI", "DMMX"],
+    "Properti & Real Estate": ["BSDE", "CTRA", "PWON", "SMRA", "ASRI", "DILD", "SSIA", "KIJA"],
+    "Perindustrian": ["UNTR", "HEXA", "MARK", "IMAS"],
+    "Transportasi & Logistik": ["SMDR", "TMAS", "BIRD", "GIAA", "ASSA"]
+}
+
+def get_ticker_sector(ticker: str) -> str:
+    """Mengembalikan sektor BEI dari sebuah kode saham."""
+    clean = ticker.upper().replace(".JK", "").strip()
+    for sector, tickers in IDX_SECTOR_MAP.items():
+        if clean in tickers:
+            return sector
+    return "Lainnya"
+
 class IHSGMacroAgent:
     """
-    IHSG Macro Intelligence Agent.
+    IHSG Macro Intelligence & Sector Rotation Agent.
     Evaluates global macro indicators, domestic currency, commodity movements,
-    IHSG technical indicators, and economic news sentiment before trade screening.
-    
-    Determines Market Mode:
-    - NORMAL  (macro_score >= +2) : Full trade recommendations
-    - CAUTIOUS (-1 <= macro_score <= +1) : Strict mode (min XGBoost prob 80%, tight Stop Loss)
-    - BLOCK   (macro_score <= -2) : Risk-off mode (suspend all buy recommendations)
+    IHSG technical indicators, sector momentum rotation, and economic news sentiment.
     """
 
     def __init__(self):
         self.news_agent = NewsMacroAgent()
+
+    def evaluate_sector_rotation(self) -> Dict[str, Any]:
+        """Menghitung momentum rotasi 11 sektor BEI untuk menemukan Leading Sectors."""
+        sector_scores = {}
+        try:
+            # Evaluasi momentum sektor berdasarkan pergerakan saham jangkar (anchor stocks)
+            for sector, tickers in IDX_SECTOR_MAP.items():
+                anchor = f"{tickers[0]}.JK"
+                try:
+                    df = yf.download(anchor, period="5d", progress=False)
+                    if not df.empty and len(df) >= 2:
+                        close_col = df['Close'].iloc[:, 0] if isinstance(df.columns, pd.MultiIndex) else df['Close']
+                        p_now = float(close_col.iloc[-1])
+                        p_prev = float(close_col.iloc[0])
+                        ret_5d = ((p_now - p_prev) / p_prev) * 100
+                        sector_scores[sector] = round(ret_5d, 2)
+                    else:
+                        sector_scores[sector] = 0.0
+                except Exception:
+                    sector_scores[sector] = 0.0
+        except Exception as e:
+            logger.warning(f"Error evaluating sector rotation: {e}")
+
+        # Urutkan sektor dari momentum tertinggi ke terendah
+        sorted_sectors = sorted(sector_scores.items(), key=lambda x: x[1], reverse=True)
+        leading = [s[0] for s in sorted_sectors[:3]] if sorted_sectors else ["Finansial", "Energi", "Bahan Baku"]
+        
+        return {
+            "leading_sectors": leading,
+            "sector_rankings": dict(sorted_sectors)
+        }
 
     def evaluate(self, skip_news: bool = False) -> Dict[str, Any]:
         """Perform comprehensive macro regime evaluation."""
@@ -172,6 +221,16 @@ class IHSGMacroAgent:
             prob_threshold = 0.80
             stop_loss_pct = 0.010
 
+        # 7. Sector Rotation Intelligence
+        # Dilewati saat skip_news=True (mode cepat BSJP/fresh-scan) agar tidak menambah 11x download yfinance
+        if skip_news:
+            sector_rotation = {"leading_sectors": [], "sector_rankings": {}}
+        else:
+            sector_rotation = self.evaluate_sector_rotation()
+        leading_sec = ", ".join(sector_rotation.get("leading_sectors", [])[:3])
+        if leading_sec:
+            details.append(f"• Sektor Terkuat (Inflow): {leading_sec} ⚡")
+
         return {
             "status": "success",
             "mode": mode,
@@ -180,5 +239,6 @@ class IHSGMacroAgent:
             "prob_threshold": prob_threshold,
             "stop_loss_pct": stop_loss_pct,
             "details": details,
-            "news_sentiment": news_sentiment
+            "news_sentiment": news_sentiment,
+            "sector_rotation": sector_rotation
         }
