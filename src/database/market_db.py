@@ -27,10 +27,18 @@ def _ensure_valid_db(db_file: Path):
             except Exception:
                 pass
 
+def get_market_db_connection(timeout: float = 60.0) -> sqlite3.Connection:
+    """Mengembalikan koneksi SQLite thread-safe dengan WAL mode & 60s busy timeout."""
+    _ensure_valid_db(DB_PATH)
+    conn = sqlite3.connect(str(DB_PATH), timeout=timeout, check_same_thread=False)
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA busy_timeout=60000;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    return conn
+
 def init_market_db():
     """Menginisialisasi tabel SQLite untuk menyimpan data pasar harian 700+ saham."""
-    _ensure_valid_db(DB_PATH)
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+    conn = get_market_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS daily_prices (
@@ -53,7 +61,7 @@ def save_daily_prices(combined_df: pd.DataFrame):
         return
     
     init_market_db()
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+    conn = get_market_db_connection()
     cursor = conn.cursor()
     
     df_reset = combined_df.reset_index()
@@ -87,10 +95,9 @@ def save_daily_prices(combined_df: pd.DataFrame):
 
 def get_ticker_history_from_db(ticker: str, limit_days: int = 100) -> pd.DataFrame:
     """Mengambil riwayat data harga saham tertentu dari database SQLite."""
-    _ensure_valid_db(DB_PATH)
     init_market_db()
     try:
-        conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+        conn = get_market_db_connection()
         query = """
             SELECT date, open as Open, high as High, low as Low, close as Close, volume as Volume
             FROM daily_prices
@@ -111,10 +118,9 @@ def get_ticker_history_from_db(ticker: str, limit_days: int = 100) -> pd.DataFra
 
 def get_all_histories_from_db(limit_days: int = 100) -> dict:
     """Mengambil riwayat data harga seluruh 700+ ticker dari SQLite dalam 1 query tunggal (bulk fast read)."""
-    _ensure_valid_db(DB_PATH)
     init_market_db()
     try:
-        conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
+        conn = get_market_db_connection()
         query = """
             SELECT ticker as Ticker, date, open as Open, high as High, low as Low, close as Close, volume as Volume
             FROM daily_prices

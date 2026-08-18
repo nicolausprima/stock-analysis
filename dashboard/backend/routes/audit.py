@@ -37,31 +37,42 @@ def _ensure_valid_db(db_file: Path):
             except Exception:
                 pass
 
+import threading
+
+_db_lock = threading.Lock()
+
+def get_db_connection(timeout: float = 60.0) -> sqlite3.Connection:
+    """Mengembalikan koneksi SQLite thread-safe dengan WAL mode & 60s busy timeout."""
+    _ensure_valid_db(DB_PATH)
+    conn = sqlite3.connect(str(DB_PATH), timeout=timeout, check_same_thread=False)
+    conn.execute("PRAGMA journal_mode=WAL;")
+    conn.execute("PRAGMA busy_timeout=60000;")
+    conn.execute("PRAGMA synchronous=NORMAL;")
+    return conn
+
 def init_db():
     """Menginisialisasi database SQLite dan membuat tabel signals jika belum ada."""
-    _ensure_valid_db(DB_PATH)
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS signals (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            ticker TEXT,
-            entry_price REAL,
-            target_price REAL,
-            stop_loss REAL,
-            probability REAL,
-            status TEXT DEFAULT 'PENDING',
-            realized_return REAL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    """)
-    cursor.execute("PRAGMA table_info(signals)")
-    cols = [c[1] for c in cursor.fetchall()]
-    if "realized_return" not in cols:
-        cursor.execute("ALTER TABLE signals ADD COLUMN realized_return REAL")
-    conn.commit()
-    conn.close()
+    with _db_lock, get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS signals (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ticker TEXT,
+                entry_price REAL,
+                target_price REAL,
+                stop_loss REAL,
+                probability REAL,
+                status TEXT DEFAULT 'PENDING',
+                realized_return REAL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        cursor.execute("PRAGMA table_info(signals)")
+        cols = [c[1] for c in cursor.fetchall()]
+        if "realized_return" not in cols:
+            cursor.execute("ALTER TABLE signals ADD COLUMN realized_return REAL")
+        conn.commit()
 
 # Database initialization is handled inside request handlers via init_db()
 
@@ -75,90 +86,78 @@ class SignalInsert(BaseModel):
 def save_signals_to_db(signals: list[dict]):
     """Menyimpan list sinyal baru ke database. Menghindari duplikasi ticker pada hari kalender yang sama."""
     init_db()
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
-    cursor = conn.cursor()
-    
-    # Dapatkan tanggal hari ini (YYYY-MM-DD) di WIB (UTC+7)
     today_str = get_wib_now().strftime("%Y-%m-%d")
     
-    for s in signals:
-        ticker = s["ticker"]
-        # Bersihkan format ticker (.JK)
-        clean_ticker = ticker.replace(".JK", "")
-        
-        # Cek apakah sudah ada sinyal untuk ticker ini yang dibuat hari ini
-        cursor.execute("""
-            SELECT id FROM signals 
-            WHERE ticker = ? AND strftime('%Y-%m-%d', created_at) = ?
-        """, (clean_ticker, today_str))
-        
-        row = cursor.fetchone()
-        if row is None:
-            # Jika belum ada, lakukan insert
-            cursor.execute("""
-                INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, 'PENDING', datetime('now', 'localtime'), datetime('now', 'localtime'))
-            """, (clean_ticker, s["close_price"], s["target_price"], s["stop_loss"], s["probability"]))
+    with _db_lock, get_db_connection() as conn:
+        cursor = conn.cursor()
+        for s in signals:
+            ticker = s["ticker"]
+            clean_ticker = ticker.replace(".JK", "")
             
-    conn.commit()
-    conn.close()
+            cursor.execute("""
+                SELECT id FROM signals 
+                WHERE ticker = ? AND strftime('%Y-%m-%d', created_at) = ?
+            """, (clean_ticker, today_str))
+            
+            row = cursor.fetchone()
+            if row is None:
+                cursor.execute("""
+                    INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, 'PENDING', datetime('now', 'localtime'), datetime('now', 'localtime'))
+                """, (clean_ticker, s["close_price"], s["target_price"], s["stop_loss"], s["probability"]))
+        conn.commit()
 
 @router.get("/audit/track-record")
 def get_track_record():
     """Mengambil riwayat semua sinyal yang tersimpan dari database. Auto-seed jika DB kosong atau data tertinggal."""
     init_db()
     
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-    
-    cursor.execute("SELECT strftime('%Y-%m-%d', created_at) as latest_dt FROM signals ORDER BY id DESC LIMIT 1")
-    latest_row = cursor.fetchone()
+    with get_db_connection() as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT strftime('%Y-%m-%d', created_at) as latest_dt FROM signals ORDER BY id DESC LIMIT 1")
+        latest_row = cursor.fetchone()
     
     yesterday_str = (get_wib_now() - timedelta(days=2)).strftime("%Y-%m-%d")
     
     # Jika DB kosong atau sinyal terbaru lebih tua dari kemarin, jalankan auto-seed bursa terbaru
     if (not latest_row) or (latest_row["latest_dt"] and latest_row["latest_dt"] < yesterday_str):
-        conn.close()
         try:
             print("[AUDIT] Data terdeteksi usang, menjalankan auto-seed bursa terbaru...")
             seed_simulation_audit()
             run_audit()
         except Exception as e:
             print(f"[AUDIT] Auto-seed warning: {e}")
-        conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
     else:
         try:
             run_audit()
         except Exception as e:
             print(f"[AUDIT] Auto run_audit warning: {e}")
 
-    # Hapus sinyal yang di-seed salah: created_at hari ini jam 16:05 hanya jika bursa MASIH BUKA
     now_local = get_wib_now()
     today_str = now_local.strftime("%Y-%m-%d")
     yesterday_str = (now_local - timedelta(days=1)).strftime("%Y-%m-%d")
     market_open = now_local.hour < 16  # Bursa BEI tutup sekitar 16:00 WIB
-    if market_open:
-        # Hapus seed salah (hari ini jam 16:05)
-        cursor.execute("""
-            DELETE FROM signals 
-            WHERE strftime('%Y-%m-%d', created_at) = ? AND created_at LIKE '%16:05:00'
-        """, (today_str,))
-        # Reset sinyal kemarin (trading_date hari ini) yang terlanjur dievaluasi pakai data intraday hari ini
-        # Ini terjadi jika run_audit dijalankan sebelum fix di-deploy
-        cursor.execute("""
-            UPDATE signals
-            SET status = 'PENDING', realized_return = NULL, updated_at = datetime('now', 'localtime')
-            WHERE status IN ('WIN', 'LOSS')
-            AND strftime('%Y-%m-%d', created_at) = ?
-            AND strftime('%Y-%m-%d', COALESCE(updated_at, created_at)) = ?
-        """, (yesterday_str, today_str))
-        conn.commit()
+    
+    with _db_lock, get_db_connection() as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        if market_open:
+            cursor.execute("""
+                DELETE FROM signals 
+                WHERE strftime('%Y-%m-%d', created_at) = ? AND created_at LIKE '%16:05:00'
+            """, (today_str,))
+            cursor.execute("""
+                UPDATE signals
+                SET status = 'PENDING', realized_return = NULL, updated_at = datetime('now', 'localtime')
+                WHERE status IN ('WIN', 'LOSS')
+                AND strftime('%Y-%m-%d', created_at) = ?
+                AND strftime('%Y-%m-%d', COALESCE(updated_at, created_at)) = ?
+            """, (yesterday_str, today_str))
+            conn.commit()
 
-    cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
-    rows = cursor.fetchall()
+        cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
+        rows = cursor.fetchall()
     
     result = []
     for r in rows:
@@ -230,15 +229,17 @@ def run_audit():
     import contextlib
 
     init_db()
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+    with get_db_connection() as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM signals WHERE status = 'PENDING'")
+        pending_signals = [dict(r) for r in cursor.fetchall()]
 
-    cursor.execute("SELECT * FROM signals WHERE status = 'PENDING'")
-    pending_signals = cursor.fetchall()
+    if not pending_signals:
+        return {"status": "success", "updated_count": 0}
 
-    updated_count = 0
     market_db_path = PROJECT_ROOT / 'data' / 'stock_market.db'
+    updates_to_apply = []
 
     for sig in pending_signals:
         sig_id = sig["id"]
@@ -248,22 +249,15 @@ def run_audit():
         target_price = float(sig["target_price"])
         stop_loss = float(sig["stop_loss"])
         created_at_str = sig["created_at"]
-        # Tentukan sig_date_str (tanggal referensi sinyal):
-        # Sinyal post-market (jam >= 15:00) -> evaluasi mulai hari BERIKUTNYA
-        # Sinyal intraday (jam < 15:00) -> evaluasi mulai hari YANG SAMA
+        
         try:
             sig_dt_obj = datetime.strptime(created_at_str, "%Y-%m-%d %H:%M:%S")
-            if sig_dt_obj.hour >= 15:
-                # Post-market: evaluasi dari hari pembuatan (tidak skip hari sendiri)
-                sig_date_str = sig_dt_obj.strftime("%Y-%m-%d")
-            else:
-                # Intraday: sama dengan hari pembuatan, tapi skip candle hari itu juga
-                sig_date_str = sig_dt_obj.strftime("%Y-%m-%d")
+            sig_date_str = sig_dt_obj.strftime("%Y-%m-%d")
         except Exception:
-            sig_date_str = created_at_str.split(" ")[0]
+            sig_date_str = str(created_at_str).split(" ")[0]
 
         try:
-            start_date = (datetime.strptime(created_at_str.split(" ")[0], "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
+            start_date = (datetime.strptime(str(created_at_str).split(" ")[0], "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
         except Exception:
             start_date = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
 
@@ -272,15 +266,14 @@ def run_audit():
         # 1. Coba ambil data dari database lokal stock_market.db terlebih dahulu
         if market_db_path.exists():
             try:
-                m_conn = sqlite3.connect(str(market_db_path), check_same_thread=False)
-                query = """
-                    SELECT date, high as High, low as Low, close as Close 
-                    FROM daily_prices 
-                    WHERE (ticker = ? OR ticker = ?) AND date >= ?
-                    ORDER BY date ASC
-                """
-                df = pd.read_sql_query(query, m_conn, params=(yf_ticker, clean_ticker, start_date))
-                m_conn.close()
+                with get_db_connection(timeout=10.0) as m_conn:
+                    query = """
+                        SELECT date, high as High, low as Low, close as Close 
+                        FROM daily_prices 
+                        WHERE (ticker = ? OR ticker = ?) AND date >= ?
+                        ORDER BY date ASC
+                    """
+                    df = pd.read_sql_query(query, m_conn, params=(yf_ticker, clean_ticker, start_date))
             except Exception:
                 df = pd.DataFrame()
 
@@ -330,7 +323,6 @@ def run_audit():
                 break
             elif is_tp:
                 new_status = "WIN"
-                # Gunakan target_price sebagai realized return (TP tercapai = keluar di TP)
                 real_ret = round(((target_price - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 3.0
                 break
             elif is_sl:
@@ -353,17 +345,20 @@ def run_audit():
                 real_ret = 0.0
 
         if new_status != "PENDING":
-            cursor.execute("""
-                UPDATE signals 
-                SET status = ?, realized_return = ?, updated_at = datetime('now', 'localtime') 
-                WHERE id = ?
-            """, (new_status, real_ret, sig_id))
-            updated_count += 1
+            updates_to_apply.append((new_status, real_ret, sig_id))
 
-    conn.commit()
-    conn.close()
+    if updates_to_apply:
+        with _db_lock, get_db_connection() as conn:
+            cursor = conn.cursor()
+            for new_status, real_ret, sig_id in updates_to_apply:
+                cursor.execute("""
+                    UPDATE signals 
+                    SET status = ?, realized_return = ?, updated_at = datetime('now', 'localtime') 
+                    WHERE id = ?
+                """, (new_status, real_ret, sig_id))
+            conn.commit()
 
-    return {"status": "success", "updated_count": updated_count}
+    return {"status": "success", "updated_count": len(updates_to_apply)}
 
 
 @router.get("/audit/recap")
@@ -375,13 +370,11 @@ def get_audit_recap():
     - Data kurva ekuitas kumulatif (Equity Curve Chart)
     """
     init_db()
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT * FROM signals ORDER BY created_at ASC")
-    rows = cursor.fetchall()
-    conn.close()
+    with get_db_connection() as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM signals ORDER BY created_at ASC")
+        rows = cursor.fetchall()
 
     total_signals = len(rows)
     win_count = sum(1 for r in rows if r["status"] == "WIN")
@@ -440,55 +433,42 @@ def get_audit_recap():
         m_data = monthly_dict[month_key]
         m_data["total_signals"] += 1
         st = r["status"]
-        entry_p = r["entry_price"]
-        target_p = r["target_price"]
-        stop_p = r["stop_loss"]
         real_ret = r["realized_return"]
-
-        if st == "LOSS":
-            real_ret = -1.5
-        elif real_ret is None and st == "WIN":
-            if entry_p > 0 and target_p > 0:
-                real_ret = round(((target_p - entry_p) / entry_p) * 100, 1)
-            else:
-                real_ret = 3.0
 
         if st == "WIN":
             m_data["win_count"] += 1
-            m_data["monthly_profit_pct"] += real_ret
-            cum_return += real_ret
+            m_data["monthly_profit_pct"] += (real_ret or 3.0)
+            cum_return += (real_ret or 3.0)
         elif st == "LOSS":
             m_data["loss_count"] += 1
-            m_data["monthly_profit_pct"] += real_ret
-            cum_return += real_ret
-        else:
+            m_data["monthly_profit_pct"] += -1.5
+            cum_return += -1.5
+        elif st == "PENDING":
             m_data["pending_count"] += 1
 
-        m_data["monthly_profit_pct"] = round(m_data["monthly_profit_pct"], 1)
-
-        # Track cumulative return per unique date for LightweightCharts
         if st in ["WIN", "LOSS"]:
             equity_curve.append({
-                "time": date_part,
-                "value": round(cum_return, 1)
+                "date": date_part,
+                "cumulative_return": round(cum_return, 1),
+                "ticker": r["ticker"],
+                "status": st
             })
 
-    # Deduplicate equity curve by unique date (keep latest cumulative return per day)
-    daily_equity_dict = {}
-    for pt in equity_curve:
-        daily_equity_dict[pt["time"]] = pt["value"]
-
-    clean_equity_curve = [
-        {"time": dt, "value": val}
-        for dt, val in sorted(daily_equity_dict.items())
-    ]
-
+    # Urutkan dan hitung win_rate per bulan
     monthly_breakdown = []
-    for k in sorted(monthly_dict.keys(), reverse=True):
-        m = monthly_dict[k]
-        m_decided = m["win_count"] + m["loss_count"]
-        m["win_rate"] = round((m["win_count"] / m_decided * 100), 1) if m_decided > 0 else 0.0
-        monthly_breakdown.append(m)
+    for m_key in sorted(monthly_dict.keys(), reverse=True):
+        m_data = monthly_dict[m_key]
+        decided_m = m_data["win_count"] + m_data["loss_count"]
+        m_data["win_rate"] = round((m_data["win_count"] / decided_m * 100), 1) if decided_m > 0 else 0.0
+        m_data["monthly_profit_pct"] = round(m_data["monthly_profit_pct"], 1)
+        monthly_breakdown.append(m_data)
+
+    clean_equity_curve = []
+    seen_dates = set()
+    for point in reversed(equity_curve):
+        if point["date"] not in seen_dates:
+            clean_equity_curve.insert(0, point)
+            seen_dates.add(point["date"])
 
     return {
         "status": "success",
@@ -508,40 +488,37 @@ def get_audit_recap():
 def get_today_audit_summary():
     """Mengambil rincian sinyal audit khusus hari ini (WIN/LOSS/PENDING per saham)."""
     init_db()
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    # Cari tanggal batch sinyal yang diperdagangkan/diaudit hari ini
     today_str = get_wib_now().strftime("%Y-%m-%d")
-    cursor.execute("""
-        SELECT DISTINCT strftime('%Y-%m-%d', created_at) as dt 
-        FROM signals 
-        ORDER BY dt DESC 
-        LIMIT 5
-    """)
-    dates = [r["dt"] for r in cursor.fetchall()]
 
-    audit_date = today_str
-    if dates:
-        # Jika batch terbaru dibuat hari ini dan seluruhnya PENDING (sinyal esok hari),
-        # ambil batch tanggal sebelumnya yang dievaluasi hari ini
-        if dates[0] == today_str and len(dates) > 1:
-            cursor.execute("SELECT COUNT(*) as total, SUM(CASE WHEN status != 'PENDING' THEN 1 ELSE 0 END) as decided FROM signals WHERE strftime('%Y-%m-%d', created_at) = ?", (today_str,))
-            chk = cursor.fetchone()
-            if chk and (chk["decided"] == 0 or chk["decided"] is None):
-                audit_date = dates[1]
+    with get_db_connection() as conn:
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT DISTINCT strftime('%Y-%m-%d', created_at) as dt 
+            FROM signals 
+            ORDER BY dt DESC 
+            LIMIT 5
+        """)
+        dates = [r["dt"] for r in cursor.fetchall()]
+
+        audit_date = today_str
+        if dates:
+            if dates[0] == today_str and len(dates) > 1:
+                cursor.execute("SELECT COUNT(*) as total, SUM(CASE WHEN status != 'PENDING' THEN 1 ELSE 0 END) as decided FROM signals WHERE strftime('%Y-%m-%d', created_at) = ?", (today_str,))
+                chk = cursor.fetchone()
+                if chk and (chk["decided"] == 0 or chk["decided"] is None):
+                    audit_date = dates[1]
+                else:
+                    audit_date = dates[0]
             else:
                 audit_date = dates[0]
-        else:
-            audit_date = dates[0]
 
-    cursor.execute("""
-        SELECT * FROM signals 
-        WHERE strftime('%Y-%m-%d', created_at) = ? 
-        ORDER BY id DESC
-    """, (audit_date,))
-    rows = cursor.fetchall()
+        cursor.execute("""
+            SELECT * FROM signals 
+            WHERE strftime('%Y-%m-%d', created_at) = ? 
+            ORDER BY id DESC
+        """, (audit_date,))
+        rows = cursor.fetchall()
 
     today_signals = []
     win_cnt = 0
@@ -551,9 +528,6 @@ def get_today_audit_summary():
 
     for r in rows:
         st = r["status"]
-        entry_p = r["entry_price"]
-        target_p = r["target_price"]
-        stop_p = r["stop_loss"]
         real_ret = r["realized_return"]
 
         if st == "LOSS":
@@ -584,8 +558,6 @@ def get_today_audit_summary():
             "created_at": r["created_at"]
         })
 
-    conn.close()
-
     total_decided = win_cnt + loss_cnt
     win_rate = round((win_cnt / total_decided * 100), 1) if total_decided > 0 else 0.0
 
@@ -612,43 +584,38 @@ def seed_simulation_audit():
     2. Confidence Threshold Cutoff (AI Score >= 70.0%)
     3. Volume Accumulation Guard (Vol > 1.1x SMA20)
     4. Multi-Factor ML Technical Alignment
-    Menghasilkan Win Rate 70%+ dengan performa positif berkelanjutan.
     """
-    conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
-    cursor = conn.cursor()
-
-    # DO NOT DELETE REAL AUDIT SIGNALS!
-    # Instead, only insert missing backtest signals without deleting existing live records.
     init_db()
+    with get_db_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT ticker, strftime('%Y-%m-%d', created_at) as dt, status, id FROM signals")
+        existing_map = {(r[0], r[1]): (r[2], r[3]) for r in cursor.fetchall()}
 
     tickers_to_backtest = [
-        # Finansial / Perbankan
         "BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "BRIS.JK", "BDMN.JK", "BBTN.JK",
-        # Energi & Tambang Batubara / Minyak
         "ADRO.JK", "PTBA.JK", "PGAS.JK", "MEDC.JK", "AKRA.JK", "ITMG.JK",
-        # Bahan Baku, Nikel, Emas & Tembaga
         "AMMN.JK", "ANTM.JK", "INCO.JK", "MDKA.JK", "TINS.JK", "INKP.JK", "TKIM.JK", "SMGR.JK",
-        # Telekomunikasi & Teknologi
         "TLKM.JK", "ISAT.JK", "GOTO.JK", "EMTK.JK",
-        # Konsumer Primer & Non-Primer
         "UNVR.JK", "ICBP.JK", "INDF.JK", "MYOR.JK", "AMRT.JK", "KLBF.JK", "ASII.JK",
-        # Unggas & Perindustrian
         "CPIN.JK", "JPFA.JK", "UNTR.JK",
-        # Properti & Infrastruktur
         "CTRA.JK", "BSDE.JK", "PWON.JK", "JSMR.JK"
     ]
 
     real_records = []
+    pending_updates = []
 
     print("[BACKTEST] Memulai pengunduhan data historis asli dari Yahoo Finance...")
     try:
-        # 1. Download IHSG Data
         ihsg_df = yf.download("^JKSE", period="6mo", interval="1d", progress=False)
         if isinstance(ihsg_df.columns, pd.MultiIndex):
             ihsg_close = ihsg_df["Close"].iloc[:, 0]
         else:
             ihsg_close = ihsg_df["Close"]
         ihsg_sma20 = ihsg_close.rolling(20).mean()
+
+        now_seed = get_wib_now()
+        today_date_str = now_seed.strftime("%Y-%m-%d")
+        market_closed = now_seed.hour >= 16
 
         for ticker in tickers_to_backtest:
             clean_ticker = ticker.replace(".JK", "")
@@ -661,7 +628,6 @@ def seed_simulation_audit():
                 if len(df_stock) < 30:
                     continue
 
-                # Indikator Teknikal
                 delta = df_stock['Close'].diff()
                 gain = (delta.where(delta > 0, 0)).rolling(14).mean()
                 loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
@@ -675,41 +641,25 @@ def seed_simulation_audit():
                 df_stock['SMA20'] = df_stock['Close'].rolling(20).mean()
                 df_stock['Vol_SMA20'] = df_stock['Volume'].rolling(20).mean()
 
-                # Loop semua hari historis dengan time-awareness:
-                # - Bursa MASIH BUKA (sebelum 16:00 WIB): skip hari ini, data belum lengkap
-                # - Bursa SUDAH TUTUP (setelah 16:00 WIB): proses hari ini, simpan sebagai PENDING (butuh data besok)
-                now_seed = get_wib_now()
-                today_date_str = now_seed.strftime("%Y-%m-%d")
-                market_closed = now_seed.hour >= 16  # BEI tutup ~16:00 WIB
-
                 for i in range(20, len(df_stock)):
                     date_dt = df_stock.index[i]
                     date_str = date_dt.strftime("%Y-%m-%d")
 
                     if not market_closed and date_str >= today_date_str:
-                        # Bursa masih buka: skip hari ini dan masa depan
                         continue
                     elif date_str > today_date_str:
-                        # Jangan proses candle masa depan (tidak mungkin ada, tapi guard)
                         continue
 
-                    # created_str: gunakan waktu sebenarnya untuk hari ini, 16:05 untuk hari lampau
                     if date_str == today_date_str:
                         created_str = now_seed.strftime("%Y-%m-%d %H:%M:%S")
                     else:
                         created_str = date_dt.strftime("%Y-%m-%d 16:05:00")
                     row = df_stock.iloc[i]
 
-                    # Skip if signal already exists for this ticker and date unless it's PENDING
-                    cursor.execute("""
-                        SELECT id, status FROM signals 
-                        WHERE ticker = ? AND strftime('%Y-%m-%d', created_at) = ?
-                    """, (clean_ticker, date_str))
-                    existing_sig = cursor.fetchone()
-                    if existing_sig is not None and existing_sig[1] != 'PENDING':
+                    existing_info = existing_map.get((clean_ticker, date_str))
+                    if existing_info is not None and existing_info[0] != 'PENDING':
                         continue
 
-                    # Market Regime Guard
                     is_market_bullish = True
                     ihsg_matches = ihsg_close.index[ihsg_close.index.strftime('%Y-%m-%d') == date_str]
                     if len(ihsg_matches) > 0:
@@ -725,7 +675,6 @@ def seed_simulation_audit():
                     vol_val = float(row['Volume']) if pd.notna(row['Volume']) else 1.0
                     vol_sma = float(row['Vol_SMA20']) if pd.notna(row['Vol_SMA20']) else 1.0
 
-                    # Signal Filter: Momentum Crossover + Price Above SMA20
                     if macd_val >= macd_sig and close_p >= sma20_val * 0.985:
                         base_score = 68.0
                         if is_market_bullish:
@@ -736,8 +685,6 @@ def seed_simulation_audit():
                             base_score += 4.0
 
                         prob = round(min(88.5, max(65.0, base_score)), 1)
-
-                        # High Conviction Threshold Cutoff (>= 70.0%)
                         if prob < 70.0:
                             continue
 
@@ -745,7 +692,6 @@ def seed_simulation_audit():
                         target_price = round(entry_price * 1.03)
                         stop_loss = round(entry_price * 0.985)
 
-                        # Evaluasi hasil nyata H+1 s/d H+5 (atau hari yang tersedia hingga hari ini)
                         fw = df_stock.iloc[i+1 : i+6]
                         if len(fw) == 0:
                             status = "PENDING"
@@ -775,12 +721,8 @@ def seed_simulation_audit():
                                     status = "PENDING"
                                     real_ret = 0.0
 
-                        if existing_sig is not None and existing_sig[1] == 'PENDING':
-                            cursor.execute("""
-                                UPDATE signals 
-                                SET status = ?, realized_return = ?, updated_at = datetime('now', 'localtime')
-                                WHERE id = ?
-                            """, (status, real_ret, existing_sig[0]))
+                        if existing_info is not None and existing_info[0] == 'PENDING':
+                            pending_updates.append((status, real_ret, existing_info[1]))
                             continue
 
                         real_records.append((
@@ -794,21 +736,24 @@ def seed_simulation_audit():
     except Exception as e:
         print(f"[BACKTEST] Error downloading historical data: {str(e)}")
 
-    if real_records:
-        cursor.executemany("""
-            INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, realized_return, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, real_records)
-
-    conn.commit()
-    conn.close()
+    if real_records or pending_updates:
+        with _db_lock, get_db_connection() as conn:
+            cursor = conn.cursor()
+            if pending_updates:
+                for st, ret, sig_id in pending_updates:
+                    cursor.execute("""
+                        UPDATE signals 
+                        SET status = ?, realized_return = ?, updated_at = datetime('now', 'localtime')
+                        WHERE id = ?
+                    """, (st, ret, sig_id))
+            if real_records:
+                cursor.executemany("""
+                    INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, realized_return, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, real_records)
+            conn.commit()
 
     return {
         "status": "success",
         "message": f"Berhasil menjalankan Quant Optimization Engine! Menghasilkan {len(real_records)} sinyal otentik teroptimasi."
     }
-
-
-
-
-
