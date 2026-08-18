@@ -622,8 +622,20 @@ def seed_simulation_audit():
     init_db()
 
     tickers_to_backtest = [
-        "BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "TLKM.JK",
-        "ASII.JK", "AMMN.JK", "PGAS.JK", "UNVR.JK", "ADRO.JK"
+        # Finansial / Perbankan
+        "BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "BRIS.JK", "BDMN.JK", "BBTN.JK",
+        # Energi & Tambang Batubara / Minyak
+        "ADRO.JK", "PTBA.JK", "PGAS.JK", "MEDC.JK", "AKRA.JK", "ITMG.JK",
+        # Bahan Baku, Nikel, Emas & Tembaga
+        "AMMN.JK", "ANTM.JK", "INCO.JK", "MDKA.JK", "TINS.JK", "INKP.JK", "TKIM.JK", "SMGR.JK",
+        # Telekomunikasi & Teknologi
+        "TLKM.JK", "ISAT.JK", "GOTO.JK", "EMTK.JK",
+        # Konsumer Primer & Non-Primer
+        "UNVR.JK", "ICBP.JK", "INDF.JK", "MYOR.JK", "AMRT.JK", "KLBF.JK", "ASII.JK",
+        # Unggas & Perindustrian
+        "CPIN.JK", "JPFA.JK", "UNTR.JK",
+        # Properti & Infrastruktur
+        "CTRA.JK", "BSDE.JK", "PWON.JK", "JSMR.JK"
     ]
 
     real_records = []

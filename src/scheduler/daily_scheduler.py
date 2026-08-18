@@ -68,12 +68,14 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         from src.agents.ihsg_macro_agent import IHSGMacroAgent
         macro_agent = IHSGMacroAgent()
         macro_eval = macro_agent.evaluate(skip_news=skip_download)
-        print(f"[MACRO AGENT] Result: {macro_eval.get('mode_badge', 'NORMAL')} | Score: {macro_eval.get('macro_score', 0):+.1f}")
+        mode_text = str(macro_eval.get('mode_badge', 'NORMAL')).encode('ascii', errors='replace').decode('ascii')
+        print(f"[MACRO AGENT] Result: {mode_text} | Score: {macro_eval.get('macro_score', 0):+.1f}")
         for d in macro_eval.get('details', []):
-            print(f"   {d}")
+            safe_d = str(d).encode('ascii', errors='replace').decode('ascii')
+            print(f"   {safe_d}")
         
         if macro_eval.get('mode') == 'BLOCK':
-            print(f"[MACRO GUARD] Market risk-off active ({macro_eval.get('mode_badge')}). Skip buy recommendations for today.")
+            print(f"[MACRO GUARD] Market risk-off active ({mode_text}). Skip buy recommendations for today.")
             return {
                 "status": "success",
                 "data": [],
@@ -102,6 +104,11 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     # Fast 1-query bulk read from SQLite database
     history_dict = get_all_histories_from_db(limit_days=100)
 
+    # Dapatkan tanggal data paling akhir di database sebagai referensi
+    all_dates = [pd.to_datetime(df.index[-1]) for df in history_dict.values() if not df.empty]
+    max_db_dt = max(all_dates) if all_dates else pd.Timestamp.now()
+    ref_dt = pd.Timestamp.now() if not skip_download else max_db_dt
+
     for ticker in TICKERS:
         df = history_dict.get(ticker, pd.DataFrame())
         if df.empty or len(df) < 20:
@@ -120,8 +127,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             
         # 3. Skip if last data timestamp is stale (> 7 calendar days old, e.g. Delisted)
         last_dt = pd.to_datetime(df.index[-1])
-        now_dt = pd.Timestamp.now()
-        if (now_dt - last_dt).days > 7:
+        if (ref_dt - last_dt).days > 7:
             continue
 
         last_close = float(df['Close'].dropna().iloc[-1]) if not df['Close'].dropna().empty else 0.0
@@ -149,7 +155,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             all_latest.append(valid_rows.iloc[-1:].copy())
 
     if not all_latest:
-        print("⚠️ Tidak ada data saham yang valid.")
+        print("[WARNING] Tidak ada data saham yang valid.")
         return {"status": "error", "message": "No valid stocks"}
 
     combined_df = pd.concat(all_latest)
