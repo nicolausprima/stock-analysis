@@ -180,13 +180,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="chart-${s.ticker.replace('.JK', '')}" class="mini-chart-container"></div>
 
                 <div class="dc-quant-metrics">
-                    ${s.sector ? `<span class="qm-tag"><span class="qm-lbl">Sektor:</span> <strong>${s.sector}</strong>${s.is_leading_sector ? ' ⚡' : ''}</span>` : ''}
+                    ${s.sector ? `<span class="qm-tag"><span class="qm-lbl">Sektor:</span> <strong>${s.sector}</strong>${s.is_leading_sector ? ' <span class="qm-leading">· Leading</span>' : ''}</span>` : ''}
                     <span class="qm-tag"><span class="qm-lbl">Risk/Reward:</span> <strong>1:${s.risk_reward_ratio || '2.0'}</strong></span>
                     <span class="qm-tag"><span class="qm-lbl">Saran Modal:</span> <strong style="color:var(--c-green);">${s.kelly_allocation || '10'}%</strong></span>
                 </div>
 
                 <div class="dc-badges">
-                    ${s.is_leading_sector ? '<span class="badge booster">⚡ Leading Sector</span>' : ''}
+                    ${s.is_leading_sector ? '<span class="badge booster">Leading Sector</span>' : ''}
                     ${s.rvol ? `<span class="badge ${s.rvol >= 1.2 ? 'booster' : 'neutral-sent'}">RVOL ${s.rvol}x</span>` : ''}
                     ${s.adx ? `<span class="badge ${s.adx >= 25 ? 'bullish' : 'neutral-sent'}">ADX ${s.adx}</span>` : ''}
                     <span class="badge ${macdClass}">MACD ${s.macd_signal}</span>
@@ -518,8 +518,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             : '-1.5';
                         const retVal = s.status === 'LOSS' ? -1.5 : (s.return_pct != null ? s.return_pct : 0);
                         const retSign = retVal >= 0 ? '+' : '';
-                        const badge = s.status === 'WIN' ? `<span class="badge bullish">WIN ${retSign}${retVal.toFixed(1)}% ✅</span>` :
-                                      (s.status === 'LOSS' ? `<span class="badge bearish">LOSS ${retVal.toFixed(1)}% ❌</span>` : '<span class="badge netral">PENDING ⏳</span>');
+                        const badge = s.status === 'WIN' ? `<span class="badge bullish">WIN ${retSign}${retVal.toFixed(1)}%</span>` :
+                                      (s.status === 'LOSS' ? `<span class="badge bearish">LOSS ${retVal.toFixed(1)}%</span>` : '<span class="badge netral">PENDING</span>');  
                         signalsHtml += `
                             <tr>
                                 <td>${idx + 1}</td>

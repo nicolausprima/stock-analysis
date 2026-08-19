@@ -7,16 +7,39 @@
     <meta name="description" content="XGBoost stock screener for Indonesia Stock Exchange. Analyzes 700+ BEI stocks daily with 20+ technical indicators.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+/* ============================================================
+   StockAI Landing — Warm Editorial System
+   Consistent with dashboard.html: Epilogue + Fraunces
+   Palette: cream #F7F5F2, charcoal #1C1C1C, muted rose #B85C66
+   ============================================================ */
+
+:root {
+    --c-bg:          #F7F5F2;
+    --c-surface:     #F2F0EC;
+    --c-border:      #E8E5E0;
+    --c-charcoal:    #1C1C1C;
+    --c-dark-gray:   #4A4A4A;
+    --c-muted:       #888888;
+    --c-rose:        #B85C66;
+    --c-amber:       #E5C158;
+    --font-primary:  'Epilogue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-accent:   'Fraunces', Georgia, 'Times New Roman', serif;
+    --font-ui:       'Space Grotesk', -apple-system, sans-serif;
+    --shadow-raised: 0 1px 4px rgba(26,22,18,0.04), 0 4px 16px rgba(26,22,18,0.04);
+    --shadow-float:  0 2px 8px rgba(26,22,18,0.08), 0 8px 20px rgba(26,22,18,0.06);
+}
+
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+
 body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background: #ffffff;
-    color: #09090b;
+    font-family: var(--font-primary);
+    background: var(--c-bg);
+    color: var(--c-charcoal);
     font-size: 16px;
-    line-height: 1.6;
+    line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     opacity: 0;
@@ -24,34 +47,23 @@ body {
     filter: blur(4px);
     transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
-body.page-loaded {
-    opacity: 1;
-    transform: translateY(0);
-    filter: blur(0px);
-}
-body.page-exiting {
-    opacity: 0;
-    transform: translateY(-8px);
-    filter: blur(6px);
-    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
+body.page-loaded  { opacity: 1; transform: translateY(0); filter: blur(0px); }
+body.page-exiting { opacity: 0; transform: translateY(-8px); filter: blur(6px); transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
 
 a { color: inherit; text-decoration: none; }
 
+/* ── HERO ─────────────────────────────────────────────────── */
 .hero {
     position: relative;
     width: 100%;
-    min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 40px 24px;
-    background: #ffffff;
+    background: var(--c-bg);
     overflow: hidden;
-}
-.hero-glow {
-    display: none;
 }
 .hero-bg-adam {
     position: absolute;
@@ -61,13 +73,12 @@ a { color: inherit; text-decoration: none; }
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
-    opacity: 0.65;
+    opacity: 0.55;
     mix-blend-mode: multiply;
     filter: contrast(105%) brightness(100%);
     pointer-events: none;
     z-index: 0;
 }
-
 .hero-inner {
     position: relative;
     z-index: 1;
@@ -76,66 +87,71 @@ a { color: inherit; text-decoration: none; }
     text-align: center;
 }
 
+/* Pill badge — warm-tinted instead of zinc */
 .pill {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 16px;
+    padding: 5px 14px;
     border-radius: 100px;
-    font-size: 13px;
+    font-family: var(--font-ui);
+    font-size: 12px;
     font-weight: 500;
-    color: #18181b;
-    background: #ffffff;
-    border: 1px solid #e4e4e7;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    color: var(--c-dark-gray);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    box-shadow: var(--shadow-raised);
     margin-bottom: 28px;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     cursor: default;
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
-.pill:hover { border-color: #d4d4d8; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
-.pill-arrow { font-size: 11px; color: #71717a; }
+.pill:hover { border-color: #D0CCC6; box-shadow: var(--shadow-float); }
+.pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-rose); display: inline-block; }
 
+/* Hero headline — Fraunces serif italic for the rotating word */
 .hero h1 {
-    font-size: clamp(36px, 6vw, 64px);
-    font-weight: 800;
-    line-height: 1.15;
-    color: #09090b;
+    font-family: var(--font-primary);
+    font-size: clamp(36px, 6vw, 62px);
+    font-weight: 700;
+    line-height: 1.12;
+    color: var(--c-charcoal);
     margin-bottom: 8px;
     letter-spacing: -0.03em;
 }
 .hero h1 .line1 {
     display: block;
-    font-weight: 700;
+    font-weight: 600;
 }
 .hero h1 .rotator-wrap {
     display: block;
-    height: 1.15em;
+    height: 1.12em;
     overflow: hidden;
     position: relative;
 }
-.hero h1 .rotator {
-    display: block;
-    position: relative;
-}
+.hero h1 .rotator { display: block; position: relative; }
+/* Rotating words in Fraunces italic — removes gradient trick */
 .hero h1 .rotator span {
     display: block;
-    height: 1.15em;
-    line-height: 1.15;
-    background: linear-gradient(135deg, #09090b 0%, #27272a 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    height: 1.12em;
+    line-height: 1.12;
+    font-family: var(--font-accent);
+    font-style: italic;
+    font-weight: 400;
+    color: var(--c-charcoal);
     will-change: opacity, transform, filter;
     transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .hero-desc {
-    font-size: clamp(15px, 1.5vw, 17px);
-    color: #3f3f46;
-    font-weight: 450;
-    max-width: 580px;
+    font-family: var(--font-primary);
+    font-size: clamp(14px, 1.4vw, 16px);
+    color: var(--c-dark-gray);
+    font-weight: 400;
+    max-width: 520px;
     margin: 20px auto 36px;
-    line-height: 1.7;
+    line-height: 1.75;
 }
 
 .hero-actions {
@@ -149,151 +165,173 @@ a { color: inherit; text-decoration: none; }
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 24px;
+    padding: 11px 22px;
     border-radius: 100px;
-    font-size: 14px;
+    font-family: var(--font-ui);
+    font-size: 13px;
     font-weight: 500;
-    background: #ffffff;
-    border: 1px solid #e4e4e7;
-    color: #18181b;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    color: var(--c-charcoal);
+    box-shadow: var(--shadow-raised);
     transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
-.btn-outline:hover { background: #f4f4f5; border-color: #d4d4d8; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.btn-outline:hover { background: var(--c-bg); border-color: #D0CCC6; box-shadow: var(--shadow-float); }
 .btn-solid {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 12px 28px;
+    padding: 11px 26px;
     border-radius: 100px;
-    font-size: 14px;
+    font-family: var(--font-ui);
+    font-size: 13px;
     font-weight: 600;
-    background: #09090b;
-    color: #ffffff;
+    background: var(--c-charcoal);
+    color: var(--c-bg);
     border: none;
-    box-shadow: 0 4px 14px rgba(9,9,11,0.15);
+    box-shadow: 0 4px 14px rgba(28,28,28,0.18);
     transition: opacity 0.2s, transform 0.2s;
 }
-.btn-solid:hover { opacity: 0.92; transform: translateY(-1px); }
-.btn-solid:hover { opacity: 0.92; transform: translateY(-1px); }
+.btn-solid:hover { opacity: 0.88; transform: translateY(-1px); }
 
+/* ── STATS — warm cream instead of white/zinc ─────────────── */
 .stats-bar {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    border-top: 1px solid rgba(9,9,11,0.08);
-    border-bottom: 1px solid rgba(9,9,11,0.08);
-    background: #fcfcfd;
+    border-top: 1px solid var(--c-border);
+    border-bottom: 1px solid var(--c-border);
+    background: var(--c-surface);
 }
 .stat-item {
     padding: 36px 24px;
     text-align: center;
-    border-right: 1px solid rgba(9,9,11,0.08);
+    border-right: 1px solid var(--c-border);
 }
 .stat-item:last-child { border-right: none; }
 .stat-num {
-    font-size: 32px;
-    font-weight: 700;
+    font-family: var(--font-accent);
+    font-size: 30px;
+    font-weight: 600;
     line-height: 1.1;
-    color: #09090b;
+    color: var(--c-charcoal);
     letter-spacing: -0.02em;
 }
 .stat-label {
-    font-size: 12px;
+    font-family: var(--font-ui);
+    font-size: 11px;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #71717a;
+    letter-spacing: 0.08em;
+    color: var(--c-muted);
     margin-top: 4px;
 }
 
+/* ── SECTIONS ─────────────────────────────────────────────── */
 .section {
-    padding: 64px 24px;
+    padding: 72px 24px;
     max-width: 1100px;
     margin: 0 auto;
 }
-.section-header { text-align: center; margin-bottom: 40px; }
+.section-header { text-align: left; margin-bottom: 44px; }
 
+/* Single micro-label per section — reduce uppercase spam */
 .section-tag {
     display: inline-block;
+    font-family: var(--font-ui);
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    color: #71717a;
-    margin-bottom: 12px;
+    color: var(--c-muted);
+    margin-bottom: 10px;
 }
 .section-title {
-    font-size: clamp(30px, 4vw, 44px);
-    font-weight: 700;
-    line-height: 1.15;
-    color: #09090b;
-    max-width: 550px;
-    margin: 0 auto;
-    letter-spacing: -0.02em;
+    font-family: var(--font-accent);
+    font-size: clamp(28px, 3.5vw, 42px);
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.18;
+    color: var(--c-charcoal);
+    max-width: 480px;
+    letter-spacing: -0.01em;
 }
 .section-desc {
-    font-size: 15px;
-    color: #52525b;
-    max-width: 480px;
-    margin: 10px auto 0;
-    line-height: 1.7;
+    font-size: 14px;
+    color: var(--c-dark-gray);
+    max-width: 440px;
+    margin-top: 12px;
+    line-height: 1.75;
 }
 
-.features-grid, .steps-grid {
+/* ── BENTO GRID (Features) — asymmetric 2+1 layout ───────── */
+.features-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 20px;
 }
-
-.feat-card, .step-card {
-    background: #ffffff;
-    border: 1px solid rgba(9, 9, 11, 0.08);
+.feat-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
     border-radius: 12px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     padding: 24px;
     gap: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    box-shadow: var(--shadow-raised);
     transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.feat-card:hover, .step-card:hover {
-    transform: translateY(-4px);
-    border-color: rgba(9, 9, 11, 0.2);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+/* First card spans both columns — editorial anchor card */
+.feat-card:first-child {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 40px;
+}
+.feat-card:first-child .feat-text { flex: 1 1 auto; }
+.feat-card:first-child .feat-img-wrap { flex: 0 0 55%; max-width: 55%; }
+
+.feat-card:hover {
+    transform: translateY(-3px);
+    border-color: #D0CCC6;
+    box-shadow: var(--shadow-float);
 }
 
+/* Card header — no more badge pill on EVERY card (reduce micro-label spam) */
+.card-index-tag {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: var(--c-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+.card-badge-pill {
+    font-family: var(--font-ui);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--c-charcoal);
+    border: 1px solid var(--c-border);
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--c-bg);
+}
 .card-header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
     width: 100%;
 }
-.card-index-tag {
-    font-family: var(--font-mono, monospace);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    color: #71717a;
-    text-transform: uppercase;
-}
-.card-badge-pill {
-    font-family: var(--font-mono, monospace);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #09090b;
-    border: 1px solid rgba(9, 9, 11, 0.12);
-    padding: 3px 8px;
-    border-radius: 4px;
-    background: rgba(9, 9, 11, 0.04);
-}
-
 .card-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: #09090b;
+    font-family: var(--font-accent);
+    font-size: 20px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--c-charcoal);
     letter-spacing: -0.01em;
     line-height: 1.3;
 }
@@ -304,8 +342,8 @@ a { color: inherit; text-decoration: none; }
     border-radius: 8px;
     overflow: hidden;
     position: relative;
-    background: #f4f4f5;
-    border: 1px solid rgba(9, 9, 11, 0.08);
+    background: var(--c-bg);
+    border: 1px solid var(--c-border);
 }
 .feat-img-wrap img, .step-img-wrap img {
     width: 100%;
@@ -321,80 +359,117 @@ a { color: inherit; text-decoration: none; }
 
 .card-desc {
     font-size: 14px;
-    color: #52525b;
-    line-height: 1.6;
+    color: var(--c-dark-gray);
+    line-height: 1.7;
 }
 
+/* ── STEPS GRID — zig-zag 2 col ───────────────────────────── */
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+.step-card {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    gap: 16px;
+    box-shadow: var(--shadow-raised);
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.step-card:nth-child(2) {
+    margin-top: 28px; /* stagger second card for editorial rhythm */
+}
+.step-card:hover {
+    transform: translateY(-3px);
+    border-color: #D0CCC6;
+    box-shadow: var(--shadow-float);
+}
+
+/* ── CTA — warm charcoal instead of gray band ─────────────── */
 .cta-section {
-    background: #f4f4f5;
+    background: var(--c-charcoal);
     text-align: center;
-    padding: 64px 24px;
-    border-top: 1px solid rgba(9, 9, 11, 0.08);
+    padding: 72px 24px;
+    border-top: 1px solid var(--c-border);
 }
-
 .cta-section h2 {
-    font-size: clamp(28px, 3.5vw, 40px);
-    font-weight: 700;
+    font-family: var(--font-accent);
+    font-size: clamp(26px, 3.2vw, 38px);
+    font-weight: 400;
+    font-style: italic;
     margin-bottom: 10px;
-    color: #09090b;
-    letter-spacing: -0.02em;
+    color: var(--c-bg);
+    letter-spacing: -0.01em;
 }
 .cta-section p {
-    color: #52525b;
+    color: #9A9490;
     margin-bottom: 28px;
-    font-size: 15px;
+    font-size: 14px;
 }
 .cta-section .btn-solid {
-    font-size: 15px;
-    padding: 14px 32px;
+    font-size: 14px;
+    padding: 13px 30px;
+    background: var(--c-bg);
+    color: var(--c-charcoal);
+    box-shadow: none;
 }
+.cta-section .btn-solid:hover { opacity: 0.88; }
 
 .footer {
-    padding: 28px 24px;
-    background: #ffffff;
+    padding: 24px;
+    background: var(--c-bg);
     text-align: center;
-    font-size: 12px;
+    font-family: var(--font-ui);
+    font-size: 11px;
     font-weight: 500;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #a1a1aa;
-    border-top: 1px solid rgba(9, 9, 11, 0.06);
+    letter-spacing: 0.06em;
+    color: var(--c-muted);
+    border-top: 1px solid var(--c-border);
 }
 
+/* ── Reveal scroll animations ─────────────────────────────── */
 .reveal {
     opacity: 0;
-    transform: translateY(20px);
+    transform: translateY(18px);
     transition: opacity 0.6s ease, transform 0.6s ease;
 }
 .reveal.visible { opacity: 1; transform: translateY(0); }
 
+/* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 768px) {
     .stats-bar { grid-template-columns: repeat(2, 1fr); }
     .stat-item:nth-child(2) { border-right: none; }
     .stat-item { padding: 24px 16px; }
-    .stat-num { font-size: 26px; }
-    .section { padding: 60px 20px; }
+    .stat-num { font-size: 24px; }
+    .section { padding: 56px 20px; }
+    .section-header { text-align: left; }
     .features-grid { grid-template-columns: 1fr; }
+    .feat-card:first-child { flex-direction: column; }
+    .feat-card:first-child .feat-img-wrap { flex: none; max-width: 100%; }
     .steps-grid { grid-template-columns: repeat(2, 1fr); }
+    .step-card:nth-child(2) { margin-top: 0; }
 }
-
 @media (max-width: 480px) {
     .steps-grid { grid-template-columns: 1fr; }
-    .hero h1 { font-size: 28px; }
+    .hero h1 { font-size: 30px; }
 }
 </style>
-
 </head>
 <body>
 
 <section class="hero">
     <!-- CREATION OF ADAM AI GENERATED DITHER HANDS BACKGROUND -->
-    <div class="hero-bg-adam" style="background-image: url('creation_of_adam_dither_hands.png?v=888888');"></div>
-    <div class="hero-glow"></div>
+    <div class="hero-bg-adam" style="background-image: url('creation_of_adam_dither_hands.png');"></div>
     <div class="hero-inner">
         <div class="pill">
-            XGBoost Quant Stock Screener
-            <span class="pill-arrow">→</span>
+            <span class="pill-dot"></span>
+            XGBoost Quant Screener · BEI
         </div>
 
         <h1>
@@ -412,17 +487,18 @@ a { color: inherit; text-decoration: none; }
 
         <div class="hero-actions">
             <a href="https://t.me/stockaibot" target="_blank" class="btn-outline">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
                 Join Telegram Bot
             </a>
             <a href="dashboard.html" class="btn-solid">
-                View Stock Recommendations
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                View Recommendations
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </a>
         </div>
     </div>
 </section>
 
+<!-- Stats bar — warm cream surface -->
 <section class="stats-bar">
     <div class="stat-item"><div class="stat-num">700+</div><div class="stat-label">IDX Stocks</div></div>
     <div class="stat-item"><div class="stat-num">20+</div><div class="stat-label">Indicators</div></div>
@@ -430,101 +506,106 @@ a { color: inherit; text-decoration: none; }
     <div class="stat-item"><div class="stat-num">+3%</div><div class="stat-label">Daily Target</div></div>
 </section>
 
-<!-- 3-PANEL NIKE VICTORY DITHER SHOWCASE -->
+<!-- Features — asymmetric bento layout -->
 <section class="section" id="features">
     <div class="section-header reveal">
         <div class="section-tag">Features</div>
-        <h2 class="section-title">XGBoost Trained on 5 Years of BEI Data</h2>
-        <p class="section-desc">Integrating machine learning and quantitative technical analysis for IDX stock screening.</p>
+        <h2 class="section-title">XGBoost trained on<br>5 years of BEI data</h2>
+        <p class="section-desc">Machine learning and quantitative technical analysis, integrated for daily IDX stock screening.</p>
     </div>
     <div class="features-grid">
+        <!-- Anchor card — spans full width, horizontal layout -->
+        <div class="feat-card reveal">
+            <div class="feat-text">
+                <div class="card-header-top">
+                    <span class="card-index-tag">#01 Connect</span>
+                    <span class="card-badge-pill">Real-Time</span>
+                </div>
+                <h3 class="card-title">Macro &amp; Market Sentiment</h3>
+                <p class="card-desc">Automated evaluation of IHSG trends, USD/IDR exchange rates, and real-time news sentiment analysis from economic RSS feeds.</p>
+            </div>
+            <div class="feat-img-wrap">
+                <img src="nike_panel_1.png" alt="Macro & Market Sentiment" loading="lazy">
+            </div>
+        </div>
+        <!-- Two equal cards below -->
         <div class="feat-card reveal">
             <div class="card-header-top">
-                <span class="card-index-tag">#01 CONNECT</span>
-                <span class="card-badge-pill">REAL-TIME</span>
+                <span class="card-index-tag">#02 Quant ML</span>
+                <span class="card-badge-pill">XGBoost</span>
             </div>
-            <h3 class="card-title">Macro &amp; Market Sentiment</h3>
+            <h3 class="card-title">Quant Engine</h3>
             <div class="feat-img-wrap">
-                <img src="nike_panel_1.png?v=888888" alt="Macro & Market Sentiment" loading="lazy">
+                <img src="nike_panel_2.png" alt="XGBoost Quant Engine" loading="lazy">
             </div>
-            <p class="card-desc">Automated evaluation of IHSG trends, USD/IDR exchange rates, and real-time news sentiment analysis.</p>
+            <p class="card-desc">Trained on 5 years of historical BEI data, 20+ technical indicators (RSI, MACD, BB, OBV, VWAP) with Optuna hyperparameter tuning.</p>
         </div>
         <div class="feat-card reveal">
             <div class="card-header-top">
-                <span class="card-index-tag">#02 QUANT ML</span>
-                <span class="card-badge-pill">XGBOOST ENGINE</span>
-            </div>
-            <h3 class="card-title">XGBoost Quant Engine</h3>
-            <div class="feat-img-wrap">
-                <img src="nike_panel_2.png?v=888888" alt="XGBoost Quant Engine" loading="lazy">
-            </div>
-            <p class="card-desc">Trained on 5 years of historical BEI market data, 20+ technical indicators (RSI, MACD, BB, OBV, VWAP) with Optuna hyperparameter tuning.</p>
-        </div>
-        <div class="feat-card reveal">
-            <div class="card-header-top">
-                <span class="card-index-tag">#03 AUDIT RISK</span>
-                <span class="card-badge-pill">+3.0% TP TARGET</span>
+                <span class="card-index-tag">#03 Audit</span>
+                <span class="card-badge-pill">+3.0% TP</span>
             </div>
             <h3 class="card-title">Multi-Agent &amp; Daily Audit</h3>
             <div class="feat-img-wrap">
-                <img src="nike_panel_3.png?v=888888" alt="Multi-Agent & Daily Audit" loading="lazy">
+                <img src="nike_panel_3.png" alt="Multi-Agent & Daily Audit" loading="lazy">
             </div>
-            <p class="card-desc">Consensus technical &amp; sentiment signal validation with disciplined risk management (+3.0% Profit Target, -1.5% Stop Loss).</p>
+            <p class="card-desc">Consensus signal validation with disciplined risk management (+3.0% Profit Target, −1.5% Stop Loss).</p>
         </div>
     </div>
 </section>
 
+<!-- How It Works — staggered 3 column -->
 <section class="section" id="how">
     <div class="section-header reveal">
         <div class="section-tag">Workflow</div>
-        <h2 class="section-title">How It Works</h2>
+        <h2 class="section-title">How it works</h2>
         <p class="section-desc">An automated end-to-end pipeline from data ingestion to actionable trading signals.</p>
     </div>
     <div class="steps-grid">
         <div class="step-card reveal">
             <div class="card-header-top">
-                <span class="card-index-tag">STEP #01</span>
-                <span class="card-badge-pill">DATA STREAM</span>
+                <span class="card-index-tag">Step 01</span>
+                <span class="card-badge-pill">Data Stream</span>
             </div>
             <h3 class="card-title">Data Collection</h3>
             <div class="step-img-wrap">
-                <img src="step_img_1.png?v=888888" alt="Data Collection" loading="lazy">
+                <img src="step_img_1.png" alt="Data Collection" loading="lazy">
             </div>
             <p class="card-desc">Batch downloading 700+ BEI tickers from Yahoo Finance in organized 50-stock chunks at regular intervals.</p>
         </div>
         <div class="step-card reveal">
             <div class="card-header-top">
-                <span class="card-index-tag">STEP #02</span>
-                <span class="card-badge-pill">FEATURE MATRIX</span>
+                <span class="card-index-tag">Step 02</span>
+                <span class="card-badge-pill">Feature Matrix</span>
             </div>
             <h3 class="card-title">Quant &amp; Feature Engine</h3>
             <div class="step-img-wrap">
-                <img src="step_img_2.png?v=888888" alt="Quant & Feature Engine" loading="lazy">
+                <img src="step_img_2.png" alt="Quant & Feature Engine" loading="lazy">
             </div>
             <p class="card-desc">Precision calculation of 20+ technical indicators alongside feature embedding vector extraction.</p>
         </div>
         <div class="step-card reveal">
             <div class="card-header-top">
-                <span class="card-index-tag">STEP #03</span>
-                <span class="card-badge-pill">CONSENSUS</span>
+                <span class="card-index-tag">Step 03</span>
+                <span class="card-badge-pill">Consensus</span>
             </div>
             <h3 class="card-title">Signal &amp; Consensus Output</h3>
             <div class="step-img-wrap">
-                <img src="step_img_3.png?v=888888" alt="Signal & Consensus Output" loading="lazy">
+                <img src="step_img_3.png" alt="Signal & Consensus Output" loading="lazy">
             </div>
             <p class="card-desc">Top 10 daily stock recommendations complete with target profits, stop losses, and model narratives.</p>
         </div>
     </div>
 </section>
 
-
+<!-- CTA — charcoal dark instead of grey band -->
 <section class="cta-section">
     <h2>Start Screening</h2>
     <p>Analyze 700+ IDX stocks in seconds.</p>
-    <a href="dashboard.html" class="btn-solid">Start Screening →</a>
+    <a href="dashboard.html" class="btn-solid">View Recommendations &rarr;</a>
 </section>
 
-<footer class="footer">For Educational Purposes</footer>
+<footer class="footer">For Educational Purposes &nbsp;&middot;&nbsp; StockAI &copy; 2026</footer>
 
 <script>
 var words = [
@@ -597,4 +678,3 @@ document.querySelectorAll('a[href="/dashboard"], a[href="dashboard.html"]').forE
 </script>
 </body>
 </html>
-

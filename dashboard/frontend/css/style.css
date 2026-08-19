@@ -1785,3 +1785,13 @@ strong {
     color: var(--c-soft-gray);
     font-weight: 500;
 }
+
+.qm-leading {
+    font-size: 10px;
+    font-weight: 600;
+    font-family: var(--font-ui);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--c-amber);
+    margin-left: 2px;
+}
