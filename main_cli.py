@@ -21,6 +21,7 @@ Penggunaan:
 import sys
 import os
 import re
+import difflib
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import pandas as pd
@@ -51,6 +52,10 @@ from rich.columns import Columns
 from rich.prompt import Prompt
 
 console = Console()
+
+def _usage(cmd: str, example: str) -> None:
+    """Menampilkan pesan format penggunaan yang konsisten untuk semua command."""
+    console.print(f"[bold red]Gunakan format: /{cmd} {example}[/bold red]")
 
 def _clean_text(text: str) -> str:
     """Membersihkan emoji / karakter non-ASCII bermasalah untuk kompatibilitas terminal Windows."""
@@ -228,12 +233,24 @@ def render_ascii_chart(prices: list, height: int = 7, width: int = 42) -> str:
         row = max(0, min(height - 1, row))
         grid[height - 1 - row][col] = "*" if col == len(sampled) - 1 else "-"
 
+    is_up = sampled[-1] >= sampled[0]
+    marker = "▲" if is_up else "▼"
+    line_color = "green" if is_up else "red"
+    pct = ((sampled[-1] - sampled[0]) / sampled[0] * 100) if sampled[0] else 0.0
+
     lines = []
     for r in range(height):
         val = max_p - (r / (height - 1)) * rng
-        line_chars = "".join(grid[r])
-        lines.append(f"{val:8.0f} | {line_chars}")
+        row_str = "".join(grid[r])
+        if row_str and row_str[-1] == "*":
+            body = row_str[:-1]
+            last_c = f"[bold {line_color}]{marker}[/bold {line_color}]"
+        else:
+            body = row_str[:-1]
+            last_c = row_str[-1]
+        lines.append(f"{val:8.0f} | {body}{last_c}")
     lines.append(" " * 8 + " +-" + "-" * len(sampled))
+    lines.append(f"{'':>8}  [{line_color}]{marker} {pct:+.1f}%[/{line_color}]  |  High {max_p:,.0f} / Low {min_p:,.0f}")
     return "\n".join(lines)
 
 
@@ -243,16 +260,16 @@ def render_ascii_chart(prices: list, height: int = 7, width: int = 42) -> str:
 
 def cmd_help():
     """Menampilkan panduan perintah yang tersedia."""
-    table = Table(title="[bold cyan]DAFTAR PERINTAH / SLASH COMMANDS[/bold cyan]", show_header=True, header_style="bold magenta")
-    table.add_column("Perintah", style="bold green", width=22)
-    table.add_column("Fungsi & Deskripsi", style="white")
+    table = Table(title="[bold]DAFTAR PERINTAH / SLASH COMMANDS[/bold]", show_header=True, header_style="bold")
+    table.add_column("Perintah", style="bold", width=22)
+    table.add_column("Fungsi & Deskripsi", style="white", overflow="fold")
     table.add_column("Contoh", style="yellow")
 
     table.add_row("/scan, /top", "Scan seluruh bursa BEI & tampilkan Top 10 sinyal rekomendasi hari ini", "/scan")
     table.add_row("/analyze <TICKER>", "Deep-dive analisa multi-agent lengkap (Teknikal, Makro, Sentimen, Kelly)", "/analyze BBCA")
     table.add_row("/macro", "Cek rezim pasar IHSG, kurs USD/IDR, bursa Asia & rotasi 11 sektor", "/macro")
     table.add_row("/audit", "Lihat rekapitulasi performa sinyal & Win Rate historis sistem", "/audit")
-    table.add_row("/sizing <TKR> [MODAL]", "Hitung alokasi lot & money management optimal (Half-Kelly)", "/sizing BBRI 50000000")
+    table.add_row("/sizing <TKR> [MODAL]", "Hitung alokasi lot & money management optimal (Half-Kelly)", "/sizing BBRI 50jt")
     table.add_row("/chart <TICKER>", "Tampilkan grafik tren harga mini (ASCII chart) di terminal", "/chart ASII")
     table.add_row("/clear", "Bersihkan layar terminal", "/clear")
     table.add_row("/exit, /quit", "Keluar dari terminal shell interaktif", "/exit")
@@ -278,40 +295,36 @@ def cmd_scan():
         console.print("[yellow]Tidak ada rekomendasi yang ditemukan saat ini.[/yellow]")
         return
 
-    table = Table(title=f"[bold green]TOP REKOMENDASI SAHAM KUANTITATIF (WIB {get_wib_now().strftime('%Y-%m-%d %H:%M')})[/bold green]", show_header=True, header_style="bold cyan")
-    table.add_column("No", justify="right", style="dim", width=4)
-    table.add_column("Ticker", style="bold cyan", width=8)
-    table.add_column("Sektor", style="magenta", width=18)
-    table.add_column("Harga", justify="right", style="white", width=10)
-    table.add_column("Target (TP)", justify="right", style="green", width=11)
-    table.add_column("Stop Loss", justify="right", style="red", width=10)
-    table.add_column("Win Prob", justify="right", style="bold yellow", width=10)
-    table.add_column("RVOL", justify="right", style="cyan", width=8)
-    table.add_column("Kelly %", justify="right", style="bold green", width=9)
-    table.add_column("Katalis / Sinyal Utama", style="dim white")
+    table = Table(title=f"[bold]TOP REKOMENDASI SAHAM KUANTITATIF (WIB {get_wib_now().strftime('%Y-%m-%d %H:%M')})[/bold]", show_header=True, header_style="bold", padding=(0, 1))
+    table.add_column("No", justify="right", style="dim", width=3)
+    table.add_column("Saham", style="bold", width=10)
+    table.add_column("Harga", justify="right", style="white", width=9)
+    table.add_column("TP", justify="right", style="green", width=9)
+    table.add_column("SL", justify="right", style="red", width=9)
+    table.add_column("Prob", justify="right", style="bold yellow", width=6)
+    table.add_column("Sinyal Utama", style="dim", overflow="fold", ratio=1)
 
     for i, item in enumerate(data[:10], start=1):
         tkr = item.get("ticker", "").replace(".JK", "")
         sec = item.get("sector", "Umum")
-        lead = " [HOT]" if item.get("is_leading_sector") else ""
-        price = f"Rp {item.get('close_price', 0):,}"
-        tp = f"Rp {item.get('target_price', 0):,}"
-        sl = f"Rp {item.get('stop_loss', 0):,}"
+        lead = " [bold green][HOT][/bold green]" if item.get("is_leading_sector") else ""
+        price = f"Rp {item.get('close_price', 0):,.0f}"
+        tp = f"Rp {item.get('target_price', 0):,.0f}"
+        sl = f"Rp {item.get('stop_loss', 0):,.0f}"
         prob = f"{item.get('probability', 0):.1f}%"
-        rvol = f"{item.get('rvol', 1.0):.2f}x"
-        kelly = f"{item.get('kelly_allocation', 10.0):.1f}%"
         reason = item.get("reason", "Technical Setup")
 
-        table.add_row(str(i), tkr, f"{sec}{lead}", price, tp, sl, prob, rvol, kelly, reason)
+        table.add_row(str(i), f"{tkr}\n[dim]{sec}{lead}[/dim]", price, tp, sl, prob, reason)
 
     console.print(table)
-    console.print("[dim][HOT] = Sektor leading dalam momentum inflow modal saat ini[/dim]\n")
+    console.print("[dim][HOT] = Sektor leading dalam momentum inflow modal saat ini[/dim]")
+    console.print("[dim]Tip: ketik [bold yellow]/analyze <TICKER>[/bold yellow] untuk deep-dive multi-agent.[/dim]\n")
 
 
 def cmd_analyze(ticker: str):
     """Deep-dive analisis saham tertentu."""
     if not ticker:
-        console.print("[bold red]Gunakan format: /analyze <TICKER> (contoh: /analyze BBCA)[/bold red]")
+        _usage("analyze", "<TICKER> (contoh: /analyze BBCA)")
         return
 
     clean_ticker = ticker.upper().replace(".JK", "").strip()
@@ -331,7 +344,7 @@ def cmd_analyze(ticker: str):
         sector = get_ticker_sector(clean_ticker)
         
         macro_agent = IHSGMacroAgent()
-        macro_res = macro_agent.evaluate(skip_news=True)
+        macro_res = macro_agent.evaluate(skip_news=True, skip_sectors=False)
         leading_sectors = macro_res.get("sector_rotation", {}).get("leading_sectors", [])
         is_leading = sector in leading_sectors
 
@@ -402,9 +415,9 @@ def cmd_analyze(ticker: str):
     console.print(grid)
 
     # Multi-Agent Consensus
-    t_agents = Table(title="[bold magenta]3. Konsensus Multi-Agent AI System[/bold magenta]", show_header=True, header_style="bold magenta")
-    t_agents.add_column("Agen AI", style="bold cyan", width=20)
-    t_agents.add_column("Analisis & Pertimbangan", style="white")
+    t_agents = Table(title="[bold]3. Konsensus Multi-Agent AI System[/bold]", show_header=True, header_style="bold")
+    t_agents.add_column("Agen AI", style="bold", width=20)
+    t_agents.add_column("Analisis & Pertimbangan", style="white", overflow="fold")
     t_agents.add_row("Technical Agent", _clean_text(tech_reason))
     t_agents.add_row("Macro Context Agent", _clean_text(macro_reason))
     t_agents.add_row("Sentiment Agent", _clean_text(sent_reason))
@@ -413,7 +426,7 @@ def cmd_analyze(ticker: str):
     # Mini ASCII Chart
     chart_str = render_ascii_chart(ind["history"], height=6, width=45)
     console.print(Panel(chart_str, title=f"[dim]Grafik Tren Harga 30 Hari Terakhir: {clean_ticker}[/dim]", expand=False))
-    console.print()
+    console.print("[dim]Tip: ketik [bold yellow]/sizing {0} <MODAL>[/bold yellow] untuk kalkulasi lot berdasarkan modal Anda.[/dim]\n".format(clean_ticker))
 
 
 def cmd_macro():
@@ -422,7 +435,7 @@ def cmd_macro():
         try:
             from src.agents.ihsg_macro_agent import IHSGMacroAgent
             agent = IHSGMacroAgent()
-            res = agent.evaluate(skip_news=True)
+            res = agent.evaluate(skip_news=True, skip_sectors=False)
         except Exception as e:
             console.print(f"[bold red]Error saat mengambil data makro: {e}[/bold red]")
             return
@@ -443,9 +456,9 @@ def cmd_macro():
 
     # Tabel Indikator Pasar
     if details:
-        t_ind = Table(title="[bold cyan]1. Parameter Pasar Global, Valas & Domestik[/bold cyan]", show_header=True, header_style="bold cyan")
+        t_ind = Table(title="[bold]1. Parameter Pasar Global, Valas & Domestik[/bold]", show_header=True, header_style="bold")
         t_ind.add_column("No", justify="right", style="dim", width=4)
-        t_ind.add_column("Parameter & Evaluasi Indikator", style="white")
+        t_ind.add_column("Parameter & Evaluasi Indikator", style="white", overflow="fold")
 
         for idx, det in enumerate(details, start=1):
             clean_det = _clean_text(det.replace("• ", ""))
@@ -459,9 +472,9 @@ def cmd_macro():
     leading = sec_info.get("leading_sectors", [])
 
     if sec_rank:
-        t_sec = Table(title="[bold green]2. Peta Rotasi Momentum 11 Sektor BEI[/bold green]", show_header=True, header_style="bold green")
+        t_sec = Table(title="[bold]2. Peta Rotasi Momentum 11 Sektor BEI[/bold]", show_header=True, header_style="bold")
         t_sec.add_column("Peringkat", justify="right", style="dim", width=10)
-        t_sec.add_column("Sektor", style="bold white", width=25)
+        t_sec.add_column("Sektor", style="bold", width=25)
         t_sec.add_column("Skor Momentum", justify="right", style="bold yellow", width=18)
         t_sec.add_column("Status Aliran Dana", style="white")
 
@@ -471,7 +484,7 @@ def cmd_macro():
             t_sec.add_row(f"#{rank}", s_name, f"{s_score:+.2f}%", status)
 
         console.print(t_sec)
-    console.print()
+    console.print("[dim]Tip: ketik [bold yellow]/analyze <TICKER>[/bold yellow] untuk cek dampak makro ke saham tertentu.[/dim]\n")
 
 
 def cmd_audit():
@@ -495,10 +508,13 @@ def cmd_audit():
     profit = summary.get("total_profit_pct", 0.0)
 
     # Ringkasan Panel
+    profit_str = f"+{profit:.1f}%" if profit >= 0 else f"{profit:.1f}%"
+    profit_color = "bold green" if profit >= 0 else "bold red"
+    wr_color = "bold green" if wr >= 60 else ("bold yellow" if wr >= 40 else "bold red")
     panel_content = (
         f"Total Sinyal Terverifikasi : [bold]{tot:,}[/bold]\n"
-        f"Win Rate Kumulatif        : [bold green]{wr:.1f}%[/bold green] ({win} WIN / {loss} LOSS / {pending} PENDING)\n"
-        f"Total Realized Profit     : [bold green]+{profit:.1f}%[/bold green] (Akumulasi Realized Gain)\n"
+        f"Win Rate Kumulatif        : [{wr_color}]{wr:.1f}%[/{wr_color}] ({win} WIN / {loss} LOSS / {pending} PENDING)\n"
+        f"Total Realized Profit     : [{profit_color}]{profit_str}[/{profit_color}] (Akumulasi Realized Gain)\n"
         f"Proteksi Risiko           : Dynamic Stop-Loss Strict (-1.5% max)"
     )
     console.print(Panel(panel_content, title="[bold]REKAPITULASI AUDIT & REKAM JEJAK SINYAL[/bold]", expand=False))
@@ -527,31 +543,38 @@ def cmd_audit():
             )
 
         console.print(t_m)
-    console.print()
+    console.print("[dim]Tip: ketik [bold yellow]/sizing <TICKER> <MODAL>[/bold yellow] untuk kalkulasi lot sesuai modal Anda.[/dim]\n")
 
 
 def cmd_sizing(ticker: str, capital_str: str = ""):
     """Kalkulator ukuran posisi dan lot saham berdasarkan Half-Kelly Criterion."""
     if not ticker:
-        console.print("[bold red]Gunakan format: /sizing <TICKER> [MODAL] (contoh: /sizing BBRI 50000000)[/bold red]")
+        _usage("sizing", "<TICKER> [MODAL] (contoh: /sizing BBRI 50jt)")
         return
 
     clean_ticker = ticker.upper().replace(".JK", "").strip()
-    
-    capital = 50_000_000.0  # default 50 juta
+
+    # Parse modal: dukung 50jt, 50j, 50 juta, 50m, 500rb, 50000000
+    capital = None
     if capital_str:
-        clean_cap = capital_str.lower().replace(",", "").replace(".", "").replace("rp", "").strip()
-        if "jt" in clean_cap:
-            val = float(clean_cap.replace("jt", "")) * 1_000_000
+        raw = capital_str.lower().replace("rp", "").strip()
+        mult = 1.0
+        for suffix, factor in (("juta", 1_000_000), ("jt", 1_000_000), ("j", 1_000_000), ("m", 1_000_000), ("rb", 1_000), ("k", 1_000)):
+            if raw.endswith(suffix):
+                mult = factor
+                raw = raw[: -len(suffix)].strip()
+                break
+        num = raw.replace(",", "").replace(".", "").strip()
+        try:
+            val = float(num) * mult
+        except ValueError:
+            val = 0.0
+        if val > 0:
             capital = val
-        elif "m" in clean_cap:
-            val = float(clean_cap.replace("m", "")) * 1_000_000
-            capital = val
-        else:
-            try:
-                capital = float(clean_cap)
-            except ValueError:
-                capital = 50_000_000.0
+
+    if capital is None:
+        capital = 50_000_000.0
+        console.print("[dim]Modal tidak diisi / tidak valid — memakai default Rp 50.000.000. Contoh: [bold yellow]/sizing BBRI 50jt[/bold yellow][/dim]")
 
     with console.status(f"[bold green]Menghitung kalkulasi posisi Kelly untuk {clean_ticker}...[/bold green]"):
         df = fetch_stock_data(clean_ticker)
@@ -576,10 +599,14 @@ def cmd_sizing(ticker: str, capital_str: str = ""):
     lots = int(allocated_rupiah // lot_price) if lot_price > 0 else 0
     actual_invested = lots * lot_price
 
+    if lots == 0:
+        console.print(f"[yellow]Modal Rp {capital:,.0f} terlalu kecil untuk 1 lot {clean_ticker} (Rp {lot_price:,.0f}). Alokasi Kelly {kelly_pct:.1f}% belum cukup untuk 1 lot. Pertimbangkan menambah modal.[/yellow]\n")
+        return
+
     potential_profit_rp = lots * 100 * (tp - price)
     max_risk_rp = lots * 100 * (price - sl)
 
-    table = Table(title=f"[bold green]KALKULATOR SIZING POSISI: {clean_ticker}[/bold green]", show_header=False)
+    table = Table(title=f"[bold]KALKULATOR SIZING POSISI: {clean_ticker}[/bold]", show_header=False)
     table.add_column("Parameter", style="white", width=28)
     table.add_column("Nilai", style="bold yellow")
 
@@ -600,7 +627,7 @@ def cmd_sizing(ticker: str, capital_str: str = ""):
 def cmd_chart(ticker: str):
     """Menampilkan grafik harga terminal untuk saham tertentu."""
     if not ticker:
-        console.print("[bold red]Gunakan format: /chart <TICKER> (contoh: /chart ASII)[/bold red]")
+        _usage("chart", "<TICKER> (contoh: /chart ASII)")
         return
 
     clean_ticker = ticker.upper().replace(".JK", "").strip()
@@ -647,7 +674,7 @@ def execute_command(line: str) -> bool:
         cmd = cmd[1:]
 
     if cmd in ["exit", "quit", "q"]:
-        console.print("[bold cyan]Terima kasih telah menggunakan IDX Quant AI Terminal. Sampai jumpa! 👋[/bold cyan]")
+        console.print("[bold cyan]Terima kasih telah menggunakan IDX Quant AI Terminal. Sampai jumpa![/bold cyan]")
         return False
 
     elif cmd in ["help", "h", "?"]:
@@ -658,7 +685,7 @@ def execute_command(line: str) -> bool:
 
     elif cmd in ["analyze", "a", "inspect"]:
         if not args:
-            console.print("[yellow]Harap masukkan kode saham. Contoh: /analyze BBCA[/yellow]")
+            _usage("analyze", "<TICKER> (contoh: /analyze BBCA)")
         else:
             cmd_analyze(args[0])
 
@@ -670,7 +697,7 @@ def execute_command(line: str) -> bool:
 
     elif cmd in ["sizing", "size", "kelly", "k"]:
         if not args:
-            console.print("[yellow]Harap masukkan kode saham dan modal opsional. Contoh: /sizing BBRI 50000000[/yellow]")
+            _usage("sizing", "<TICKER> [MODAL] (contoh: /sizing BBRI 50jt)")
         else:
             tkr = args[0]
             cap = args[1] if len(args) > 1 else ""
@@ -678,7 +705,7 @@ def execute_command(line: str) -> bool:
 
     elif cmd in ["chart", "c", "plot"]:
         if not args:
-            console.print("[yellow]Harap masukkan kode saham. Contoh: /chart BBCA[/yellow]")
+            _usage("chart", "<TICKER> (contoh: /chart BBCA)")
         else:
             cmd_chart(args[0])
 
@@ -686,7 +713,10 @@ def execute_command(line: str) -> bool:
         os.system("cls" if os.name == "nt" else "clear")
 
     else:
-        console.print(f"[bold red]Perintah '{cmd}' tidak dikenali.[/bold red] Ketik [bold yellow]/help[/bold yellow] untuk melihat daftar perintah.")
+        known = ["help", "scan", "analyze", "macro", "audit", "sizing", "chart", "clear", "exit"]
+        close = difflib.get_close_matches(cmd, known, n=1, cutoff=0.6)
+        suggestion = f" Maksud Anda: [bold yellow]/{close[0]}[/bold yellow]?" if close else ""
+        console.print(f"[bold red]Perintah '{cmd}' tidak dikenali.[/bold red]{suggestion} Ketik [bold yellow]/help[/bold yellow] untuk melihat daftar perintah.")
 
     return True
 
@@ -694,29 +724,39 @@ def execute_command(line: str) -> bool:
 def run_interactive_shell():
     """Menjalankan loop terminal shell interaktif."""
     banner_text = Text()
-    banner_text.append("🚀 IDX QUANT AI - INTERACTIVE TERMINAL SHELL\n", style="bold cyan")
+    banner_text.append("IDX QUANT AI - INTERACTIVE TERMINAL SHELL\n", style="bold")
     banner_text.append("Multi-Agent Intelligence, Quant Screener & Risk Management\n", style="white")
     banner_text.append("Ketik ", style="dim")
     banner_text.append("/help", style="bold yellow")
-    banner_text.append(" untuk daftar perintah atau ", style="dim")
+    banner_text.append(" untuk daftar perintah, atau ", style="dim")
     banner_text.append("/scan", style="bold green")
-    banner_text.append(" untuk rekomendasi harian.", style="dim")
+    banner_text.append(" untuk rekomendasi harian.\n", style="dim")
+    banner_text.append("Coba: ", style="dim")
+    banner_text.append("/scan", style="bold green")
+    banner_text.append(" lalu ", style="dim")
+    banner_text.append("/analyze BBCA", style="bold cyan")
+    banner_text.append(" untuk deep-dive multi-agent.", style="dim")
 
     console.print(Panel(banner_text, expand=False, border_style="cyan"))
 
     running = True
     while running:
         try:
-            user_input = Prompt.ask("[bold cyan](idx-quant)[/bold cyan] >")
+            prompt = f"[bold cyan](idx-quant · {get_wib_now().strftime('%H:%M')} WIB)[/bold cyan] >"
+            user_input = Prompt.ask(prompt)
             running = execute_command(user_input)
         except (KeyboardInterrupt, EOFError):
-            console.print("\n[bold cyan]Sesi dihentikan. Sampai jumpa! 👋[/bold cyan]")
+            console.print("\n[bold cyan]Sesi dihentikan. Sampai jumpa![/bold cyan]")
             break
 
 
 def main():
     """Entry point CLI: Mendukung direct execution maupun interactive shell."""
     if len(sys.argv) > 1:
+        first_arg = sys.argv[1].strip().lower()
+        if first_arg in ("--help", "-h"):
+            cmd_help()
+            return
         cmd_line = " ".join(sys.argv[1:])
         execute_command(cmd_line)
     else:

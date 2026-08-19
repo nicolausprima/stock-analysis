@@ -70,8 +70,13 @@ class IHSGMacroAgent:
             "sector_rankings": dict(sorted_sectors)
         }
 
-    def evaluate(self, skip_news: bool = False) -> Dict[str, Any]:
-        """Perform comprehensive macro regime evaluation."""
+    def evaluate(self, skip_news: bool = False, skip_sectors: bool = False) -> Dict[str, Any]:
+        """Perform comprehensive macro regime evaluation.
+        
+        Args:
+            skip_news: Skip economic news sentiment analysis (faster).
+            skip_sectors: Skip sector rotation analysis (faster, avoids 11 yfinance calls).
+        """
         logger.info("[MACRO AGENT] Initiating global & domestic macro evaluation...")
         
         details = []
@@ -222,8 +227,8 @@ class IHSGMacroAgent:
             stop_loss_pct = 0.010
 
         # 7. Sector Rotation Intelligence
-        # Dilewati saat skip_news=True (mode cepat BSJP/fresh-scan) agar tidak menambah 11x download yfinance
-        if skip_news:
+        # Dilewati saat skip_sectors=True (mode cepat BSJP/fresh-scan) agar tidak menambah 11x download yfinance
+        if skip_sectors:
             sector_rotation = {"leading_sectors": [], "sector_rankings": {}}
         else:
             sector_rotation = self.evaluate_sector_rotation()

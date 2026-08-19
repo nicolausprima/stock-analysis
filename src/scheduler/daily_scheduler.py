@@ -67,7 +67,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     try:
         from src.agents.ihsg_macro_agent import IHSGMacroAgent
         macro_agent = IHSGMacroAgent()
-        macro_eval = macro_agent.evaluate(skip_news=skip_download)
+        macro_eval = macro_agent.evaluate(skip_news=skip_download, skip_sectors=skip_download)
         mode_text = str(macro_eval.get('mode_badge', 'NORMAL')).encode('ascii', errors='replace').decode('ascii')
         print(f"[MACRO AGENT] Result: {mode_text} | Score: {macro_eval.get('macro_score', 0):+.1f}")
         for d in macro_eval.get('details', []):

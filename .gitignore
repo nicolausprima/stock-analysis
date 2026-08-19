@@ -21,6 +21,7 @@ env/
 data/raw/
 data/processed/
 data/*.db
+data/*.db-*
 data/*.json
 # models/*.pkl   # Dikecualikan supaya bisa dipakai GitHub Actions
 # models/*.joblib

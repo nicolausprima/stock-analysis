@@ -266,7 +266,8 @@ def run_audit():
         # 1. Coba ambil data dari database lokal stock_market.db terlebih dahulu
         if market_db_path.exists():
             try:
-                with get_db_connection(timeout=10.0) as m_conn:
+                m_conn = sqlite3.connect(str(market_db_path), timeout=10.0, check_same_thread=False)
+                try:
                     query = """
                         SELECT date, high as High, low as Low, close as Close 
                         FROM daily_prices 
@@ -274,6 +275,8 @@ def run_audit():
                         ORDER BY date ASC
                     """
                     df = pd.read_sql_query(query, m_conn, params=(yf_ticker, clean_ticker, start_date))
+                finally:
+                    m_conn.close()
             except Exception:
                 df = pd.DataFrame()
 
@@ -437,8 +440,18 @@ def get_audit_recap():
 
         if st == "WIN":
             m_data["win_count"] += 1
-            m_data["monthly_profit_pct"] += (real_ret or 3.0)
-            cum_return += (real_ret or 3.0)
+            if real_ret is not None:
+                m_data["monthly_profit_pct"] += real_ret
+                cum_return += real_ret
+            else:
+                r_entry = r["entry_price"]
+                r_target = r["target_price"]
+                if r_entry and r_target and r_entry > 0:
+                    ret = round(((r_target - r_entry) / r_entry) * 100, 1)
+                else:
+                    ret = 3.0
+                m_data["monthly_profit_pct"] += ret
+                cum_return += ret
         elif st == "LOSS":
             m_data["loss_count"] += 1
             m_data["monthly_profit_pct"] += -1.5
@@ -448,10 +461,8 @@ def get_audit_recap():
 
         if st in ["WIN", "LOSS"]:
             equity_curve.append({
-                "date": date_part,
-                "cumulative_return": round(cum_return, 1),
-                "ticker": r["ticker"],
-                "status": st
+                "time": date_part,
+                "value": round(cum_return, 1)
             })
 
     # Urutkan dan hitung win_rate per bulan
@@ -463,12 +474,15 @@ def get_audit_recap():
         m_data["monthly_profit_pct"] = round(m_data["monthly_profit_pct"], 1)
         monthly_breakdown.append(m_data)
 
-    clean_equity_curve = []
-    seen_dates = set()
-    for point in reversed(equity_curve):
-        if point["date"] not in seen_dates:
-            clean_equity_curve.insert(0, point)
-            seen_dates.add(point["date"])
+    # Deduplicate equity curve by unique date (keep latest cumulative return per day)
+    daily_equity_dict = {}
+    for pt in equity_curve:
+        daily_equity_dict[pt["time"]] = pt["value"]
+
+    clean_equity_curve = [
+        {"time": dt, "value": val}
+        for dt, val in sorted(daily_equity_dict.items())
+    ]
 
     return {
         "status": "success",
