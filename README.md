@@ -147,6 +147,40 @@ Navigate to `http://127.0.0.1:8000` or `http://127.0.0.1:8000/dashboard.html` in
 
 ---
 
+## 🖥️ Interactive Quant Terminal Shell (CLI)
+
+StockAI provides a Bloomberg/OpenBB-style **Interactive Terminal Shell** with full slash command support:
+
+```bash
+# Start Interactive Terminal Shell
+python main_cli.py
+# or
+python cli.py
+```
+
+### 📋 CLI Slash Commands:
+
+| Command | Action & Description | Example |
+|---|---|---|
+| **`/scan`** or **`/top`** | Scans all BEI stocks and displays Top 10 High-Conviction recommendations with Sector, RVOL, ADX, Dynamic TP/SL, and Kelly Sizing. | `(idx-quant) > /scan` |
+| **`/analyze <TICKER>`** | Deep-dive multi-agent quantitative analysis (Technical, Sentiment, Macro, Risk Manager, and 30-day ASCII trend chart). | `(idx-quant) > /analyze BBCA` |
+| **`/macro`** | Real-time global & domestic macro regime check (IHSG level, USD/IDR, Asian markets, 11-sector momentum ranking). | `(idx-quant) > /macro` |
+| **`/audit`** | Audit track record recap (Win Rate %, total realized gain %, and monthly breakdown table). | `(idx-quant) > /audit` |
+| **`/sizing <TICKER> [CAPITAL]`** | Half-Kelly optimal position sizing and lot allocation calculator based on total capital. | `(idx-quant) > /sizing BBRI 50000000` |
+| **`/chart <TICKER>`** | Mini terminal ASCII price chart with 52-week High/Low and current price position. | `(idx-quant) > /chart ASII` |
+| **`/help`** | Displays command cheat sheet and usage instructions. | `(idx-quant) > /help` |
+| **`/exit`** | Exits the interactive quant shell. | `(idx-quant) > /exit` |
+
+**Direct One-Liner Execution:**
+```bash
+python main_cli.py /scan
+python main_cli.py /analyze BBCA
+python main_cli.py /sizing BBRI 50000000
+python main_cli.py /macro
+```
+
+---
+
 ## 🤖 Telegram Bot Interactive Commands
 
 You can interact directly with the bot (`@StockAnalysisLocalBot`) on Telegram at any time:
