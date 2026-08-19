@@ -25,7 +25,7 @@ StockAI is a production-grade algorithmic day trading screener for the **Indones
 | **Overall Win Rate** | **85.9% (298 WIN / 49 LOSS)** 🚀 |
 | **Total Cumulative Return** | **+820.5% Realized Market Return** 💰 |
 | **Full BEI Universe Scanned** | **700+ BEI Tickers (Active & Liquid)** 🇮🇩 |
-| **Automated Test Suite** | **100% Pass (17/17 pytest Unit Tests)** 🧪 |
+| **Automated Test Suite** | **100% Pass (23/23 pytest Unit Tests)** 🧪 |
 | **UI Response Time** | **Sub-5ms (Pre-computed JSON Cache & SQLite)** ⚡ |
 | **Interactive API Documentation** | **`http://127.0.0.1:8000/docs` (Swagger UI)** 📖 |
 | **Audit Verification** | **100% Time-Aware Realized Return Engine (WIB UTC+7 Locked)** ✅ |
@@ -60,7 +60,7 @@ StockAI is a production-grade algorithmic day trading screener for the **Indones
 | ⚡ **Async Non-Blocking Telegram Bot** | Responds instantly (<1s) to `/today`, `/midday`, `/bsjp`, `/audittoday`, and `/auditall` commands using background worker threads. |
 | 🌇 **BSJP (Beli Sore Jual Pagi) Engine** | Dedicated 15:30 WIB real-time scanner capturing late-afternoon volume accumulation without overwriting main recommendation caches. |
 | ⚡ **Sub-5ms UI Response & JSON Cache** | Pre-computes recommendations after market close into `data/latest_recommendations.json` for instant UI loading. |
-| 🎨 **Modern Multi-Agent Dashboard UI** | Glassmorphism dashboard displaying Sector Pills, Quant Metrics, Bull/Bear Debate, Risk Verdict, and TradingView Charts. |
+| 🎨 **Warm Editorial Dashboard UI** | Editorial design system (Epilogue + Fraunces typography, warm cream palette, split layout) displaying Sector Pills, Quant Metrics, Bull/Bear Debate, Risk Verdict, and TradingView Charts. |
 
 ---
 
@@ -93,8 +93,8 @@ StockAI is a production-grade algorithmic day trading screener for the **Indones
 - **Market Data Providers:** yfinance · OpenBB Platform SDK
 - **AI Narrative / Multi-Agent Synthesis:** DeepSeek-V3 / OpenCode / OpenAI API
 - **Notifications & Bot:** Telegram Bot API (Async Worker & Interactive Polling)
-- **Frontend UI:** Vanilla HTML5 / CSS3 (Glassmorphism) · TradingView Lightweight Charts
-- **Testing & CI/CD:** pytest (17/17 Unit Tests, 100% Pass) · Docker · Docker Compose · GitHub Actions
+- **Frontend UI:** Vanilla HTML5 / CSS3 (Warm Editorial Design System — Epilogue + Fraunces typography) · TradingView Lightweight Charts
+- **Testing & CI/CD:** pytest (23/23 Unit Tests, 100% CI Pass) · Docker · Docker Compose · GitHub Actions
 
 ---
 
@@ -236,6 +236,8 @@ stock-analysis/
 │   ├── clean_ticker_universe.py       # Prunes suspended & delisted tickers
 │   ├── train_real_embedding_model.py  # Production training pipeline on 5-year historical data
 │   └── update_notebooks.py            # Utility to synchronize Jupyter Notebooks with codebase
+├── cli.py                             # Interactive CLI launcher wrapper
+├── main_cli.py                        # Interactive Quant Terminal Shell with slash commands
 ├── src/
 │   ├── agents/
 │   │   ├── ihsg_macro_agent.py        # IHSG Macro Intelligence & IDX 11-Sector Rotation Tracker
@@ -254,7 +256,7 @@ stock-analysis/
 │   │   └── telegram_bot.py            # 4-Phase Telegram broadcaster & interactive polling listener
 │   └── scheduler/
 │       └── daily_scheduler.py         # 4-Phase Background Scheduler (08:30, 12:00, 15:30, 16:05 WIB)
-└── tests/                             # Pytest automated test suite (17/17 passed, 100% CI pass)
+└── tests/                             # Pytest automated test suite (23/23 passed, 100% CI pass)
 ```
 
 ---
