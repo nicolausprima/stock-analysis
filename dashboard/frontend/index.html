@@ -10,25 +10,28 @@
     <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
-   StockAI Landing — Warm Editorial System
-   Consistent with dashboard.html: Epilogue + Fraunces
-   Palette: cream #F7F5F2, charcoal #1C1C1C, muted rose #B85C66
+   StockAI Landing Page
+   Brand system: Epilogue (body) + Fraunces (display/accent)
+   Palette matched to dashboard: cream #F7F5F2, charcoal #1C1C1C
+   Fraunces is justified as an existing brand asset (dashboard.html)
    ============================================================ */
 
 :root {
     --c-bg:          #F7F5F2;
     --c-surface:     #F2F0EC;
     --c-border:      #E8E5E0;
+    --c-border-act:  #D8D5D0;
     --c-charcoal:    #1C1C1C;
+    --c-deep:        #2A2A2A;
     --c-dark-gray:   #4A4A4A;
     --c-muted:       #888888;
     --c-rose:        #B85C66;
-    --c-amber:       #E5C158;
     --font-primary:  'Epilogue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     --font-accent:   'Fraunces', Georgia, 'Times New Roman', serif;
     --font-ui:       'Space Grotesk', -apple-system, sans-serif;
     --shadow-raised: 0 1px 4px rgba(26,22,18,0.04), 0 4px 16px rgba(26,22,18,0.04);
     --shadow-float:  0 2px 8px rgba(26,22,18,0.08), 0 8px 20px rgba(26,22,18,0.06);
+    --radius:        10px;
 }
 
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -45,23 +48,28 @@ body {
     opacity: 0;
     transform: translateY(8px);
     filter: blur(4px);
-    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }
 body.page-loaded  { opacity: 1; transform: translateY(0); filter: blur(0px); }
-body.page-exiting { opacity: 0; transform: translateY(-8px); filter: blur(6px); transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), filter 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+body.page-exiting { opacity: 0; transform: translateY(-8px); filter: blur(6px);
+    transition: opacity 0.35s cubic-bezier(0.16,1,0.3,1),
+                transform 0.35s cubic-bezier(0.16,1,0.3,1),
+                filter 0.35s cubic-bezier(0.16,1,0.3,1);
+}
 
 a { color: inherit; text-decoration: none; }
 
-/* ── HERO ─────────────────────────────────────────────────── */
+/* ── HERO ─────────────────────────────────────────────── */
 .hero {
     position: relative;
     width: 100%;
     min-height: 100dvh;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 24px;
+    padding: 80px 32px 60px;
     background: var(--c-bg);
     overflow: hidden;
 }
@@ -71,59 +79,38 @@ a { color: inherit; text-decoration: none; }
     width: 100%;
     height: 100%;
     background-size: cover;
-    background-position: center center;
+    background-position: center;
     background-repeat: no-repeat;
-    opacity: 0.55;
+    opacity: 0.5;
     mix-blend-mode: multiply;
-    filter: contrast(105%) brightness(100%);
+    filter: contrast(105%);
     pointer-events: none;
     z-index: 0;
 }
+
+/* Split hero: left copy, right visual context */
 .hero-inner {
     position: relative;
     z-index: 1;
-    max-width: 720px;
+    max-width: 1100px;
     width: 100%;
-    text-align: center;
-}
-
-/* Pill badge — warm-tinted instead of zinc */
-.pill {
-    display: inline-flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
     align-items: center;
-    gap: 6px;
-    padding: 5px 14px;
-    border-radius: 100px;
-    font-family: var(--font-ui);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--c-dark-gray);
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    box-shadow: var(--shadow-raised);
-    margin-bottom: 28px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    cursor: default;
-    transition: border-color 0.2s, box-shadow 0.2s;
 }
-.pill:hover { border-color: #D0CCC6; box-shadow: var(--shadow-float); }
-.pill-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--c-rose); display: inline-block; }
+.hero-left { max-width: 500px; }
 
-/* Hero headline — Fraunces serif italic for the rotating word */
 .hero h1 {
     font-family: var(--font-primary);
-    font-size: clamp(36px, 6vw, 62px);
+    font-size: clamp(34px, 5vw, 52px);
     font-weight: 700;
-    line-height: 1.12;
+    line-height: 1.1;
     color: var(--c-charcoal);
-    margin-bottom: 8px;
     letter-spacing: -0.03em;
+    margin-bottom: 6px;
 }
-.hero h1 .line1 {
-    display: block;
-    font-weight: 600;
-}
+/* Rotating word: Fraunces italic, brand accent */
 .hero h1 .rotator-wrap {
     display: block;
     height: 1.12em;
@@ -131,7 +118,6 @@ a { color: inherit; text-decoration: none; }
     position: relative;
 }
 .hero h1 .rotator { display: block; position: relative; }
-/* Rotating words in Fraunces italic — removes gradient trick */
 .hero h1 .rotator span {
     display: block;
     height: 1.12em;
@@ -141,82 +127,54 @@ a { color: inherit; text-decoration: none; }
     font-weight: 400;
     color: var(--c-charcoal);
     will-change: opacity, transform, filter;
-    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 0.5s cubic-bezier(0.16,1,0.3,1),
+                transform 0.5s cubic-bezier(0.16,1,0.3,1),
+                filter 0.5s cubic-bezier(0.16,1,0.3,1);
 }
 
 .hero-desc {
-    font-family: var(--font-primary);
-    font-size: clamp(14px, 1.4vw, 16px);
+    font-size: clamp(14px, 1.3vw, 15px);
     color: var(--c-dark-gray);
     font-weight: 400;
-    max-width: 520px;
-    margin: 20px auto 36px;
+    max-width: 420px;
+    margin: 20px 0 32px;
     line-height: 1.75;
 }
 
 .hero-actions {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 12px;
     flex-wrap: wrap;
 }
-.btn-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 22px;
-    border-radius: 100px;
-    font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 500;
+
+/* Stat counters inside hero right */
+.hero-right {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+.hero-stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.hstat-card {
     background: var(--c-surface);
     border: 1px solid var(--c-border);
-    color: var(--c-charcoal);
+    border-radius: var(--radius);
+    padding: 20px;
     box-shadow: var(--shadow-raised);
-    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
-.btn-outline:hover { background: var(--c-bg); border-color: #D0CCC6; box-shadow: var(--shadow-float); }
-.btn-solid {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 26px;
-    border-radius: 100px;
-    font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 600;
-    background: var(--c-charcoal);
-    color: var(--c-bg);
-    border: none;
-    box-shadow: 0 4px 14px rgba(28,28,28,0.18);
-    transition: opacity 0.2s, transform 0.2s;
-}
-.btn-solid:hover { opacity: 0.88; transform: translateY(-1px); }
-
-/* ── STATS — warm cream instead of white/zinc ─────────────── */
-.stats-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    border-top: 1px solid var(--c-border);
-    border-bottom: 1px solid var(--c-border);
-    background: var(--c-surface);
-}
-.stat-item {
-    padding: 36px 24px;
-    text-align: center;
-    border-right: 1px solid var(--c-border);
-}
-.stat-item:last-child { border-right: none; }
-.stat-num {
+.hstat-num {
     font-family: var(--font-accent);
-    font-size: 30px;
-    font-weight: 600;
-    line-height: 1.1;
+    font-size: 28px;
+    font-weight: 500;
     color: var(--c-charcoal);
     letter-spacing: -0.02em;
+    line-height: 1.2;
 }
-.stat-label {
+.hstat-lbl {
     font-family: var(--font-ui);
     font-size: 11px;
     font-weight: 500;
@@ -226,214 +184,236 @@ a { color: inherit; text-decoration: none; }
     margin-top: 4px;
 }
 
-/* ── SECTIONS ─────────────────────────────────────────────── */
+/* Buttons */
+.btn-outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 22px;
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    color: var(--c-charcoal);
+    box-shadow: var(--shadow-raised);
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.btn-outline:hover { background: var(--c-bg); border-color: var(--c-border-act); box-shadow: var(--shadow-float); }
+.btn-outline:active { transform: translateY(1px); }
+
+.btn-solid {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 26px;
+    border-radius: var(--radius);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 600;
+    background: var(--c-charcoal);
+    color: var(--c-bg);
+    border: none;
+    box-shadow: 0 4px 14px rgba(28,28,28,0.18);
+    transition: opacity 0.2s, transform 0.15s;
+}
+.btn-solid:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-solid:active { transform: translateY(0) scale(0.98); }
+
+/* ── FEATURES: Asymmetric split (text left / image right, then flip) ── */
 .section {
-    padding: 72px 24px;
+    padding: 80px 32px;
     max-width: 1100px;
     margin: 0 auto;
 }
-.section-header { text-align: left; margin-bottom: 44px; }
+.section-title {
+    font-family: var(--font-primary);
+    font-size: clamp(26px, 3.2vw, 38px);
+    font-weight: 600;
+    line-height: 1.18;
+    color: var(--c-charcoal);
+    letter-spacing: -0.02em;
+    max-width: 480px;
+    margin-bottom: 12px;
+}
+.section-title em {
+    font-family: var(--font-accent);
+    font-style: italic;
+    font-weight: 400;
+}
+.section-desc {
+    font-size: 14px;
+    color: var(--c-dark-gray);
+    max-width: 440px;
+    line-height: 1.75;
+    margin-bottom: 48px;
+}
 
-/* Single micro-label per section — reduce uppercase spam */
-.section-tag {
-    display: inline-block;
+/* Feature row: alternating image/text split */
+.feature-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    margin-bottom: 56px;
+}
+.feature-row:last-child { margin-bottom: 0; }
+/* Flip direction on even rows */
+.feature-row.flip .feature-img { order: -1; }
+
+.feature-text { max-width: 400px; }
+.feature-tag {
     font-family: var(--font-ui);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.1em;
     color: var(--c-muted);
     margin-bottom: 10px;
 }
-.section-title {
-    font-family: var(--font-accent);
-    font-size: clamp(28px, 3.5vw, 42px);
-    font-weight: 400;
-    font-style: italic;
-    line-height: 1.18;
-    color: var(--c-charcoal);
-    max-width: 480px;
-    letter-spacing: -0.01em;
-}
-.section-desc {
-    font-size: 14px;
-    color: var(--c-dark-gray);
-    max-width: 440px;
-    margin-top: 12px;
-    line-height: 1.75;
-}
-
-/* ── BENTO GRID (Features) — asymmetric 2+1 layout ───────── */
-.features-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
-    gap: 20px;
-}
-.feat-card {
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    border-radius: 12px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 24px;
-    gap: 16px;
-    box-shadow: var(--shadow-raised);
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-/* First card spans both columns — editorial anchor card */
-.feat-card:first-child {
-    grid-column: 1 / -1;
-    flex-direction: row;
-    align-items: center;
-    gap: 40px;
-}
-.feat-card:first-child .feat-text { flex: 1 1 auto; }
-.feat-card:first-child .feat-img-wrap { flex: 0 0 55%; max-width: 55%; }
-
-.feat-card:hover {
-    transform: translateY(-3px);
-    border-color: #D0CCC6;
-    box-shadow: var(--shadow-float);
-}
-
-/* Card header — no more badge pill on EVERY card (reduce micro-label spam) */
-.card-index-tag {
-    font-family: var(--font-ui);
-    font-size: 10px;
+.feature-h3 {
+    font-family: var(--font-primary);
+    font-size: 22px;
     font-weight: 600;
-    letter-spacing: 0.12em;
-    color: var(--c-muted);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-}
-.card-badge-pill {
-    font-family: var(--font-ui);
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     color: var(--c-charcoal);
-    border: 1px solid var(--c-border);
-    padding: 2px 7px;
-    border-radius: 4px;
-    background: var(--c-bg);
-}
-.card-header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-.card-title {
-    font-family: var(--font-accent);
-    font-size: 20px;
-    font-weight: 400;
-    font-style: italic;
-    color: var(--c-charcoal);
-    letter-spacing: -0.01em;
     line-height: 1.3;
+    letter-spacing: -0.01em;
+    margin-bottom: 10px;
 }
-
-.feat-img-wrap, .step-img-wrap {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-    background: var(--c-bg);
-    border: 1px solid var(--c-border);
-}
-.feat-img-wrap img, .step-img-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.94;
-    transition: opacity 0.35s ease, transform 0.35s ease;
-}
-.feat-card:hover .feat-img-wrap img, .step-card:hover .step-img-wrap img {
-    opacity: 1;
-    transform: scale(1.02);
-}
-
-.card-desc {
+.feature-p {
     font-size: 14px;
     color: var(--c-dark-gray);
     line-height: 1.7;
 }
 
-/* ── STEPS GRID — zig-zag 2 col ───────────────────────────── */
-.steps-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-}
-.step-card {
+.feature-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: var(--radius);
+    overflow: hidden;
     background: var(--c-surface);
     border: 1px solid var(--c-border);
-    border-radius: 12px;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 24px;
-    gap: 16px;
-    box-shadow: var(--shadow-raised);
-    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
-.step-card:nth-child(2) {
-    margin-top: 28px; /* stagger second card for editorial rhythm */
+.feature-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.94;
+    transition: opacity 0.35s ease, transform 0.4s ease;
 }
-.step-card:hover {
-    transform: translateY(-3px);
-    border-color: #D0CCC6;
-    box-shadow: var(--shadow-float);
+.feature-row:hover .feature-img img {
+    opacity: 1;
+    transform: scale(1.02);
 }
 
-/* ── CTA — warm charcoal instead of gray band ─────────────── */
-.cta-section {
-    background: var(--c-charcoal);
-    text-align: center;
-    padding: 72px 24px;
+/* ── WORKFLOW: Horizontal numbered steps ──────────────── */
+.steps-section {
+    background: var(--c-surface);
     border-top: 1px solid var(--c-border);
+    border-bottom: 1px solid var(--c-border);
+    padding: 80px 32px;
+}
+.steps-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+.steps-title {
+    font-family: var(--font-primary);
+    font-size: clamp(24px, 3vw, 34px);
+    font-weight: 600;
+    color: var(--c-charcoal);
+    letter-spacing: -0.02em;
+    margin-bottom: 48px;
+}
+.steps-title em {
+    font-family: var(--font-accent);
+    font-style: italic;
+    font-weight: 400;
+}
+.steps-track {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--c-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+.step-cell {
+    background: var(--c-bg);
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.step-num {
+    font-family: var(--font-accent);
+    font-size: 32px;
+    font-weight: 300;
+    color: var(--c-border);
+    line-height: 1;
+}
+.step-h4 {
+    font-family: var(--font-primary);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--c-charcoal);
+    line-height: 1.3;
+}
+.step-p {
+    font-size: 13px;
+    color: var(--c-dark-gray);
+    line-height: 1.65;
+}
+.step-img {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    margin-top: auto;
+}
+.step-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* ── CTA ── stays in warm theme, no dark inversion ──── */
+.cta-section {
+    text-align: center;
+    padding: 80px 32px;
+    max-width: 560px;
+    margin: 0 auto;
 }
 .cta-section h2 {
-    font-family: var(--font-accent);
-    font-size: clamp(26px, 3.2vw, 38px);
-    font-weight: 400;
-    font-style: italic;
+    font-family: var(--font-primary);
+    font-size: clamp(24px, 3vw, 32px);
+    font-weight: 600;
     margin-bottom: 10px;
-    color: var(--c-bg);
-    letter-spacing: -0.01em;
+    color: var(--c-charcoal);
+    letter-spacing: -0.02em;
 }
 .cta-section p {
-    color: #9A9490;
+    color: var(--c-dark-gray);
     margin-bottom: 28px;
     font-size: 14px;
+    line-height: 1.7;
 }
-.cta-section .btn-solid {
-    font-size: 14px;
-    padding: 13px 30px;
-    background: var(--c-bg);
-    color: var(--c-charcoal);
-    box-shadow: none;
-}
-.cta-section .btn-solid:hover { opacity: 0.88; }
 
 .footer {
     padding: 24px;
-    background: var(--c-bg);
     text-align: center;
     font-family: var(--font-ui);
     font-size: 11px;
     font-weight: 500;
-    text-transform: uppercase;
     letter-spacing: 0.06em;
     color: var(--c-muted);
     border-top: 1px solid var(--c-border);
 }
 
-/* ── Reveal scroll animations ─────────────────────────────── */
+/* ── Scroll reveal ────────────────────────────────────── */
 .reveal {
     opacity: 0;
     transform: translateY(18px);
@@ -441,179 +421,171 @@ a { color: inherit; text-decoration: none; }
 }
 .reveal.visible { opacity: 1; transform: translateY(0); }
 
-/* ── Responsive ───────────────────────────────────────────── */
+/* ── Responsive ───────────────────────────────────────── */
 @media (max-width: 768px) {
-    .stats-bar { grid-template-columns: repeat(2, 1fr); }
-    .stat-item:nth-child(2) { border-right: none; }
-    .stat-item { padding: 24px 16px; }
-    .stat-num { font-size: 24px; }
-    .section { padding: 56px 20px; }
-    .section-header { text-align: left; }
-    .features-grid { grid-template-columns: 1fr; }
-    .feat-card:first-child { flex-direction: column; }
-    .feat-card:first-child .feat-img-wrap { flex: none; max-width: 100%; }
-    .steps-grid { grid-template-columns: repeat(2, 1fr); }
-    .step-card:nth-child(2) { margin-top: 0; }
+    .hero { padding: 60px 20px 40px; }
+    .hero-inner { grid-template-columns: 1fr; gap: 40px; }
+    .hero-left { max-width: 100%; }
+    .hero-stats-grid { grid-template-columns: 1fr 1fr; }
+    .section { padding: 60px 20px; }
+    .feature-row { grid-template-columns: 1fr; gap: 24px; }
+    .feature-row.flip .feature-img { order: 0; }
+    .steps-track { grid-template-columns: 1fr; }
+    .steps-section { padding: 60px 20px; }
 }
 @media (max-width: 480px) {
-    .steps-grid { grid-template-columns: 1fr; }
-    .hero h1 { font-size: 30px; }
+    .hero h1 { font-size: 28px; }
+    .hero-stats-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
 <section class="hero">
-    <!-- CREATION OF ADAM AI GENERATED DITHER HANDS BACKGROUND -->
     <div class="hero-bg-adam" style="background-image: url('creation_of_adam_dither_hands.png');"></div>
     <div class="hero-inner">
-        <div class="pill">
-            <span class="pill-dot"></span>
-            XGBoost Quant Screener · BEI
-        </div>
 
-        <h1>
-            <span class="line1">Screening IDX Stocks with</span>
-            <span class="rotator-wrap">
-                <span class="rotator" id="rotator">
-                    <span>XGBoost Machine Learning</span>
+        <!-- Left: copy + CTA -->
+        <div class="hero-left">
+            <h1>
+                Screening IDX stocks with
+                <span class="rotator-wrap">
+                    <span class="rotator" id="rotator">
+                        <span>XGBoost ML</span>
+                    </span>
                 </span>
-            </span>
-        </h1>
+            </h1>
 
-        <p class="hero-desc">
-            Automated daily screening across 700+ Indonesia Stock Exchange tickers using 20+ Technical Indicators, Chart Feature Embeddings, and News Sentiment.
-        </p>
+            <p class="hero-desc">
+                Automated daily screening across 700+ Indonesia Stock Exchange tickers using 20+ technical indicators, chart embeddings, and news sentiment.
+            </p>
 
-        <div class="hero-actions">
-            <a href="https://t.me/stockaibot" target="_blank" class="btn-outline">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-                Join Telegram Bot
-            </a>
-            <a href="dashboard.html" class="btn-solid">
-                View Recommendations
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </a>
+            <div class="hero-actions">
+                <a href="dashboard.html" class="btn-solid">
+                    View recommendations
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </a>
+                <a href="https://t.me/stockaibot" target="_blank" class="btn-outline">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                    Telegram bot
+                </a>
+            </div>
         </div>
-    </div>
-</section>
 
-<!-- Stats bar — warm cream surface -->
-<section class="stats-bar">
-    <div class="stat-item"><div class="stat-num">700+</div><div class="stat-label">IDX Stocks</div></div>
-    <div class="stat-item"><div class="stat-num">20+</div><div class="stat-label">Indicators</div></div>
-    <div class="stat-item"><div class="stat-num">XGBoost</div><div class="stat-label">ML Model</div></div>
-    <div class="stat-item"><div class="stat-num">+3%</div><div class="stat-label">Daily Target</div></div>
-</section>
-
-<!-- Features — asymmetric bento layout -->
-<section class="section" id="features">
-    <div class="section-header reveal">
-        <div class="section-tag">Features</div>
-        <h2 class="section-title">XGBoost trained on<br>5 years of BEI data</h2>
-        <p class="section-desc">Machine learning and quantitative technical analysis, integrated for daily IDX stock screening.</p>
-    </div>
-    <div class="features-grid">
-        <!-- Anchor card — spans full width, horizontal layout -->
-        <div class="feat-card reveal">
-            <div class="feat-text">
-                <div class="card-header-top">
-                    <span class="card-index-tag">#01 Connect</span>
-                    <span class="card-badge-pill">Real-Time</span>
+        <!-- Right: stat cards as visual anchor -->
+        <div class="hero-right">
+            <div class="hero-stats-grid">
+                <div class="hstat-card">
+                    <div class="hstat-num">700+</div>
+                    <div class="hstat-lbl">IDX Stocks</div>
                 </div>
-                <h3 class="card-title">Macro &amp; Market Sentiment</h3>
-                <p class="card-desc">Automated evaluation of IHSG trends, USD/IDR exchange rates, and real-time news sentiment analysis from economic RSS feeds.</p>
-            </div>
-            <div class="feat-img-wrap">
-                <img src="nike_panel_1.png" alt="Macro & Market Sentiment" loading="lazy">
+                <div class="hstat-card">
+                    <div class="hstat-num">20+</div>
+                    <div class="hstat-lbl">Indicators</div>
+                </div>
+                <div class="hstat-card">
+                    <div class="hstat-num">XGBoost</div>
+                    <div class="hstat-lbl">ML Model</div>
+                </div>
+                <div class="hstat-card">
+                    <div class="hstat-num">+3%</div>
+                    <div class="hstat-lbl">Daily Target</div>
+                </div>
             </div>
         </div>
-        <!-- Two equal cards below -->
-        <div class="feat-card reveal">
-            <div class="card-header-top">
-                <span class="card-index-tag">#02 Quant ML</span>
-                <span class="card-badge-pill">XGBoost</span>
-            </div>
-            <h3 class="card-title">Quant Engine</h3>
-            <div class="feat-img-wrap">
-                <img src="nike_panel_2.png" alt="XGBoost Quant Engine" loading="lazy">
-            </div>
-            <p class="card-desc">Trained on 5 years of historical BEI data, 20+ technical indicators (RSI, MACD, BB, OBV, VWAP) with Optuna hyperparameter tuning.</p>
+
+    </div>
+</section>
+
+<!-- Features: alternating image/text splits (max 2 zigzags, then break) -->
+<section class="section" id="features">
+    <h2 class="section-title reveal">XGBoost trained on <em>5 years</em> of BEI data</h2>
+    <p class="section-desc reveal">Machine learning and quantitative technical analysis, integrated for daily IDX stock screening.</p>
+
+    <!-- Row 1: text left, image right -->
+    <div class="feature-row reveal">
+        <div class="feature-text">
+            <div class="feature-tag">Real-time</div>
+            <h3 class="feature-h3">Macro and market sentiment</h3>
+            <p class="feature-p">Automated evaluation of IHSG trends, USD/IDR exchange rates, and real-time news sentiment analysis from economic RSS feeds.</p>
         </div>
-        <div class="feat-card reveal">
-            <div class="card-header-top">
-                <span class="card-index-tag">#03 Audit</span>
-                <span class="card-badge-pill">+3.0% TP</span>
-            </div>
-            <h3 class="card-title">Multi-Agent &amp; Daily Audit</h3>
-            <div class="feat-img-wrap">
-                <img src="nike_panel_3.png" alt="Multi-Agent & Daily Audit" loading="lazy">
-            </div>
-            <p class="card-desc">Consensus signal validation with disciplined risk management (+3.0% Profit Target, −1.5% Stop Loss).</p>
+        <div class="feature-img">
+            <img src="nike_panel_1.png" alt="Macro and market sentiment analysis dashboard" loading="lazy">
+        </div>
+    </div>
+
+    <!-- Row 2: image left, text right (flip) -->
+    <div class="feature-row flip reveal">
+        <div class="feature-text">
+            <h3 class="feature-h3">XGBoost quant engine</h3>
+            <p class="feature-p">Trained on 5 years of historical BEI data, 20+ technical indicators (RSI, MACD, BB, OBV, VWAP) with Optuna hyperparameter tuning.</p>
+        </div>
+        <div class="feature-img">
+            <img src="nike_panel_2.png" alt="XGBoost quant engine visualization" loading="lazy">
+        </div>
+    </div>
+
+    <!-- Row 3: full-width card (break the zigzag after 2 splits) -->
+    <div class="feature-row reveal">
+        <div class="feature-text">
+            <h3 class="feature-h3">Multi-agent consensus and daily audit</h3>
+            <p class="feature-p">Consensus signal validation with disciplined risk management: +3.0% profit target and -1.5% stop loss per trade.</p>
+        </div>
+        <div class="feature-img">
+            <img src="nike_panel_3.png" alt="Multi-agent consensus and daily audit system" loading="lazy">
         </div>
     </div>
 </section>
 
-<!-- How It Works — staggered 3 column -->
-<section class="section" id="how">
-    <div class="section-header reveal">
-        <div class="section-tag">Workflow</div>
-        <h2 class="section-title">How it works</h2>
-        <p class="section-desc">An automated end-to-end pipeline from data ingestion to actionable trading signals.</p>
-    </div>
-    <div class="steps-grid">
-        <div class="step-card reveal">
-            <div class="card-header-top">
-                <span class="card-index-tag">Step 01</span>
-                <span class="card-badge-pill">Data Stream</span>
+<!-- Workflow: different layout family (cell grid, not cards) -->
+<section class="steps-section">
+    <div class="steps-inner">
+        <h2 class="steps-title reveal">How <em>it works</em></h2>
+        <div class="steps-track reveal">
+            <div class="step-cell">
+                <span class="step-num">1</span>
+                <h4 class="step-h4">Data collection</h4>
+                <p class="step-p">Batch downloading 700+ BEI tickers from Yahoo Finance in organized 50-stock chunks at regular intervals.</p>
+                <div class="step-img">
+                    <img src="step_img_1.png" alt="Data collection pipeline" loading="lazy">
+                </div>
             </div>
-            <h3 class="card-title">Data Collection</h3>
-            <div class="step-img-wrap">
-                <img src="step_img_1.png" alt="Data Collection" loading="lazy">
+            <div class="step-cell">
+                <span class="step-num">2</span>
+                <h4 class="step-h4">Quant and feature engine</h4>
+                <p class="step-p">Precision calculation of 20+ technical indicators alongside feature embedding vector extraction.</p>
+                <div class="step-img">
+                    <img src="step_img_2.png" alt="Feature engineering pipeline" loading="lazy">
+                </div>
             </div>
-            <p class="card-desc">Batch downloading 700+ BEI tickers from Yahoo Finance in organized 50-stock chunks at regular intervals.</p>
-        </div>
-        <div class="step-card reveal">
-            <div class="card-header-top">
-                <span class="card-index-tag">Step 02</span>
-                <span class="card-badge-pill">Feature Matrix</span>
+            <div class="step-cell">
+                <span class="step-num">3</span>
+                <h4 class="step-h4">Signal and consensus output</h4>
+                <p class="step-p">Top 10 daily stock recommendations with target profits, stop losses, and model narratives.</p>
+                <div class="step-img">
+                    <img src="step_img_3.png" alt="Signal consensus output" loading="lazy">
+                </div>
             </div>
-            <h3 class="card-title">Quant &amp; Feature Engine</h3>
-            <div class="step-img-wrap">
-                <img src="step_img_2.png" alt="Quant & Feature Engine" loading="lazy">
-            </div>
-            <p class="card-desc">Precision calculation of 20+ technical indicators alongside feature embedding vector extraction.</p>
-        </div>
-        <div class="step-card reveal">
-            <div class="card-header-top">
-                <span class="card-index-tag">Step 03</span>
-                <span class="card-badge-pill">Consensus</span>
-            </div>
-            <h3 class="card-title">Signal &amp; Consensus Output</h3>
-            <div class="step-img-wrap">
-                <img src="step_img_3.png" alt="Signal & Consensus Output" loading="lazy">
-            </div>
-            <p class="card-desc">Top 10 daily stock recommendations complete with target profits, stop losses, and model narratives.</p>
         </div>
     </div>
 </section>
 
-<!-- CTA — charcoal dark instead of grey band -->
-<section class="cta-section">
-    <h2>Start Screening</h2>
-    <p>Analyze 700+ IDX stocks in seconds.</p>
-    <a href="dashboard.html" class="btn-solid">View Recommendations &rarr;</a>
+<!-- CTA: same warm theme, no dark inversion -->
+<section class="cta-section reveal">
+    <h2>Start screening</h2>
+    <p>Analyze 700+ IDX stocks in seconds with XGBoost-powered quantitative signals.</p>
+    <a href="dashboard.html" class="btn-solid">View recommendations</a>
 </section>
 
-<footer class="footer">For Educational Purposes &nbsp;&middot;&nbsp; StockAI &copy; 2026</footer>
+<footer class="footer">For educational purposes</footer>
 
 <script>
 var words = [
-    'XGBoost Machine Learning',
-    '20+ Quant Indicators',
-    'Multi-Agent Consensus',
-    'IDX Macro Intelligence',
-    'Real-Time Market Data',
+    'XGBoost ML',
+    '20+ indicators',
+    'multi-agent consensus',
+    'macro intelligence',
+    'real-time data',
 ];
 
 var rotator = document.getElementById('rotator');
@@ -657,7 +629,6 @@ var observer = new IntersectionObserver(function(entries) {
 }, { threshold: 0.1 });
 document.querySelectorAll('.reveal').forEach(function(el) { observer.observe(el); });
 
-// Smooth Page Entrance & Navigation Transition to Dashboard
 document.addEventListener('DOMContentLoaded', function() {
     requestAnimationFrame(function() {
         document.body.classList.add('page-loaded');
