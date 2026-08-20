@@ -97,46 +97,54 @@ class NewsMacroAgent:
         return self._evaluate_with_keywords(headlines)
 
     def _evaluate_with_keywords(self, headlines: List[Dict[str, str]]) -> Dict[str, Any]:
-        """Rule-based keyword sentiment evaluation fallback."""
-        total_score = 0.0
+        """High-accuracy multi-tier financial sentiment evaluation."""
+        from src.sentiment.sentiment_engine import get_sentiment_analyzer
+        analyzer = get_sentiment_analyzer()
+
+        scores = []
         analyzed_headlines = []
+        all_highlights = []
 
         for item in headlines:
-            text = item["title"].lower()
-            pos_hits = sum(1 for kw in POSITIVE_KEYWORDS if kw in text)
-            neg_hits = sum(1 for kw in NEGATIVE_KEYWORDS if kw in text)
+            title = item.get("title", "")
+            res = analyzer.score_text(title)
+            score = res["score"]
+            scores.append(score)
+            if res.get("highlights"):
+                all_highlights.extend(res["highlights"])
 
-            if pos_hits > neg_hits:
-                item_sent = 1.0
+            if score >= 0.15:
                 sent_label = "POSITIF ✅"
-            elif neg_hits > pos_hits:
-                item_sent = -1.0
+            elif score <= -0.15:
                 sent_label = "NEGATIF ⚠️"
             else:
-                item_sent = 0.0
                 sent_label = "NETRAL ➖"
 
-            total_score += item_sent
             analyzed_headlines.append({
-                "title": item["title"],
+                "title": title,
                 "source": item.get("source", "News"),
-                "sentiment": sent_label
+                "sentiment": sent_label,
+                "score": score
             })
 
-        avg_score = total_score / len(headlines) if headlines else 0.0
-        
-        if avg_score >= 0.2:
+        avg_score = sum(scores) / len(scores) if scores else 0.0
+
+        if avg_score >= 0.15:
             overall_label = "POSITIF"
-        elif avg_score <= -0.2:
+        elif avg_score <= -0.15:
             overall_label = "NEGATIF"
         else:
             overall_label = "NETRAL"
 
+        highlight_str = f" ({', '.join(list(set(all_highlights))[:3])})" if all_highlights else ""
+        reason = f"Analisis sentimen AI dari {len(headlines)} berita makroekonomi{highlight_str}."
+
         return {
             "score": round(max(-1.0, min(1.0, avg_score)), 2),
             "label": overall_label,
-            "reason": f"Analisis sentimen berbasis kata kunci dari {len(headlines)} berita makro.",
-            "headlines": analyzed_headlines[:5]
+            "reason": reason,
+            "headlines": analyzed_headlines[:5],
+            "highlights": sorted(set(all_highlights))[:5]
         }
 
     def _evaluate_with_llm(self, headlines: List[Dict[str, str]]) -> Dict[str, Any]:

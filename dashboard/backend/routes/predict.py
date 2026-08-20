@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 import json
 import os
 import asyncio
@@ -13,19 +13,21 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 from src.config import CACHE_FILE
+from dashboard.backend.security import require_api_key
 
 router = APIRouter()
 _executor = ThreadPoolExecutor(max_workers=2)
 
 @router.get("/recommendations")
-async def get_recommendations(force: bool = False):
+async def get_recommendations(request: Request, force: bool = False):
     """
     Mengembalikan rekomendasi Top 10.
     - Default (force=false): baca dari cache JSON untuk load instan.
-    - ?force=true: jalankan ulang scheduler untuk scan fresh.
+    - ?force=true: jalankan ulang scheduler untuk scan fresh (wajib API key jika diset).
     """
-    # Mode fresh scan: bypass cache
+    # Mode fresh scan: bypass cache (operasi berat -> butuh otorisasi)
     if force:
+        require_api_key(request)
         return await asyncio.get_event_loop().run_in_executor(_executor, _run_fresh_scan)
 
     # Mode instan: baca cache jika ada dan valid
@@ -296,8 +298,9 @@ def _fallback_response():
 
 
 @router.get("/sync")
-async def sync_market_data():
+async def sync_market_data(request: Request):
     """Endpoint manual untuk memaksa sinkronisasi batch data 700+ saham & kalkulasi rekomendasi baru."""
+    require_api_key(request)
     try:
         from src.scheduler.daily_scheduler import run_daily_after_market_job
         res = await asyncio.get_event_loop().run_in_executor(_executor, run_daily_after_market_job)

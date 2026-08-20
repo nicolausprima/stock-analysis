@@ -3,6 +3,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 import yfinance as yf
 
+from dashboard.backend.security import validate_ticker
+
 router = APIRouter()
 
 class NewsRequest(BaseModel):
@@ -10,7 +12,7 @@ class NewsRequest(BaseModel):
 
 @router.post("/news")
 def fetch_news(request: NewsRequest):
-    ticker = request.ticker
+    ticker = validate_ticker(request.ticker)
     
     try:
         # Ambil berita menggunakan Yahoo Finance

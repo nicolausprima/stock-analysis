@@ -5,6 +5,8 @@ import pandas as pd
 import yfinance as yf
 from fastapi import APIRouter, HTTPException
 
+from dashboard.backend.security import validate_ticker
+
 router = APIRouter()
 
 # In-memory TTL Cache untuk chart data
@@ -21,7 +23,7 @@ def get_chart_data(ticker: str, days: int = 60):
     - days>1  → harian, time = 'YYYY-MM-DD' (string)
     Format sesuai TradingView Lightweight Charts.
     """
-    clean_ticker = ticker.upper().strip()
+    clean_ticker = validate_ticker(ticker, allow_chart_specials=True)
     cache_key = f"{clean_ticker}_{days}"
     now = time.time()
     ttl = CACHE_TTL_INTRADAY if days == 1 else CACHE_TTL_DAILY

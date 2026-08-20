@@ -5,6 +5,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
+from dashboard.backend.security import validate_ticker
+
 load_dotenv()
 
 router = APIRouter()
@@ -53,7 +55,7 @@ def generate_narrative(req: NarasiRequest):
         "Content-Type": "application/json"
     }
     
-    ticker_clean = req.ticker.replace(".JK", "")
+    ticker_clean = validate_ticker(req.ticker).replace(".JK", "")
     
     prompt = f"""
 Kamu adalah analis finansial pasar saham Indonesia (BEI).
@@ -93,7 +95,7 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
         rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
         tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
         sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
-        ticker_clean = req.ticker.replace(".JK", "")
+        ticker_clean = validate_ticker(req.ticker).replace(".JK", "")
         fallback_narrative = (
             f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
             f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
@@ -118,7 +120,7 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
         rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
         tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
         sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
-        ticker_clean = req.ticker.replace(".JK", "")
+        ticker_clean = validate_ticker(req.ticker).replace(".JK", "")
         fallback_narrative = (
             f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
             f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
@@ -130,6 +132,8 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
 def generate_multi_agent_consensus(req: NarasiRequest):
     """Menghasilkan konsensus analisis multi-agent (Technical, Sentiment, Macro, Bull vs Bear, Risk Manager)."""
     try:
+        req_dict = req.dict()
+        req_dict["ticker"] = validate_ticker(req.ticker)
         from src.agents.multi_agent_system import MultiAgentSystem
         from src.config import CACHE_FILE
         macro_info = None
@@ -141,7 +145,7 @@ def generate_multi_agent_consensus(req: NarasiRequest):
             except Exception:
                 pass
         agent_system = MultiAgentSystem()
-        consensus = agent_system.generate_consensus(req.dict(), macro_info=macro_info)
+        consensus = agent_system.generate_consensus(req_dict, macro_info=macro_info)
         return {"status": "success", "data": consensus}
     except Exception as e:
         raise HTTPException(

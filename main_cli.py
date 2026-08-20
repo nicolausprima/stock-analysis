@@ -167,6 +167,22 @@ def calculate_indicators(df: pd.DataFrame) -> dict:
     adx_series = dx.rolling(14).mean()
     adx_val = float(adx_series.iloc[-1]) if len(adx_series) >= 14 and pd.notna(adx_series.iloc[-1]) else 25.0
 
+    # Stochastic Oscillator (%K & %D)
+    low14 = low.rolling(14).min()
+    high14 = high.rolling(14).max()
+    stoch_k = 100 * ((close - low14) / (high14 - low14 + 1e-9))
+    stoch_d = stoch_k.rolling(3).mean()
+    stoch_val = float(stoch_k.iloc[-1]) if pd.notna(stoch_k.iloc[-1]) else 50.0
+
+    # Money Flow Index (MFI) Proxy
+    typ_price = (high + low + close) / 3.0
+    raw_money_flow = typ_price * volume
+    pos_flow = raw_money_flow.where(typ_price > typ_price.shift(1), 0.0).rolling(14).sum()
+    neg_flow = raw_money_flow.where(typ_price < typ_price.shift(1), 0.0).rolling(14).sum()
+    mfr = pos_flow / (neg_flow + 1e-9)
+    mfi_series = 100 - (100 / (1 + mfr))
+    mfi_val = float(mfi_series.iloc[-1]) if pd.notna(mfi_series.iloc[-1]) else 50.0
+
     # Dynamic TP / SL (1.5x - 2.0x ATR)
     dyn_tp = round(curr_price + max(atr_val * 1.8, curr_price * 0.03))
     dyn_sl = round(curr_price - max(atr_val * 1.2, curr_price * 0.015))
@@ -186,7 +202,11 @@ def calculate_indicators(df: pd.DataFrame) -> dict:
         base_prob += 3.0
     if adx_val >= 25.0:
         base_prob += 2.0
-    prob_pct = min(88.0, max(55.0, base_prob))
+    if mfi_val >= 60.0:
+        base_prob += 2.0
+    if stoch_val < 30.0:
+        base_prob += 2.0  # Oversold reversal booster
+    prob_pct = min(92.0, max(50.0, base_prob))
     
     p = prob_pct / 100.0
     q = 1.0 - p
@@ -204,6 +224,8 @@ def calculate_indicators(df: pd.DataFrame) -> dict:
         "atr": round(atr_val),
         "rvol": rvol,
         "adx": round(adx_val, 1),
+        "stoch": round(stoch_val, 1),
+        "mfi": round(mfi_val, 1),
         "target_price": dyn_tp,
         "stop_loss": dyn_sl,
         "risk_reward_ratio": rr_ratio,
@@ -363,11 +385,19 @@ def cmd_analyze(ticker: str):
         macro_ctx_agent = MacroContextAgent()
         macro_reason = macro_ctx_agent.analyze(macro_res, ticker=clean_ticker)
 
+        from dashboard.backend.routes.sentiment_filter import evaluate_ticker_sentiment
+        sent_eval = evaluate_ticker_sentiment(clean_ticker)
+        
         sent_agent = SentimentAnalystAgent()
-        sent_reason = sent_agent.analyze({"sentiment_status": "POSITIF" if ind["probability"] >= 75 else "NETRAL", "sentiment_impact": "BOOSTER"})
+        sent_reason = sent_agent.analyze({
+            "sentiment_status": sent_eval["status"],
+            "sentiment_impact": sent_eval.get("impact", "NETRAL"),
+            "sentiment_score": sent_eval.get("score", 0.0),
+            "sentiment_highlights": sent_eval.get("highlights", [])
+        })
 
-    # Action Rating
-    prob = ind["probability"]
+    # Action Rating (adjusted by sentiment)
+    prob = round(max(0.0, min(99.0, ind["probability"] + sent_eval.get("score_delta", 0.0))), 1)
     if prob >= 80.0:
         action_text = "[bold white on dark_green] STRONG BUY / HIGH CONVICTION [/bold white on dark_green]"
     elif prob >= 70.0:
@@ -382,7 +412,7 @@ def cmd_analyze(ticker: str):
     summary_text.append(f"Ticker: {clean_ticker}  |  Sektor: {sector}", style="bold cyan")
     if is_leading:
         summary_text.append(" [HOT Leading Inflow]", style="bold green")
-    summary_text.append(f"\nHarga Terakhir: Rp {ind['price']:,.0f}  |  Rekomendasi: ", style="white")
+    summary_text.append(f"\nHarga Terakhir: Rp {ind['price']:,.0f}  |  Sentimen: [{ 'green' if sent_eval['status'] == 'POSITIF' else 'red' if sent_eval['status'] == 'NEGATIF' else 'yellow'}]{sent_eval['status']} ({sent_eval.get('impact', 'NETRAL')})[/{ 'green' if sent_eval['status'] == 'POSITIF' else 'red' if sent_eval['status'] == 'NEGATIF' else 'yellow'}]", style="white")
 
     console.print(Panel(summary_text, title=f"[bold]ANALISIS SAHAM: {clean_ticker}[/bold]", subtitle=action_text, expand=False))
 
@@ -396,6 +426,8 @@ def cmd_analyze(ticker: str):
     t_tech.add_column("Nilai", style="bold yellow")
     t_tech.add_row("RSI (14)", f"{ind['rsi']} ({'Oversold' if ind['rsi'] < 35 else 'Overbought' if ind['rsi'] > 70 else 'Ideal'})")
     t_tech.add_row("MACD Signal", ind['macd_signal'])
+    t_tech.add_row("Stochastic %K", f"{ind.get('stoch', 50)} ({'Oversold' if ind.get('stoch', 50) < 25 else 'Overbought' if ind.get('stoch', 50) > 80 else 'Netral'})")
+    t_tech.add_row("Money Flow (MFI)", f"{ind.get('mfi', 50)} ({'Inflow Kuat' if ind.get('mfi', 50) >= 65 else 'Outflow' if ind.get('mfi', 50) <= 35 else 'Netral'})")
     t_tech.add_row("Tren Harga", ind['trend'])
     t_tech.add_row("RVOL (Rel. Vol)", f"{ind['rvol']}x")
     t_tech.add_row("ADX (14 Trend)", f"{ind['adx']} ({'Kuat' if ind['adx'] >= 25 else 'Lemah'})")

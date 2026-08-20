@@ -1,4 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Tangkap API key dari URL (?api_key=xxx) & simpan untuk sesi berikutnya
+    const urlKey = new URLSearchParams(window.location.search).get('api_key');
+    if (urlKey) localStorage.setItem('api_key', urlKey);
+
+    // Fetch wrapper: lampirkan X-API-Key jika tersedia
+    const apiFetch = (url, opts = {}) => {
+        const key = localStorage.getItem('api_key');
+        opts.headers = { ...(opts.headers || {}), ...(key ? { 'X-API-Key': key } : {}) };
+        return fetch(url, opts);
+    };
+
     const scanBtn    = document.getElementById('scan-btn');
     const loader     = document.getElementById('loader');
     const errorBox   = document.getElementById('error-box');
@@ -35,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
         cardsGrid.innerHTML = '';
 
         try {
-            const res  = await fetch('/api/recommendations');
+            const res  = await apiFetch('/api/recommendations');
             const data = await res.json();
 
             if (!res.ok) throw new Error(data.detail || 'Server error');
@@ -222,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Charting Logic
     async function fetchChartData(ticker, days = 60) {
         try {
-            const res = await fetch(`/api/chart/${ticker}?days=${days}`);
+            const res = await apiFetch(`/api/chart/${ticker}?days=${days}`);
             const json = await res.json();
             if (res.ok && json.status === 'success') {
                 return { data: json.data, intraday: json.intraday };
@@ -379,7 +390,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const fallbackText = `Saham ${cleanTicker} menunjukkan momentum positif dengan RSI ${s.rsi} (${s.rsi_signal}) dan indikator MACD ${s.macd_signal} pada tren ${s.trend}. Target profit ditetapkan pada ${fmtPrice(s.target_price)} dan Stop Loss pada ${fmtPrice(s.stop_loss)}.`;
 
         try {
-            const res = await fetch('/api/narasi', {
+            const res = await apiFetch('/api/narasi', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -423,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!loaded) {
                     box.innerHTML = '<div class="ai-loading">Processing 4-Agent Analysis (Technical, Sentiment, Bull/Bear Debate, Risk Manager)...</div>';
                     try {
-                        const res = await fetch('/api/narasi/multi-agent', {
+                        const res = await apiFetch('/api/narasi/multi-agent', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
@@ -491,7 +502,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         async function runAuditAndLoad() {
             try {
-                await fetch('/api/audit/run');
+                await apiFetch('/api/audit/run');
             } catch (e) {
                 console.error('Failed to run audit:', e);
             }
@@ -504,7 +515,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!container) return;
 
             try {
-                const res = await fetch('/api/audit/today');
+                const res = await apiFetch('/api/audit/today');
                 const data = await res.json();
 
                 if (res.ok && data.status === 'success' && data.signals?.length > 0) {
@@ -611,7 +622,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!body) return;
 
             try {
-                const res = await fetch('/api/audit/track-record');
+                const res = await apiFetch('/api/audit/track-record');
                 const data = await res.json();
 
                 if (res.ok && data.status === 'success' && data.data?.length > 0) {
@@ -704,7 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!winRateEl || !monthlyBody) return;
 
             try {
-                const res = await fetch('/api/audit/recap');
+                const res = await apiFetch('/api/audit/recap');
                 const data = await res.json();
 
                 if (res.ok && data.status === 'success') {
@@ -825,7 +836,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
-                const res = await fetch('/api/audit/seed-simulation');
+                const res = await apiFetch('/api/audit/seed-simulation');
                 const data = await res.json();
                 if (res.ok && data.status === 'success') {
                     await runAuditAndLoad();

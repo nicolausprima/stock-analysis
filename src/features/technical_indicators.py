@@ -65,4 +65,23 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     df['RVOL'] = (df['Volume'] / (vol_sma20 + 1e-9)).fillna(1.0)
     df['Volume_Z'] = ((df['Volume'] - vol_sma20) / (vol_std20 + 1e-9)).fillna(0.0)
 
+    # 6. ADVANCED OSCILLATORS & MONEY FLOW (Institutional Proxies)
+    # Stochastic Oscillator (%K & %D)
+    df['Stoch_K'] = ta.momentum.stoch(high=df['High'], low=df['Low'], close=df['Close'], window=14, smooth_window=3).fillna(50)
+    df['Stoch_D'] = ta.momentum.stoch_signal(high=df['High'], low=df['Low'], close=df['Close'], window=14, smooth_window=3).fillna(50)
+
+    # Money Flow Index (MFI) - Volume-weighted RSI proxy
+    df['MFI_14'] = ta.volume.money_flow_index(high=df['High'], low=df['Low'], close=df['Close'], volume=df['Volume'], window=14).fillna(50)
+
+    # Exponential Moving Averages (EMA)
+    df['EMA_12'] = ta.trend.ema_indicator(close=df['Close'], window=12).fillna(df['Close'])
+    df['EMA_26'] = ta.trend.ema_indicator(close=df['Close'], window=26).fillna(df['Close'])
+
+    # Williams %R
+    df['Williams_R'] = ta.momentum.williams_r(high=df['High'], low=df['Low'], close=df['Close'], lbp=14).fillna(-50)
+
+    # Commodity Channel Index (CCI)
+    df['CCI_20'] = ta.trend.cci(high=df['High'], low=df['Low'], close=df['Close'], window=20).fillna(0)
+
     return df
+

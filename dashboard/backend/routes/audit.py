@@ -1,11 +1,13 @@
 import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 import pandas as pd
 import yfinance as yf
 from pathlib import Path
+
+from dashboard.backend.security import require_api_key
 
 def get_wib_now() -> datetime:
     """Mengembalikan datetime saat ini dalam WIB (Asia/Jakarta, UTC+7) yang akurat di mana pun server di-deploy."""
@@ -223,6 +225,12 @@ def get_track_record():
     return {"status": "success", "data": result}
 
 @router.get("/audit/run")
+def audit_run_endpoint(request: Request):
+    """[AUTH] Memeriksa status semua sinyal PENDING menggunakan data lokal stock_market.db & yfinance terbaru."""
+    require_api_key(request)
+    return run_audit()
+
+
 def run_audit():
     """Memeriksa status semua sinyal PENDING menggunakan data lokal stock_market.db & yfinance terbaru."""
     import io
@@ -590,6 +598,12 @@ def get_today_audit_summary():
 
 
 @router.get("/audit/seed-simulation")
+def audit_seed_endpoint(request: Request):
+    """[AUTH] Menjalankan Quant Optimization Backtest Engine 6 Bulan Terakhir."""
+    require_api_key(request)
+    return seed_simulation_audit()
+
+
 def seed_simulation_audit():
     """
     Menjalankan Quant Optimization Backtest Engine 6 Bulan Terakhir.

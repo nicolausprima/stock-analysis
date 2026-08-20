@@ -93,3 +93,69 @@ def test_api_telegram_status_endpoint():
     json_data = response.json()
     assert json_data.get("status") == "success"
     assert "bot_username" in json_data
+
+def test_api_telegram_status_does_not_leak_chat_id():
+    response = client.get("/api/telegram/status")
+    json_data = response.json()
+    assert "chat_id" not in json_data
+
+def test_api_sync_requires_api_key(monkeypatch):
+    import dashboard.backend.security as security
+    monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
+
+    # Tanpa key -> 401
+    assert client.get("/api/sync").status_code == 401
+    # Key salah -> 401
+    assert client.get("/api/sync", headers={"X-API-Key": "wrong"}).status_code == 401
+    # Key benar -> lolos ke handler (di-mock agar tidak menjalankan scheduler asli)
+    import src.scheduler.daily_scheduler as scheduler
+    monkeypatch.setattr(scheduler, "run_daily_after_market_job", lambda *a, **k: {"status": "success"})
+    res = client.get("/api/sync", headers={"X-API-Key": "test-secret-key"})
+    assert res.status_code == 200
+    assert res.json().get("status") == "success"
+
+def test_api_recommendations_force_requires_api_key(monkeypatch):
+    import dashboard.backend.security as security
+    monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
+
+    # Tanpa key -> 401
+    assert client.get("/api/recommendations", params={"force": "true"}).status_code == 401
+    # Key benar -> lolos (fallback response karena TESTING mode)
+    res = client.get("/api/recommendations", params={"force": "true"}, headers={"X-API-Key": "test-secret-key"})
+    assert res.status_code == 200
+
+def test_api_telegram_broadcast_requires_api_key(monkeypatch):
+    import dashboard.backend.security as security
+    monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
+
+    assert client.post("/api/telegram/test", json={"message": "x"}).status_code == 401
+    assert client.post("/api/telegram/broadcast-test").status_code == 401
+
+def test_api_audit_run_and_seed_require_api_key(monkeypatch):
+    import dashboard.backend.security as security
+    monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
+
+    assert client.get("/api/audit/run").status_code == 401
+    assert client.get("/api/audit/seed-simulation").status_code == 401
+    # Key benar -> handler berjalan (aman: DB kosong/testing)
+    res = client.get("/api/audit/run", headers={"X-API-Key": "test-secret-key"})
+    assert res.status_code == 200
+
+def test_api_chart_rejects_invalid_ticker():
+    # Catatan: path traversal (../) dinormalisasi server -> 404, bukan sampai ke handler
+    for bad in ["BBCA;DROP TABLE signals", "$$$", "a b c", "BBCA.JK.JK"]:
+        response = client.get(f"/api/chart/{bad}")
+        assert response.status_code == 400, f"ticker {bad!r} harus ditolak"
+
+def test_api_news_rejects_invalid_ticker():
+    response = client.post("/api/news", json={"ticker": "../../etc/passwd"})
+    assert response.status_code == 400
+
+def test_api_narasi_rejects_invalid_ticker():
+    payload = {
+        "ticker": "X'; DROP TABLE signals;--",
+        "close_price": 1000, "target_price": 1030, "stop_loss": 985,
+        "rsi": 50, "macd_signal": "BULLISH", "trend": "UPTREND", "probability": 70.0,
+    }
+    response = client.post("/api/narasi", json=payload)
+    assert response.status_code == 400

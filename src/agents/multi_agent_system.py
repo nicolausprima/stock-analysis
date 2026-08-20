@@ -32,9 +32,13 @@ class SentimentAnalystAgent:
     def analyze(self, data: Dict[str, Any]) -> str:
         status = data.get("sentiment_status", "NETRAL")
         impact = data.get("sentiment_impact", "NETRAL")
+        highlights = data.get("sentiment_highlights", [])
+        score = data.get("sentiment_score", 0.0)
+        
+        detail_note = f" Katalis utama: {', '.join(highlights[:2])}." if highlights else ""
         return (
-            f"Analisis Sentimen: Sentimen pasar saat ini terpantau {status} dengan dampak {impact}. "
-            f"Dukungan narasi publik memberi dorongan {'positif' if status == 'POSITIF' else 'terbatas'} bagi pergerakan harga saham."
+            f"Analisis Sentimen: Sentimen pasar saat ini terpantau {status} (Skor {score:+.2f}) dengan dampak {impact}.{detail_note} "
+            f"Dukungan narasi publik memberi dorongan {'positif signifikan' if status == 'POSITIF' else 'tertekan/kehati-hatian' if status == 'NEGATIF' else 'stabil/terbatas'} bagi saham."
         )
 
 class MacroContextAgent:

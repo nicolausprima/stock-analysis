@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 import sys
 from pathlib import Path
@@ -12,6 +12,7 @@ from src.notifications.telegram_bot import (
     get_active_chat_id, 
     send_daily_recommendations_broadcast
 )
+from dashboard.backend.security import require_api_key
 
 router = APIRouter()
 
@@ -20,18 +21,19 @@ class TestMessage(BaseModel):
 
 @router.get("/telegram/status")
 def get_telegram_status():
-    """Mengecek status koneksi Telegram Bot & Chat ID."""
+    """Mengecek status koneksi Telegram Bot (tanpa membocorkan chat_id mentah)."""
     chat_id = get_active_chat_id()
     return {
         "status": "success",
         "bot_username": "@StockAnalysisLocalBot",
         "chat_id_detected": bool(chat_id),
-        "chat_id": chat_id if chat_id else "Belum terdeteksi (Kirim /start ke bot di Telegram)"
+        "message": "Chat ID terdeteksi" if chat_id else "Belum terdeteksi (Kirim /start ke bot di Telegram)"
     }
 
 @router.post("/telegram/test")
-def send_test_telegram_notification(payload: TestMessage):
+def send_test_telegram_notification(request: Request, payload: TestMessage):
     """Mengirim pesan notifikasi pengujian ke Telegram Bot."""
+    require_api_key(request)
     msg = f"<b>🤖 StockAI Test Notification</b>\n\n{payload.message}"
     result = send_telegram_message(msg)
     if result.get("status") == "error":
@@ -39,8 +41,9 @@ def send_test_telegram_notification(payload: TestMessage):
     return result
 
 @router.post("/telegram/broadcast-morning-test")
-def broadcast_morning_radar_telegram():
+def broadcast_morning_radar_telegram(request: Request):
     """[FASE 1: 08:30 WIB] Menguji pengiriman Morning Pre-Market Radar ke Telegram."""
+    require_api_key(request)
     from src.scheduler.daily_scheduler import run_morning_premarket_job
     res = run_morning_premarket_job()
     if res.get("status") == "error":
@@ -48,8 +51,9 @@ def broadcast_morning_radar_telegram():
     return res
 
 @router.post("/telegram/broadcast-aftermarket-test")
-def broadcast_aftermarket_audit_telegram():
+def broadcast_aftermarket_audit_telegram(request: Request):
     """[FASE 2: 16:05 WIB] Menguji pengiriman After-Market Audit & Performance Recap ke Telegram."""
+    require_api_key(request)
     from dashboard.backend.routes.audit import get_audit_recap
     from src.notifications.telegram_bot import send_after_market_audit_broadcast
     
@@ -60,7 +64,8 @@ def broadcast_aftermarket_audit_telegram():
     return res
 
 @router.post("/telegram/broadcast-test")
-def broadcast_latest_recommendations_telegram():
+def broadcast_latest_recommendations_telegram(request: Request):
     """Menguji siaran rekomendasi terbaru ke Telegram Bot."""
-    return broadcast_morning_radar_telegram()
+    require_api_key(request)
+    return broadcast_morning_radar_telegram(request)
 

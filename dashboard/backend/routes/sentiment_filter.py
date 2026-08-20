@@ -1,95 +1,106 @@
-import yfinance as yf
 import re
+import time
+import yfinance as yf
+from src.sentiment.sentiment_engine import get_sentiment_analyzer
 
-# Kata kunci indikator sentimen negatif (Risiko Veto)
-NEGATIVE_KEYWORDS = [
-    r'\brugi\b', r'\bloss\b', r'\bkorupsi\b', r'\bfraud\b', r'\bgagal\b', r'\bdefault\b',
-    r'\bsuspensi\b', r'\bsengketa\b', r'\bdenda\b', r'\blawsuit\b', r'\bkrisis\b',
-    r'\bpenyidikan\b', r'\bbankruptcy\b', r'\bpailit\b', r'\bturun\b', r'\bslump\b', r'\bdrop\b'
-]
+# Cache headline per ticker (30 menit TTL) agar scan 700+ saham tidak
+# membanjiri Yahoo Finance dengan ribuan request berulang.
+_HEADLINE_CACHE = {}
+_HEADLINE_CACHE_TTL = 1800      # 30 menit
+_HEADLINE_CACHE_MAX = 1000      # batas entri untuk cegah kebocoran memori
 
-# Kata kunci indikator sentimen positif (Score Booster)
-POSITIVE_KEYWORDS = [
-    r'\blaba\b', r'\bprofit\b', r'\bnaik\b', r'\bsurge\b', r'\bsurged\b', r'\bakuisisi\b',
-    r'\bdividen\b', r'\bdividend\b', r'\bgrowth\b', r'\brecord\b', r'\bmerger\b',
-    r'\bgain\b', r'\brebound\b', r'\bmelonjak\b', r'\btumbuh\b', r'\bkontrak\b', r'\bmoul\b'
-]
+_TICKER_SANITIZE_RE = re.compile(r"[^A-Z0-9]")
+
+
+def _sanitize_ticker(ticker: str) -> str:
+    """Normalisasi ticker untuk lookup yfinance (tanpa raise)."""
+    return _TICKER_SANITIZE_RE.sub("", (ticker or "").upper())[:10]
+
+
+def _get_cached_headlines(ticker: str):
+    entry = _HEADLINE_CACHE.get(ticker)
+    if entry and time.time() - entry[0] < _HEADLINE_CACHE_TTL:
+        return entry[1]
+    return None
+
+
+def _set_cached_headlines(ticker: str, headlines: list):
+    if len(_HEADLINE_CACHE) >= _HEADLINE_CACHE_MAX:
+        oldest = min(_HEADLINE_CACHE, key=lambda k: _HEADLINE_CACHE[k][0])
+        _HEADLINE_CACHE.pop(oldest, None)
+    _HEADLINE_CACHE[ticker] = (time.time(), headlines)
+
 
 def fetch_recent_headlines(ticker: str) -> list[str]:
-    """Mengambil 3 judul berita harian terbaru untuk ticker dari Yahoo Finance."""
-    yf_ticker_str = f"{ticker}.JK" if not ticker.endswith(".JK") else ticker
+    """Mengambil 3-4 judul berita harian terbaru untuk ticker dari Yahoo Finance (dengan cache 30 menit)."""
+    clean_ticker = _sanitize_ticker(ticker)
+    if not clean_ticker:
+        return []
+
+    cached = _get_cached_headlines(clean_ticker)
+    if cached is not None:
+        return cached
+
+    yf_ticker_str = f"{clean_ticker}.JK" if not clean_ticker.endswith(".JK") else clean_ticker
+    headlines = []
     try:
         yf_ticker = yf.Ticker(yf_ticker_str)
-        news_data = yf_ticker.news or []
-        headlines = []
+        news_data = getattr(yf_ticker, 'news', []) or []
         for item in news_data[:4]:
             title = item.get("title", "")
             summary = item.get("summary", "")
             if title:
-                headlines.append(f"{title} {summary}")
-        return headlines
+                headlines.append(f"{title} {summary}".strip())
     except Exception:
-        return []
+        headlines = []
+
+    _set_cached_headlines(clean_ticker, headlines)
+    return headlines
 
 def evaluate_ticker_sentiment(ticker: str) -> dict:
-    """Mengevaluasi sentimen berita harian untuk ticker."""
-    headlines = fetch_recent_headlines(ticker)
-    if not headlines:
-        return {"status": "NETRAL", "score_delta": 0.0, "reason": "Tidak ada berita baru (Netral)"}
+    """Mengevaluasi sentimen berita harian untuk ticker menggunakan FinancialSentimentAnalyzer engine."""
+    clean_ticker = _sanitize_ticker(ticker)
+    headlines = fetch_recent_headlines(clean_ticker)
+    analyzer = get_sentiment_analyzer()
+    res = analyzer.analyze_ticker_headlines(clean_ticker, headlines)
 
-    combined_text = " ".join(headlines).lower()
-
-    neg_matches = sum(1 for kw in NEGATIVE_KEYWORDS if re.search(kw, combined_text))
-    pos_matches = sum(1 for kw in POSITIVE_KEYWORDS if re.search(kw, combined_text))
-
-    if neg_matches > pos_matches and neg_matches >= 1:
-        return {
-            "status": "NEGATIF",
-            "score_delta": -25.0, # Penalti Veto
-            "impact": "RISK VETO (-25%)",
-            "reason": f"Terdeteksi {neg_matches} isu/berita negatif (Veto Risiko)"
-        }
-    elif pos_matches > neg_matches and pos_matches >= 1:
-        return {
-            "status": "POSITIF",
-            "score_delta": 3.0, # Bonus Booster
-            "impact": "BOOSTER (+3%)",
-            "reason": f"Terdeteksi {pos_matches} katalis berita positif (+3% Boost)"
-        }
-    else:
-        return {
-            "status": "NETRAL",
-            "score_delta": 0.0,
-            "impact": "NETRAL",
-            "reason": "Sentimen berita seimbang / netral"
-        }
+    return {
+        "status": res["sentiment_status"],
+        "score": res["sentiment_score"],
+        "score_delta": res["score_delta"],
+        "impact": res["sentiment_impact"],
+        "reason": res["sentiment_reason"],
+        "highlights": res["highlights"]
+    }
 
 def apply_asymmetric_sentiment_filter(candidates: list[dict]) -> list[dict]:
     """
     Menerapkan Asymmetric Risk Filter & Score Booster pada kandidat saham.
-    - NEGATIF: Diberi penalti skor atau di-veto dari daftar utama.
-    - POSITIF: Diberikan bonus skor probabilitas +3.0%.
+    - NEGATIF: Diberi penalti skor risiko / di-veto.
+    - POSITIF: Diberikan bonus skor probabilitas (+1.5% s/d +4.5%).
     - NETRAL: Mempertahankan skor asli XGBoost.
     """
     filtered_results = []
-    
+
     for item in candidates:
-        ticker = item["ticker"]
+        ticker = item.get("ticker", "")
         sentiment_eval = evaluate_ticker_sentiment(ticker)
-        
-        raw_prob = item["probability"]
-        score_delta = sentiment_eval["score_delta"]
-        
+
+        raw_prob = float(item.get("probability", 50.0))
+        score_delta = float(sentiment_eval.get("score_delta", 0.0))
+
         # Hitung skor yang disesuaikan (adjusted probability)
         adjusted_prob = round(max(0.0, min(99.0, raw_prob + score_delta)), 1)
-        
+
         item_copy = dict(item)
         item_copy["probability_raw"] = raw_prob
         item_copy["probability"] = adjusted_prob
         item_copy["sentiment_status"] = sentiment_eval["status"]
         item_copy["sentiment_impact"] = sentiment_eval.get("impact", "NETRAL")
         item_copy["sentiment_reason"] = sentiment_eval["reason"]
-        
+        item_copy["sentiment_score"] = sentiment_eval.get("score", 0.0)
+        item_copy["sentiment_highlights"] = sentiment_eval.get("highlights", [])
+
         filtered_results.append(item_copy)
 
     # Urutkan ulang kandidat berdasarkan skor probabilitas yang sudah disesuaikan

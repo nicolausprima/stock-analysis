@@ -7,7 +7,7 @@ import pandas as pd
 
 
 def generate_reason(row: pd.Series) -> str:
-    """Menghasilkan teks alasan AI berbahasa Indonesia berdasarkan indikator teknikal, RVOL & ADX."""
+    """Menghasilkan teks alasan AI berbahasa Indonesia berdasarkan indikator teknikal, RVOL, ADX, MFI & Stochastic."""
     reasons = []
 
     rvol = float(row.get('RVOL', 1.0))
@@ -15,6 +15,17 @@ def generate_reason(row: pd.Series) -> str:
         reasons.append(f"Volume Melonjak {rvol:.1f}x (RVOL Breakout)")
     elif rvol >= 1.2:
         reasons.append(f"Akumulasi Volume ({rvol:.1f}x Rata-rata)")
+
+    mfi = float(row.get('MFI_14', 50))
+    if mfi >= 70:
+        reasons.append(f"Inflow Uang Kuat (MFI {mfi:.0f})")
+    elif mfi < 30:
+        reasons.append("Money Flow Oversold")
+
+    stoch_k = float(row.get('Stoch_K', 50))
+    stoch_d = float(row.get('Stoch_D', 50))
+    if stoch_k < 25 and stoch_k > stoch_d:
+        reasons.append("Stochastic Golden Cross (Reversal)")
 
     adx = float(row.get('ADX_14', 20))
     if adx >= 25:
@@ -30,8 +41,15 @@ def generate_reason(row: pd.Series) -> str:
     if macd_diff > 0:
         reasons.append("MACD Menguat (Bullish)")
 
-    if float(row.get('Close', 0)) > float(row.get('SMA_50', 100_000)):
+    close = float(row.get('Close', 0))
+    sma50 = float(row.get('SMA_50', 100_000))
+    if close > sma50 and sma50 > 0:
         reasons.append("Harga di atas MA-50")
+
+    ema12 = float(row.get('EMA_12', 0))
+    ema26 = float(row.get('EMA_26', 0))
+    if ema12 > ema26 and ema26 > 0:
+        reasons.append("EMA-12 Golden Cross EMA-26")
 
     if float(row.get('IHSG_Return', 0)) > 0:
         reasons.append("IHSG Mendukung")
