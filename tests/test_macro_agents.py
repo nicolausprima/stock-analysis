@@ -31,8 +31,8 @@ def test_news_macro_agent_keyword_evaluation():
 
 def test_ihsg_macro_agent_evaluation():
     agent = IHSGMacroAgent()
-    # Evaluate with skip_news=True to avoid network calls during fast unit test
-    result = agent.evaluate(skip_news=True)
+    # Evaluate with skip_news=True and skip_sectors=True to avoid network calls during fast unit test
+    result = agent.evaluate(skip_news=True, skip_sectors=True)
     assert result["status"] == "success"
     assert result["mode"] in ["NORMAL", "CAUTIOUS", "BLOCK"]
     assert "macro_score" in result
