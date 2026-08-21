@@ -35,10 +35,55 @@ document.addEventListener('DOMContentLoaded', () => {
     renderIHSGChart(1);
     runAuditAndLoad();
 
+    // Progressive Scan Loader & Elapsed Timer
+    let scanTimerInterval = null;
+    let scanPhaseInterval = null;
+    const scanPhases = [
+        "Scanning 700+ IDX Tickers...",
+        "Calculating 20+ Technical Indicators & MFI...",
+        "Extracting Continuous Feature Embeddings...",
+        "Evaluating Asymmetric News Sentiment & Catalysts...",
+        "Running 5-Agent Consensus & Kelly Sizing...",
+        "Finalizing Top High-Probability Recommendations..."
+    ];
+
+    function startScanLoader() {
+        const timerEl = document.getElementById('loader-timer');
+        const labelEl = document.getElementById('loader-shimmer-label');
+        const startTime = Date.now();
+
+        if (timerEl) timerEl.textContent = '0.0s';
+        if (labelEl) labelEl.textContent = scanPhases[0];
+
+        clearInterval(scanTimerInterval);
+        clearInterval(scanPhaseInterval);
+
+        scanTimerInterval = setInterval(() => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            if (timerEl) {
+                timerEl.textContent = elapsed < 60
+                    ? `${elapsed.toFixed(1)}s`
+                    : `${Math.floor(elapsed / 60)}m ${(elapsed % 60).toFixed(1)}s`;
+            }
+        }, 100);
+
+        let phaseIdx = 0;
+        scanPhaseInterval = setInterval(() => {
+            phaseIdx = (phaseIdx + 1) % scanPhases.length;
+            if (labelEl) labelEl.textContent = scanPhases[phaseIdx];
+        }, 1200);
+    }
+
+    function stopScanLoader() {
+        clearInterval(scanTimerInterval);
+        clearInterval(scanPhaseInterval);
+    }
+
     scanBtn.addEventListener('click', async () => {
         // Disable button, show loader
         scanBtn.disabled = true;
         loader.classList.remove('hidden');
+        startScanLoader();
         errorBox.classList.add('hidden');
         results.classList.add('hidden');
         emptyState.classList.add('hidden');
@@ -76,6 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             errorBox.classList.remove('hidden');
             emptyState.classList.remove('hidden');
         } finally {
+            stopScanLoader();
             loader.classList.add('hidden');
             scanBtn.disabled = false;
         }
@@ -279,10 +325,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const chart = LightweightCharts.createChart(ihsgChartDiv, {
                 width: ihsgChartDiv.clientWidth || 600,
                 height: 200,
-                layout: { 
-                    background: { type: 'solid', color: 'transparent' }, 
-                    textColor: '#1C1C1C',
-                    fontFamily: 'Epilogue, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                layout: {
+                    background: { type: 'solid', color: 'transparent' },
+                    textColor: '#595959',
+                    fontFamily: 'Montserrat, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
                 },
                 grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(0, 0, 0, 0.05)' } },
                 rightPriceScale: { borderVisible: false },
@@ -297,8 +343,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const areaSeries = chart.addAreaSeries({
-                lineColor: isUp ? '#1C1C1C' : '#B85C66',
-                topColor: isUp ? 'rgba(28, 28, 28, 0.15)' : 'rgba(184, 92, 102, 0.15)',
+                lineColor: isUp ? '#0051C3' : '#DE5052',
+                topColor: isUp ? 'rgba(0, 81, 195, 0.15)' : 'rgba(222, 80, 82, 0.15)',
                 bottomColor: 'rgba(0,0,0,0)',
                 lineWidth: 2,
             });
@@ -337,21 +383,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const isUp = s.trend.toLowerCase() === 'uptrend' || (data[data.length - 1].value >= data[0].value);
             const isBuy = s.signal === 1;
 
-            // Soft B&W rules for BUY (charcoal/rose), soft dark gray for WATCH
-            const lineColor = isBuy 
-                ? (isUp ? '#1C1C1C' : '#B85C66') 
-                : '#4A4A4A';
-            const topColor = isBuy 
-                ? (isUp ? 'rgba(28, 28, 28, 0.1)' : 'rgba(184, 92, 102, 0.1)') 
-                : 'rgba(74, 74, 74, 0.1)';
+            // Cobalt/rose rules for BUY (index palette), soft gray for WATCH
+            const lineColor = isBuy
+                ? (isUp ? '#0051C3' : '#DE5052')
+                : '#8C8C8C';
+            const topColor = isBuy
+                ? (isUp ? 'rgba(0, 81, 195, 0.1)' : 'rgba(222, 80, 82, 0.1)')
+                : 'rgba(140, 140, 140, 0.1)';
 
             try {
                 const chart = LightweightCharts.createChart(container, {
                     width: container.clientWidth || 240,
                     height: 80,
-                    layout: { 
+                    layout: {
                         background: { type: 'solid', color: 'transparent' },
-                        fontFamily: 'Epilogue, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                        fontFamily: 'Montserrat, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
                     },
                     grid: { vertLines: { visible: false }, horzLines: { visible: false } },
                     rightPriceScale: { visible: false },
@@ -738,8 +784,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 height: 220,
                                 layout: {
                                     background: { type: 'solid', color: 'transparent' },
-                                    textColor: '#1C1C1C',
-                                    fontFamily: 'Epilogue, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+                                    textColor: '#595959',
+                                    fontFamily: 'Montserrat, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
                                 },
                                 grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(0, 0, 0, 0.05)' } },
                                 rightPriceScale: { borderVisible: false },
@@ -750,9 +796,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
 
                             const areaSeries = chart.addAreaSeries({
-                                lineColor: '#10B981',
-                                topColor: 'rgba(16, 185, 129, 0.25)',
-                                bottomColor: 'rgba(16, 185, 129, 0.0)',
+                                lineColor: '#0051C3',
+                                topColor: 'rgba(0, 81, 195, 0.15)',
+                                bottomColor: 'rgba(0, 81, 195, 0.0)',
                                 lineWidth: 2,
                             });
 

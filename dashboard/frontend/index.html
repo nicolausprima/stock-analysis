@@ -1,651 +1,3034 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>StockAI | XGBoost Day Trading Screener for BEI</title>
-    <meta name="description" content="XGBoost stock screener for Indonesia Stock Exchange. Analyzes 700+ BEI stocks daily with 20+ technical indicators.">
+    <title>AKSA | Quantitative Stock Intelligence — Autonomous IDX Screener</title>
+    <meta name="description"
+        content="AKSA (Quantitative Stock Intelligence) — Autonomous screener engineered for the Indonesia Stock Exchange (IDX / BEI). Evaluates 700+ equities daily using quantitative decision trees, 20+ technical indicators, and multi-agent risk consensus.">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><line x1='18' y1='2' x2='18' y2='34' stroke='%238C8C8C' stroke-width='1' stroke-dasharray='2 2'/><line x1='2' y1='20' x2='34' y2='20' stroke='%238C8C8C' stroke-width='1' stroke-dasharray='2 2'/><path d='M18 4.5L7.5 29.5H12L18 15L19.5 19H23L18 4.5Z' fill='%230051C3'/><path d='M18 4.5L22.5 15.5L25.2 22H28.5L18 4.5Z' fill='%231C1C1C'/><polygon points='25.2,23 28.5,29.5 24,29.5 21.6,24.2' fill='%231C1C1C'/><path d='M18 20L31.5 6.5' stroke='%230051C3' stroke-width='2.2' stroke-linecap='round'/><path d='M26.5 6H32V11.5L29 8.5L26.5 6Z' fill='%230051C3'/><circle cx='18' cy='20' r='6' fill='%23FFFFFF' stroke='%231C1C1C' stroke-width='1.4'/><circle cx='18' cy='20' r='4.2' fill='%23141414'/><circle cx='18' cy='20' r='2.4' fill='%230051C3'/><circle cx='17.2' cy='19.2' r='0.8' fill='%23FFFFFF'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Epilogue:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
-<style>
-/* ============================================================
-   StockAI Landing Page
-   Brand system: Epilogue (body) + Fraunces (display/accent)
-   Palette matched to dashboard: cream #F7F5F2, charcoal #1C1C1C
-   Fraunces is justified as an existing brand asset (dashboard.html)
-   ============================================================ */
+    <link
+        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap"
+        rel="stylesheet">
+    <style>
+        /* ============================================================
+           AKSA — Analisis Kuantitatif Saham · Autonomous Quantitative Screener Interface
+           Design System: Inspired by Helin
+           Palette: Neutral Gray #404040, Pure White #FFFFFF, Cobalt Blue #0051C3
+           Typography: Instrument Serif (Display), Montserrat (Body & UI)
+           ============================================================ */
 
-:root {
-    --c-bg:          #F7F5F2;
-    --c-surface:     #F2F0EC;
-    --c-border:      #E8E5E0;
-    --c-border-act:  #D8D5D0;
-    --c-charcoal:    #1C1C1C;
-    --c-deep:        #2A2A2A;
-    --c-dark-gray:   #4A4A4A;
-    --c-muted:       #888888;
-    --c-rose:        #B85C66;
-    --font-primary:  'Epilogue', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-accent:   'Fraunces', Georgia, 'Times New Roman', serif;
-    --font-ui:       'Space Grotesk', -apple-system, sans-serif;
-    --shadow-raised: 0 1px 4px rgba(26,22,18,0.04), 0 4px 16px rgba(26,22,18,0.04);
-    --shadow-float:  0 2px 8px rgba(26,22,18,0.08), 0 8px 20px rgba(26,22,18,0.06);
-    --radius:        10px;
-}
+        :root {
+            --c-bg: #FFFFFF;
+            --c-surface: #FAFAFA;
+            --c-card: #FFFFFF;
+            --c-terminal: #0A0A0A;
+            --c-ink: #404040;
+            --c-body: #404040;
+            --c-muted: #595959;
+            --c-light-muted: #8C8C8C;
+            --c-border: #EBEBEB;
+            --c-border-dark: #404040;
+            --c-border-terminal: #2A2A2A;
+            --c-line-connect: rgba(0, 81, 195, 0.15);
+            
+            /* Primary Accent (Cobalt Blue) & Status */
+            --c-blue: #0051C3;
+            --c-blue-hover: #004099;
+            --c-blue-active: #003073;
+            --c-accent: #0051C3;
+            --c-red: #DE5052;
+            --c-green: #1B8A5A;
+            --c-sell: #DE5052;
+            --c-live: #0051C3;
 
-*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-html { scroll-behavior: smooth; }
+            /* Typography */
+            --font-display: 'Instrument Serif', Georgia, serif;
+            --font-sans: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Courier, monospace;
 
-body {
-    font-family: var(--font-primary);
-    background: var(--c-bg);
-    color: var(--c-charcoal);
-    font-size: 16px;
-    line-height: 1.65;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-    opacity: 0;
-    transform: translateY(8px);
-    filter: blur(4px);
-    transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                transform 0.5s cubic-bezier(0.16, 1, 0.3, 1),
-                filter 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-}
-body.page-loaded  { opacity: 1; transform: translateY(0); filter: blur(0px); }
-body.page-exiting { opacity: 0; transform: translateY(-8px); filter: blur(6px);
-    transition: opacity 0.35s cubic-bezier(0.16,1,0.3,1),
-                transform 0.35s cubic-bezier(0.16,1,0.3,1),
-                filter 0.35s cubic-bezier(0.16,1,0.3,1);
-}
+            /* Radius Tokens */
+            --radius-sharp: 6px;
+            --radius-default: 16px;
+            --radius-card: 16px;
+            --radius-pill: 3.36e+07px;
 
-a { color: inherit; text-decoration: none; }
+            /* Helin Elevation Shadows */
+            --shadow-sm: rgba(0, 13, 30, 0.18) 0px 8px 32px -12px;
+            --shadow-md: rgba(0, 13, 30, 0.22) 0px 12px 40px -16px;
+            --shadow-lg: rgba(0, 13, 30, 0.35) 0px 20px 60px -40px;
+            --shadow-xl: rgba(0, 13, 30, 0.45) 0px 20px 60px -30px;
 
-/* ── HERO ─────────────────────────────────────────────── */
-.hero {
-    position: relative;
-    width: 100%;
-    min-height: 100dvh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 80px 32px 60px;
-    background: var(--c-bg);
-    overflow: hidden;
-}
-.hero-bg-adam {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    opacity: 0.5;
-    mix-blend-mode: multiply;
-    filter: contrast(105%);
-    pointer-events: none;
-    z-index: 0;
-}
+            --ease-inout: cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-/* Split hero: left copy, right visual context */
-.hero-inner {
-    position: relative;
-    z-index: 1;
-    max-width: 1100px;
-    width: 100%;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 64px;
-    align-items: center;
-}
-.hero-left { max-width: 500px; }
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-.hero h1 {
-    font-family: var(--font-primary);
-    font-size: clamp(34px, 5vw, 52px);
-    font-weight: 700;
-    line-height: 1.1;
-    color: var(--c-charcoal);
-    letter-spacing: -0.03em;
-    margin-bottom: 6px;
-}
-/* Rotating word: Fraunces italic, brand accent */
-.hero h1 .rotator-wrap {
-    display: block;
-    height: 1.12em;
-    overflow: hidden;
-    position: relative;
-}
-.hero h1 .rotator { display: block; position: relative; }
-.hero h1 .rotator span {
-    display: block;
-    height: 1.12em;
-    line-height: 1.12;
-    font-family: var(--font-accent);
-    font-style: italic;
-    font-weight: 400;
-    color: var(--c-charcoal);
-    will-change: opacity, transform, filter;
-    transition: opacity 0.5s cubic-bezier(0.16,1,0.3,1),
-                transform 0.5s cubic-bezier(0.16,1,0.3,1),
-                filter 0.5s cubic-bezier(0.16,1,0.3,1);
-}
+        /* Hide scrollbar completely across all browsers */
+        html {
+            scroll-padding-top: 80px;
+            background: var(--c-bg);
+            color: var(--c-ink);
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
 
-.hero-desc {
-    font-size: clamp(14px, 1.3vw, 15px);
-    color: var(--c-dark-gray);
-    font-weight: 400;
-    max-width: 420px;
-    margin: 20px 0 32px;
-    line-height: 1.75;
-}
+        .section,
+        .section-live-intel,
+        .hero,
+        .cta-wrap {
+            scroll-margin-top: 80px;
+        }
 
-.hero-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-}
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            height: 0;
+        }
 
-/* Stat counters inside hero right */
-.hero-right {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-.hero-stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-}
-.hstat-card {
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    border-radius: var(--radius);
-    padding: 20px;
-    box-shadow: var(--shadow-raised);
-}
-.hstat-num {
-    font-family: var(--font-accent);
-    font-size: 28px;
-    font-weight: 500;
-    color: var(--c-charcoal);
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-}
-.hstat-lbl {
-    font-family: var(--font-ui);
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--c-muted);
-    margin-top: 4px;
-}
+        body {
+            font-family: var(--font-sans);
+            background: var(--c-bg);
+            color: var(--c-ink);
+            font-size: 14px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            display: flex;
+            min-height: 100vh;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
 
-/* Buttons */
-.btn-outline {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 22px;
-    border-radius: var(--radius);
-    font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 500;
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    color: var(--c-charcoal);
-    box-shadow: var(--shadow-raised);
-    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
-}
-.btn-outline:hover { background: var(--c-bg); border-color: var(--c-border-act); box-shadow: var(--shadow-float); }
-.btn-outline:active { transform: translateY(1px); }
+        body.page-loaded {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-.btn-solid {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 11px 26px;
-    border-radius: var(--radius);
-    font-family: var(--font-ui);
-    font-size: 13px;
-    font-weight: 600;
-    background: var(--c-charcoal);
-    color: var(--c-bg);
-    border: none;
-    box-shadow: 0 4px 14px rgba(28,28,28,0.18);
-    transition: opacity 0.2s, transform 0.15s;
-}
-.btn-solid:hover { opacity: 0.88; transform: translateY(-1px); }
-.btn-solid:active { transform: translateY(0) scale(0.98); }
+        body.page-exiting {
+            opacity: 0;
+            transform: translateY(-4px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
 
-/* ── FEATURES: Asymmetric split (text left / image right, then flip) ── */
-.section {
-    padding: 80px 32px;
-    max-width: 1100px;
-    margin: 0 auto;
-}
-.section-title {
-    font-family: var(--font-primary);
-    font-size: clamp(26px, 3.2vw, 38px);
-    font-weight: 600;
-    line-height: 1.18;
-    color: var(--c-charcoal);
-    letter-spacing: -0.02em;
-    max-width: 480px;
-    margin-bottom: 12px;
-}
-.section-title em {
-    font-family: var(--font-accent);
-    font-style: italic;
-    font-weight: 400;
-}
-.section-desc {
-    font-size: 14px;
-    color: var(--c-dark-gray);
-    max-width: 440px;
-    line-height: 1.75;
-    margin-bottom: 48px;
-}
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
 
-/* Feature row: alternating image/text split */
-.feature-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 48px;
-    align-items: center;
-    margin-bottom: 56px;
-}
-.feature-row:last-child { margin-bottom: 0; }
-/* Flip direction on even rows */
-.feature-row.flip .feature-img { order: -1; }
+        /* ── IN / OUT SCROLL ANIMATION SYSTEM ─────────────────── */
+        .reveal {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity 0.75s var(--ease-inout), transform 0.75s var(--ease-inout);
+            will-change: opacity, transform;
+        }
 
-.feature-text { max-width: 400px; }
-.feature-tag {
-    font-family: var(--font-ui);
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: var(--c-muted);
-    margin-bottom: 10px;
-}
-.feature-h3 {
-    font-family: var(--font-primary);
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--c-charcoal);
-    line-height: 1.3;
-    letter-spacing: -0.01em;
-    margin-bottom: 10px;
-}
-.feature-p {
-    font-size: 14px;
-    color: var(--c-dark-gray);
-    line-height: 1.7;
-}
+        .reveal.reveal-left {
+            transform: translateX(-36px);
+        }
 
-.feature-img {
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    border-radius: var(--radius);
-    overflow: hidden;
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-}
-.feature-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0.94;
-    transition: opacity 0.35s ease, transform 0.4s ease;
-}
-.feature-row:hover .feature-img img {
-    opacity: 1;
-    transform: scale(1.02);
-}
+        .reveal.reveal-right {
+            transform: translateX(36px);
+        }
 
-/* ── WORKFLOW: Horizontal numbered steps ──────────────── */
-.steps-section {
-    background: var(--c-surface);
-    border-top: 1px solid var(--c-border);
-    border-bottom: 1px solid var(--c-border);
-    padding: 80px 32px;
-}
-.steps-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-}
-.steps-title {
-    font-family: var(--font-primary);
-    font-size: clamp(24px, 3vw, 34px);
-    font-weight: 600;
-    color: var(--c-charcoal);
-    letter-spacing: -0.02em;
-    margin-bottom: 48px;
-}
-.steps-title em {
-    font-family: var(--font-accent);
-    font-style: italic;
-    font-weight: 400;
-}
-.steps-track {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--c-border);
-    border-radius: var(--radius);
-    overflow: hidden;
-}
-.step-cell {
-    background: var(--c-bg);
-    padding: 32px 28px;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-.step-num {
-    font-family: var(--font-accent);
-    font-size: 32px;
-    font-weight: 300;
-    color: var(--c-border);
-    line-height: 1;
-}
-.step-h4 {
-    font-family: var(--font-primary);
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--c-charcoal);
-    line-height: 1.3;
-}
-.step-p {
-    font-size: 13px;
-    color: var(--c-dark-gray);
-    line-height: 1.65;
-}
-.step-img {
-    width: 100%;
-    aspect-ratio: 16 / 10;
-    border-radius: 6px;
-    overflow: hidden;
-    background: var(--c-surface);
-    border: 1px solid var(--c-border);
-    margin-top: auto;
-}
-.step-img img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translate(0, 0);
+        }
 
-/* ── CTA ── stays in warm theme, no dark inversion ──── */
-.cta-section {
-    text-align: center;
-    padding: 80px 32px;
-    max-width: 560px;
-    margin: 0 auto;
-}
-.cta-section h2 {
-    font-family: var(--font-primary);
-    font-size: clamp(24px, 3vw, 32px);
-    font-weight: 600;
-    margin-bottom: 10px;
-    color: var(--c-charcoal);
-    letter-spacing: -0.02em;
-}
-.cta-section p {
-    color: var(--c-dark-gray);
-    margin-bottom: 28px;
-    font-size: 14px;
-    line-height: 1.7;
-}
+        /* Stagger delays */
+        .delay-1 {
+            transition-delay: 0.1s;
+        }
 
-.footer {
-    padding: 24px;
-    text-align: center;
-    font-family: var(--font-ui);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    color: var(--c-muted);
-    border-top: 1px solid var(--c-border);
-}
+        .delay-2 {
+            transition-delay: 0.2s;
+        }
 
-/* ── Scroll reveal ────────────────────────────────────── */
-.reveal {
-    opacity: 0;
-    transform: translateY(18px);
-    transition: opacity 0.6s ease, transform 0.6s ease;
-}
-.reveal.visible { opacity: 1; transform: translateY(0); }
+        .delay-3 {
+            transition-delay: 0.3s;
+        }
 
-/* ── Responsive ───────────────────────────────────────── */
-@media (max-width: 768px) {
-    .hero { padding: 60px 20px 40px; }
-    .hero-inner { grid-template-columns: 1fr; gap: 40px; }
-    .hero-left { max-width: 100%; }
-    .hero-stats-grid { grid-template-columns: 1fr 1fr; }
-    .section { padding: 60px 20px; }
-    .feature-row { grid-template-columns: 1fr; gap: 24px; }
-    .feature-row.flip .feature-img { order: 0; }
-    .steps-track { grid-template-columns: 1fr; }
-    .steps-section { padding: 60px 20px; }
-}
-@media (max-width: 480px) {
-    .hero h1 { font-size: 28px; }
-    .hero-stats-grid { grid-template-columns: 1fr; }
-}
-</style>
+        /* ── RIGHT INTERACTIVE PAGE RAIL / SCROLL SLIDER ──────── */
+        .page-spine {
+            width: 58px;
+            background: #FFFFFF;
+            border-left: 1px solid var(--c-border);
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 0 20px;
+            color: var(--c-ink);
+            z-index: 70;
+            user-select: none;
+            box-shadow: -2px 0 12px rgba(0, 13, 30, 0.03);
+        }
+
+        .spine-label {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--c-muted);
+            opacity: 0.85;
+            cursor: pointer;
+            transition: color 0.2s ease, opacity 0.2s ease;
+            margin: 0 auto;
+        }
+
+        .spine-label:hover {
+            color: var(--c-blue);
+            opacity: 1;
+        }
+
+        /* Interactive Track & Slider Zone */
+        .spine-track-container {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            margin: 16px 0;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .spine-track-line {
+            width: 4px;
+            height: 100%;
+            background: #EBEBEB;
+            border-radius: 4px;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .spine-track-container:hover .spine-track-line {
+            background: #E0E0E0;
+        }
+
+        /* Waypoint Pips */
+        .spine-pip {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #FFFFFF;
+            border: 2px solid #8C8C8C;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            z-index: 2;
+        }
+
+        .spine-pip:hover,
+        .spine-pip.active {
+            width: 12px;
+            height: 12px;
+            border-color: var(--c-blue);
+            background: var(--c-blue);
+            box-shadow: 0 0 0 3px rgba(0, 81, 195, 0.2);
+        }
+
+        /* Tooltip for Section Pip */
+        .spine-pip .pip-tooltip {
+            position: absolute;
+            right: 22px;
+            top: 50%;
+            transform: translateY(-50%) translateX(6px);
+            background: #1C1C1C;
+            color: #FFFFFF;
+            font-family: var(--font-sans);
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+            padding: 4px 10px;
+            border-radius: 6px;
+            pointer-events: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+            box-shadow: var(--shadow-md);
+            z-index: 100;
+        }
+
+        .spine-pip .pip-tooltip::after {
+            content: '';
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 4px solid transparent;
+            border-left-color: #1C1C1C;
+        }
+
+        .spine-pip:hover .pip-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(-50%) translateX(0);
+        }
+
+        /* Tactile Draggable Slider Thumb */
+        .spine-thumb {
+            width: 32px;
+            height: 52px;
+            background: var(--c-blue);
+            border-radius: 16px;
+            position: absolute;
+            left: 50%;
+            top: 0%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            cursor: grab;
+            box-shadow: 0 4px 16px rgba(0, 81, 195, 0.38);
+            transition: transform 0.15s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+            z-index: 5;
+            touch-action: none;
+        }
+
+        .spine-thumb:hover {
+            background: var(--c-blue-hover);
+            transform: translate(-50%, -50%) scale(1.08);
+            box-shadow: 0 6px 20px rgba(0, 81, 195, 0.48);
+        }
+
+        .spine-thumb.is-dragging {
+            cursor: grabbing;
+            background: var(--c-blue-active);
+            transform: translate(-50%, -50%) scale(1.12);
+            box-shadow: 0 8px 24px rgba(0, 81, 195, 0.6);
+        }
+
+        .spine-thumb .thumb-grip {
+            width: 14px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 2px;
+        }
+
+        .spine-status-bottom {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .spine-dot {
+            width: 7px;
+            height: 7px;
+            background: var(--c-blue);
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(0, 81, 195, 0.7);
+            animation: live-pulse-anim 1.8s infinite;
+        }
+
+        .spine-status-text {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            font-family: var(--font-mono);
+            font-size: 8px;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            color: var(--c-blue);
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .page-spine {
+                display: none;
+            }
+        }
+
+        /* ── CTA SECTION & THE LAST PUSH ──────────────────────── */
+        .cta-wrap {
+            text-align: center;
+            padding: 120px 24px 100px;
+            max-width: 860px;
+            margin: 0 auto;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        /* Ambient Vector Background for CTA */
+        .cta-ambient-bg {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 1100px;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.15;
+        }
+
+        .cta-bracket-top {
+            position: relative;
+            z-index: 2;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--c-blue);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 18px;
+        }
+
+        .cta-wrap h2 {
+            position: relative;
+            z-index: 2;
+            font-family: var(--font-display);
+            font-size: clamp(36px, 4.8vw, 56px);
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0px;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            color: var(--c-ink);
+        }
+
+        .cta-wrap p {
+            position: relative;
+            z-index: 2;
+            font-family: var(--font-sans);
+            font-size: 16.8px;
+            font-weight: 500;
+            color: var(--c-body);
+            margin-bottom: 32px;
+            line-height: 1.65;
+            max-width: 580px;
+        }
+
+        /* Closing CTA Proof Strip */
+        .cta-proof-strip {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--c-border);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-default);
+            overflow: hidden;
+            margin-bottom: 36px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cta-proof-item {
+            background: var(--c-card);
+            padding: 16px 18px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .cta-proof-k {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--c-muted);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .cta-proof-v {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--c-ink);
+        }
+
+        /* Helin Cobalt Blue Launch Button (Pill Radius) */
+        .btn-launch-primary {
+            position: relative;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--c-blue);
+            color: #FFFFFF;
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0px;
+            padding: 10px 24px;
+            border-radius: var(--radius-pill);
+            border: none;
+            box-shadow: none;
+            transition: background-color 0.2s var(--ease-inout), transform 0.2s var(--ease-inout);
+            cursor: pointer;
+        }
+
+        .btn-launch-primary:hover {
+            background: var(--c-blue-hover);
+            transform: translateY(-1px);
+        }
+
+        .btn-launch-primary:active {
+            background: var(--c-blue-active);
+        }
+
+        .cta-subnote {
+            position: relative;
+            z-index: 2;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            color: var(--c-muted);
+            margin-top: 16px;
+            letter-spacing: 0px;
+        }
+
+        /* ── RICH 4-COLUMN FOOTER ─────────────────────────────── */
+        .footer {
+            border-top: 1px solid var(--c-border);
+            background: #FFFFFF;
+            padding: 64px 48px 36px;
+            width: 100%;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 56px;
+            max-width: 1300px;
+            margin: 0 auto 48px;
+        }
+
+        .footer-col {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .footer-title {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--c-ink);
+            text-transform: uppercase;
+            letter-spacing: 0px;
+            margin-bottom: 4px;
+        }
+
+        .footer-title span.accent {
+            color: var(--c-blue);
+        }
+
+        .footer-desc {
+            font-family: var(--font-sans);
+            font-size: 13px;
+            line-height: 1.65;
+            color: var(--c-muted);
+            max-width: 320px;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .footer-links a {
+            color: var(--c-muted);
+            transition: color 0.2s ease;
+            width: fit-content;
+        }
+
+        .footer-links a:hover {
+            color: var(--c-blue);
+            text-decoration: underline;
+        }
+
+        .footer-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--c-ink);
+            background: #FFFFFF;
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-pill);
+            padding: 5px 12px;
+            width: fit-content;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .footer-status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--c-blue);
+            border-radius: 50%;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid var(--c-border);
+            padding-top: 24px;
+            max-width: 1300px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .footer-disclaimer {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--c-muted);
+            letter-spacing: 0px;
+        }
+
+        .footer-copyright {
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-sans);
+            font-size: 12px;
+            color: var(--c-light-muted);
+            letter-spacing: 0px;
+        }
+
+        /* ── MAIN CONTENT WRAPPER ─────────────────────────────── */
+        .page-content {
+            flex: 1;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            background: var(--c-bg);
+        }
+
+        /* ── TOP BROWSER & NAVIGATION BAR ─────────────────────── */
+        .top-nav {
+            padding: 16px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--c-border);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(8px);
+            box-shadow: var(--shadow-sm);
+            z-index: 50;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #000000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .aksa-logo-mark {
+            flex-shrink: 0;
+            transition: transform 0.25s ease;
+        }
+
+        .nav-brand:hover .aksa-logo-mark {
+            transform: scale(1.08);
+        }
+
+        .nav-brand-text {
+            font-family: var(--font-display);
+            font-weight: 400;
+            font-size: 26px;
+            letter-spacing: 0px;
+            color: #000000;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-brand-text span.accent {
+            color: var(--c-blue);
+        }
+
+        .nav-brand-tag {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            color: var(--c-muted);
+            background: #F4F4F4;
+            border: 1px solid var(--c-border);
+            border-radius: 4px;
+            padding: 2px 7px;
+            margin-left: 4px;
+            text-transform: uppercase;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            font-weight: 500;
+        }
+
+        .nav-link {
+            color: var(--c-ink);
+            transition: color 0.2s ease;
+            padding: 0 4px;
+        }
+
+        .nav-link:hover {
+            color: var(--c-blue);
+            text-decoration: none;
+        }
+
+        .nav-cta {
+            background: var(--c-blue);
+            color: #FFFFFF;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0px;
+            padding: 8px 18px;
+            border-radius: var(--radius-pill);
+            border: none;
+            transition: background-color 0.2s ease;
+        }
+
+        .nav-cta:hover {
+            background: var(--c-blue-hover);
+            opacity: 1;
+        }
+
+        /* ── HERO SECTION (MINIMAL SINGLE-COLUMN CENTERED EDITORIAL) ───── */
+        .hero {
+            position: relative;
+            padding: 80px 24px 90px;
+            min-height: calc(100vh - 65px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-bottom: 1px solid var(--c-border);
+            text-align: center;
+            background: #FFFFFF;
+            scroll-margin-top: 65px;
+        }
+
+        .hero-layout {
+            position: relative;
+            z-index: 2;
+            width: 100%;
+            max-width: 880px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* 🟢 Modern Helin Pill Badge (Centered) */
+        .hero-live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: #FFFFFF;
+            border: 1px solid var(--c-border);
+            padding: 7px 18px;
+            border-radius: var(--radius-pill);
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: -0.01em;
+            color: var(--c-ink);
+            margin-bottom: 34px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .live-pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--c-blue);
+            box-shadow: 0 0 0 0 rgba(0, 81, 195, 0.7);
+            animation: live-pulse-anim 1.8s infinite;
+        }
+
+        @keyframes live-pulse-anim {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(0, 81, 195, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 7px rgba(0, 81, 195, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(0, 81, 195, 0);
+            }
+        }
+
+        /* Centered Monolithic Title Stack with Dashed Background Graphic */
+        .hero-title-wrap {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        /* Giant Dashed Interlocking Monogram Overlay (40-50% Opacity) */
+        .hero-title-monogram {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 580px;
+            height: 580px;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.25;
+        }
+
+        .hero-title-monogram svg {
+            width: 100%;
+            height: 100%;
+            stroke: var(--c-border);
+            stroke-width: 1.5;
+            stroke-dasharray: 6 5;
+            fill: none;
+        }
+
+        .hero-title {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            line-height: 1.05;
+            letter-spacing: 0px;
+            color: var(--c-ink);
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-title-primary {
+            font-family: var(--font-display);
+            font-size: clamp(52px, 7.5vw, 84px);
+            font-weight: 400;
+            text-transform: uppercase;
+            letter-spacing: 0px;
+            line-height: 1.02;
+            color: var(--c-ink);
+            display: block;
+        }
+
+        .hero-title-connector {
+            font-family: var(--font-display);
+            font-style: italic;
+            font-weight: 400;
+            font-size: clamp(34px, 4.8vw, 56px);
+            text-transform: lowercase;
+            letter-spacing: 0px;
+            color: var(--c-muted);
+            margin: 6px 0 8px;
+            display: block;
+            line-height: 1.15;
+        }
+
+        /* Editorial Paragraph directly under the mixed title (Constrained to ~640px) */
+        .hero-editorial-body {
+            font-family: var(--font-sans);
+            font-size: 16.8px;
+            line-height: 1.65;
+            color: var(--c-body);
+            max-width: 640px;
+            margin: 0 auto 36px;
+            font-weight: 500;
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .hero-editorial-body strong {
+            font-weight: 600;
+            color: #000000;
+        }
+
+        /* Fully Rounded Pill CTA Buttons (Centered) */
+        .hero-cta-actions {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero-btn-pill-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--c-blue);
+            color: #FFFFFF;
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0px;
+            padding: 10px 24px;
+            border-radius: var(--radius-pill);
+            border: none;
+            box-shadow: none;
+            transition: background-color 0.2s var(--ease-inout), transform 0.2s var(--ease-inout);
+            cursor: pointer;
+        }
+
+        .hero-btn-pill-primary:hover {
+            background: var(--c-blue-hover);
+            transform: translateY(-1px);
+        }
+
+        .hero-btn-pill-primary:active {
+            background: var(--c-blue-active);
+        }
+
+        .hero-btn-pill-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: transparent;
+            color: var(--c-muted);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0px;
+            padding: 10px 24px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--c-border);
+            box-shadow: none;
+            transition: background-color 0.2s var(--ease-inout), color 0.2s var(--ease-inout), border-color 0.2s, transform 0.2s var(--ease-inout);
+            cursor: pointer;
+        }
+
+        .hero-btn-pill-secondary:hover {
+            background: #F5F5F5;
+            border-color: #D0D0D0;
+            color: var(--c-ink);
+            transform: translateY(-1px);
+        }
+
+        /* Trust Indicators Row with ~22px spacing below CTAs */
+        .hero-trust-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 22px;
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--c-muted);
+            letter-spacing: 0px;
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+
+        .hero-trust-row .trust-sep {
+            color: var(--c-light-muted);
+            font-weight: 500;
+        }
+
+        /* ── SECTION 00: LIVE MARKET INTELLIGENCE GRID ── */
+        .section-live-intel {
+            padding: 95px 48px 115px;
+            background: var(--c-surface);
+            border-bottom: 1px solid var(--c-border);
+        }
+
+        .intel-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.35fr;
+            gap: 24px;
+            max-width: 1320px;
+            margin: 0 auto;
+            align-items: stretch;
+        }
+
+        @media (max-width: 1100px) {
+            .intel-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .intel-card {
+            background: #FFFFFF;
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .intel-card-hdr {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--c-border);
+            background: #FFFFFF;
+            color: var(--c-ink);
+        }
+
+        .intel-card-body {
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex: 1;
+        }
+
+        .intel-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--c-muted);
+            margin-top: 14px;
+            padding-top: 10px;
+            border-top: 1px solid var(--c-border);
+        }
+
+        .intel-telemetry-body {
+            padding: 24px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 13px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .intel-tele-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            border-bottom: 1px dashed var(--c-border);
+            padding-bottom: 8px;
+        }
+
+        .intel-tele-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .intel-tele-row .t-k {
+            color: var(--c-muted);
+            font-weight: 500;
+        }
+
+        .intel-tele-row .t-v {
+            font-weight: 600;
+            color: var(--c-ink);
+        }
+
+        .telemetry-row .t-k {
+            color: var(--c-muted);
+            font-weight: 500;
+        }
+
+        .telemetry-row .t-v {
+            color: var(--c-ink);
+            font-weight: 600;
+        }
+
+        .telemetry-row .t-v.highlight-red {
+            color: var(--c-blue);
+        }
+
+        /* Authentic AKSA Live Terminal UI Mockup Card (Helin Featured Card Style) */
+        .hero-terminal-mockup {
+            background: #FFFFFF;
+            border: 2px solid var(--c-blue);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transition: transform 0.3s var(--ease-inout), box-shadow 0.3s var(--ease-inout);
+        }
+
+        .hero-terminal-mockup:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .terminal-mockup-header {
+            background: var(--c-surface);
+            color: var(--c-ink);
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--c-border);
+        }
+
+        .terminal-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .terminal-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .terminal-dots span:first-child { background: var(--c-sell); }
+        .terminal-dots span:nth-child(2) { background: #FFBD2E; }
+        .terminal-dots span:last-child { background: var(--c-blue); }
+
+        .terminal-title {
+            color: var(--c-ink);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .terminal-badge {
+            background: rgba(0, 81, 195, 0.1);
+            color: var(--c-blue);
+            border: 1px solid rgba(0, 81, 195, 0.3);
+            font-size: 9px;
+            font-family: var(--font-mono);
+            padding: 2px 6px;
+            border-radius: var(--radius-sharp);
+        }
+
+        .terminal-signal-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            background: var(--c-border);
+        }
+
+        .terminal-signal-row {
+            background: #FFFFFF;
+            padding: 14px 18px;
+            display: grid;
+            grid-template-columns: 1.1fr 1.1fr 1.2fr 0.8fr;
+            gap: 12px;
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .terminal-signal-row:hover {
+            background: #FAFAFA;
+        }
+
+        .sig-col-ticker {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sig-badge.buy {
+            background: var(--c-blue);
+            color: #FFFFFF;
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 500;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            line-height: 1;
+        }
+
+        .sig-ticker {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 600;
+            color: #404040;
+        }
+
+        .sig-col-price {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sig-val {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: #404040;
+        }
+
+        .sig-score {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--c-blue);
+            font-weight: 500;
+        }
+
+        .sig-col-target {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .sig-tp {
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            font-weight: 500;
+            color: var(--c-blue);
+        }
+
+        .sig-sl {
+            font-family: var(--font-mono);
+            font-size: 10.5px;
+            color: var(--c-sell);
+            font-weight: 500;
+        }
+
+        .sig-col-sizing {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+        }
+
+        .sig-sizing-val {
+            font-family: var(--font-sans);
+            font-size: 13px;
+            font-weight: 600;
+            color: #404040;
+        }
+
+        .sig-sizing-lbl {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: var(--c-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .terminal-footer {
+            background: var(--c-surface);
+            border-top: 1px solid var(--c-border);
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--c-muted);
+            letter-spacing: 0.5px;
+        }
+
+        /* ── SECTION ARCHITECTURE (MODULAR GRID & CONNECTING BUS) ── */
+        .section {
+            padding: 110px 48px;
+            max-width: 1320px;
+            margin: 0 auto;
+            width: 100%;
+            position: relative;
+        }
+
+        .section-hdr {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            border-bottom: 1px solid var(--c-border);
+            padding-bottom: 16px;
+            margin-bottom: 72px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+        }
+
+        .section-hdr::after {
+            content: '┼';
+            position: absolute;
+            bottom: -7.5px;
+            right: 0;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--c-blue);
+            line-height: 1;
+        }
+
+        .section-hdr h2 {
+            font-family: var(--font-display);
+            font-size: clamp(32px, 4vw, 48px);
+            font-weight: 400;
+            letter-spacing: 0px;
+            text-transform: uppercase;
+            color: var(--c-ink);
+        }
+
+        /* Interconnecting Container Wrapper with Central Bus Line */
+        .feat-interconnect-wrap {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Vertical Continuous Telemetry Bus Line Connecting Images */
+        .feat-interconnect-wrap::before {
+            content: '';
+            position: absolute;
+            top: 40px;
+            bottom: 40px;
+            left: 50%;
+            width: 1px;
+            transform: translateX(-50%);
+            background: repeating-linear-gradient(180deg, var(--c-border), var(--c-border) 6px, transparent 6px, transparent 12px);
+            opacity: 0.8;
+            z-index: 1;
+        }
+
+        /* Asymmetric Feature Rows with Generous Breathing Room */
+        .feat-row {
+            display: grid;
+            grid-template-columns: 1.05fr 1fr;
+            gap: 80px;
+            align-items: center;
+            margin-bottom: 110px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .feat-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .feat-row.reverse .feat-visual {
+            order: -1;
+        }
+
+        .feat-copy {
+            max-width: 520px;
+            position: relative;
+        }
+
+        /* Connector Hairline to Visual */
+        .feat-connector-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--c-blue);
+            letter-spacing: 0.5px;
+        }
+
+        .feat-connector-line::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: repeating-linear-gradient(90deg, var(--c-border), var(--c-border) 4px, transparent 4px, transparent 8px);
+            opacity: 0.6;
+        }
+
+        .feat-h3 {
+            font-family: var(--font-sans);
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0px;
+            line-height: 1.35;
+            color: var(--c-ink);
+            margin-bottom: 16px;
+        }
+
+        .feat-p {
+            font-family: var(--font-sans);
+            font-size: 16.8px;
+            font-weight: 500;
+            line-height: 1.65;
+            color: var(--c-body);
+            position: relative;
+            padding-left: 16px;
+            border-left: 2px solid var(--c-blue);
+        }
+
+        .feat-p strong {
+            color: #000000;
+            font-weight: 600;
+        }
+
+        .feat-glossary-tag {
+            display: block;
+            margin-top: 14px;
+            font-family: var(--font-mono);
+            font-size: 11.5px;
+            line-height: 1.55;
+            color: var(--c-body);
+            background: #FFFFFF;
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-sharp);
+            padding: 8px 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .feat-glossary-tag strong {
+            color: #000000;
+            font-weight: 600;
+        }
+
+        /* Strict Uniform Native Vector Diagram Box (16:10 Ratio, 380px Height) */
+        .feat-visual {
+            width: 100%;
+            height: 380px;
+            aspect-ratio: 16 / 10;
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-card);
+            background: #FFFFFF;
+            overflow: hidden;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.3s var(--ease-inout), box-shadow 0.3s var(--ease-inout);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Visual Connector Badge Indicator */
+        .feat-visual-tag {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: var(--c-blue);
+            color: #FFFFFF;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: var(--radius-pill);
+            letter-spacing: 0.5px;
+            z-index: 5;
+            text-transform: uppercase;
+        }
+
+        .feat-visual:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .feat-visual svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #FFFFFF;
+        }
+
+        /* ── BLUEPRINT PIPELINE (3-COLUMN INTERCONNECTED TRACK) ── */
+        .pipeline-track {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--c-border);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .pipeline-cell {
+            background: #FFFFFF;
+            padding: 32px 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            position: relative;
+            transition: background-color 0.3s ease;
+        }
+
+        .pipeline-cell:hover {
+            background: #FAFAFA;
+        }
+
+        .pipe-num {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--c-blue);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 0.5px;
+        }
+
+        .pipe-connector-pip {
+            font-size: 11px;
+            color: var(--c-blue);
+        }
+
+        .pipe-h4 {
+            font-family: var(--font-sans);
+            font-size: 18px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0px;
+            line-height: 1.3;
+            color: var(--c-ink);
+        }
+
+        .pipe-p {
+            font-family: var(--font-sans);
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.65;
+            color: var(--c-muted);
+        }
+
+        /* Strict Uniform Pipeline Diagram Box (16:10 Ratio, 210px Height) */
+        .pipe-visual {
+            margin-top: auto;
+            width: 100%;
+            height: 210px;
+            aspect-ratio: 16 / 10;
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            background: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pipe-visual svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #FFFFFF;
+        }
+
+        /* ── METRICS SPECIFICATION GRID (HIGH-IMPACT POP) ───────── */
+        .metrics-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--c-border);
+            border: 1px solid var(--c-border);
+            border-radius: var(--radius-card);
+            overflow: hidden;
+            margin-top: 48px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .metric-item {
+            background: #FFFFFF;
+            padding: 32px 26px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            transition: background 0.25s ease;
+        }
+
+        .metric-item:hover {
+            background: #FAFAFA;
+        }
+
+        .m-badge {
+            display: inline-block;
+            font-family: var(--font-sans);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: var(--radius-pill);
+            margin-bottom: 14px;
+            width: fit-content;
+        }
+
+        .m-badge.audit { background: var(--c-blue); color: #FFFFFF; }
+        .m-badge.alpha { background: var(--c-blue); color: #FFFFFF; }
+        .m-badge.tests { background: #404040; color: #FFFFFF; }
+        .m-badge.cache { background: #595959; color: #FFFFFF; }
+
+        .m-val {
+            font-family: var(--font-sans);
+            font-size: clamp(38px, 4.2vw, 52px);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1;
+            margin-bottom: 8px;
+            color: var(--c-ink);
+        }
+
+        .m-val.highlight-red {
+            color: var(--c-blue);
+        }
+
+        /* Accent Line Underline to group metric */
+        .m-accent-line {
+            width: 32px;
+            height: 3px;
+            background: var(--c-blue);
+            margin-bottom: 12px;
+        }
+
+        .m-accent-line.green {
+            background: var(--c-blue);
+        }
+
+        .m-accent-line.dark {
+            background: #404040;
+        }
+
+        .m-lbl {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--c-ink);
+            margin-bottom: 4px;
+        }
+
+        .m-sub {
+            font-family: var(--font-sans);
+            font-size: 12px;
+            color: var(--c-muted);
+            line-height: 1.4;
+        }
+
+
+
+        /* ── RESPONSIVE ───────────────────────────────────────── */
+        @media (max-width: 960px) {
+            .hero-layout {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+
+            .hero-watermark {
+                right: 5%;
+                width: 360px;
+            }
+
+            .feat-interconnect-wrap::before {
+                display: none;
+            }
+
+            .feat-row,
+            .feat-row.reverse {
+                grid-template-columns: 1fr;
+                gap: 36px;
+            }
+
+            .feat-row.reverse .feat-visual {
+                order: 0;
+            }
+
+            .pipeline-track {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .page-spine {
+                display: none;
+            }
+
+            .top-nav {
+                padding: 16px 20px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hero {
+                padding: 50px 20px 60px;
+            }
+
+            .hero-editorial-blocks {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .section {
+                padding: 60px 20px;
+            }
+
+            .metrics-bar {
+                grid-template-columns: 1fr;
+            }
+
+            .footer {
+                padding: 20px;
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-<section class="hero">
-    <div class="hero-bg-adam" style="background-image: url('creation_of_adam_dither_hands.png');"></div>
-    <div class="hero-inner">
+    <!-- MAIN PAGE CONTENT -->
+    <div class="page-content">
 
-        <!-- Left: copy + CTA -->
-        <div class="hero-left">
-            <h1>
-                Screening IDX stocks with
-                <span class="rotator-wrap">
-                    <span class="rotator" id="rotator">
-                        <span>XGBoost ML</span>
+        <!-- TOP NAVIGATION -->
+        <nav class="top-nav" role="navigation" aria-label="Main navigation">
+            <a href="#hero" class="nav-brand" id="nav-brand" title="AKSA — Quantitative Stock Intelligence">
+                <svg class="aksa-logo-mark" viewBox="0 0 36 36" width="30" height="30" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AKSA Philosophical Quantitative Logo">
+                    <defs>
+                        <linearGradient id="aksaBlueGradNav" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#0051C3" />
+                            <stop offset="100%" stop-color="#002D7A" />
+                        </linearGradient>
+                    </defs>
+                    <!-- Sumbu Coordinate Grid -->
+                    <line x1="18" y1="2" x2="18" y2="34" stroke="#8C8C8C" stroke-width="1" stroke-dasharray="2 2" opacity="0.6" />
+                    <line x1="2" y1="20" x2="34" y2="20" stroke="#8C8C8C" stroke-width="1" stroke-dasharray="2 2" opacity="0.6" />
+                    <circle cx="18" cy="2" r="1" fill="#0051C3" />
+                    <circle cx="18" cy="34" r="1" fill="#404040" />
+                    <circle cx="2" cy="20" r="1" fill="#404040" />
+
+                    <!-- Left Alpha Pillar (Cobalt Blue) -->
+                    <path d="M18 4.5L7.5 29.5H12L18 15L19.5 19H23L18 4.5Z" fill="url(#aksaBlueGradNav)" />
+
+                    <!-- Right Foundation Pillar (Graphite) -->
+                    <path d="M18 4.5L22.5 15.5L25.2 22H28.5L18 4.5Z" fill="#1C1C1C" />
+                    <polygon points="25.2,23 28.5,29.5 24,29.5 21.6,24.2" fill="#1C1C1C" />
+
+                    <!-- Ascending Alpha Vector Arrow (Outperformance Trajectory) -->
+                    <path d="M18 20L31.5 6.5" stroke="#0051C3" stroke-width="2.2" stroke-linecap="round" />
+                    <path d="M26.5 6H32V11.5L29 8.5L26.5 6Z" fill="#0051C3" />
+
+                    <!-- Aksa Eye (Central Optical Iris Aperture) -->
+                    <circle cx="18" cy="20" r="6" fill="#FFFFFF" stroke="#1C1C1C" stroke-width="1.4" />
+                    <circle cx="18" cy="20" r="4.2" fill="#141414" />
+                    <circle cx="18" cy="20" r="2.4" fill="#0051C3" />
+                    <circle cx="17.2" cy="19.2" r="0.8" fill="#FFFFFF" />
+
+                    <!-- Precision Crosshair Ticks -->
+                    <line x1="18" y1="12" x2="18" y2="13.5" stroke="#0051C3" stroke-width="1.2" />
+                    <line x1="18" y1="26.5" x2="18" y2="28" stroke="#0051C3" stroke-width="1.2" />
+                    <line x1="10" y1="20" x2="11.5" y2="20" stroke="#0051C3" stroke-width="1.2" />
+                </svg>
+                <span class="nav-brand-text">AKSA<span class="accent">.</span></span>
+                <span class="nav-brand-tag">QUANTITATIVE</span>
+            </a>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Architecture</a>
+                <a href="#pipeline" class="nav-link">Pipeline</a>
+                <a href="#performance" class="nav-link">Telemetry</a>
+                <a href="dashboard.html" class="nav-cta">Launch Terminal →</a>
+            </div>
+        </nav>
+
+        <!-- HERO SECTION (MINIMAL SINGLE-COLUMN CENTERED EDITORIAL) -->
+        <header class="hero" id="hero">
+            <div class="hero-layout">
+
+                <!-- 🟢 Modern Status Pill Badge (Centered) -->
+                <div class="hero-live-badge">
+                    <span class="live-pulse-dot"></span>
+                    <span>AKSA · Autonomous Quantitative Screener for 700+ IDX Stocks</span>
+                </div>
+
+                <!-- Monolithic Centered Title Stack with Dashed Vector Overlay -->
+                <div class="hero-title-wrap">
+                    <!-- Subtle Centered Geometric Architecture Background Graphic -->
+                    <div class="hero-title-monogram" aria-hidden="true">
+                        <svg viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet">
+                            <!-- Golden Ratio Construction Circles -->
+                            <circle cx="300" cy="300" r="260" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="4 6" opacity="0.8" />
+                            <circle cx="300" cy="300" r="180" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="3 5" opacity="0.6" />
+                            <circle cx="300" cy="300" r="100" stroke="#EBEBEB" stroke-width="0.8" opacity="0.4" />
+                            <circle cx="210" cy="300" r="160" stroke="#EBEBEB" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.4" />
+                            <circle cx="390" cy="300" r="160" stroke="#EBEBEB" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.4" />
+
+                            <!-- Geometric 'A' Apex & Coordinate Axes -->
+                            <path d="M 300 80 L 130 490 H 200 L 300 230 L 400 490 H 470 L 300 80 Z" stroke="#404040" stroke-width="1.6" fill="none" opacity="0.7" />
+                            
+                            <!-- Ascending Alpha Vector Line (Shooting to Infinity) -->
+                            <line x1="300" y1="300" x2="520" y2="80" stroke="#0051C3" stroke-width="2" stroke-dasharray="6 4" opacity="0.8" />
+                            <polygon points="520,70 535,95 505,88" fill="#0051C3" opacity="0.85" />
+                            <circle cx="520" cy="80" r="12" fill="none" stroke="#0051C3" stroke-width="0.8" stroke-dasharray="2 2" />
+
+                            <!-- Central Aksa Eye Optical Iris Reticle -->
+                            <circle cx="300" cy="300" r="48" fill="none" stroke="#404040" stroke-width="1.5" opacity="0.8" />
+                            <circle cx="300" cy="300" r="32" fill="none" stroke="#0051C3" stroke-width="1.2" stroke-dasharray="3 3" />
+                            <circle cx="300" cy="300" r="16" fill="#0051C3" stroke="#FFFFFF" stroke-width="2" opacity="0.9" />
+                            <circle cx="300" cy="300" r="6" fill="#FFFFFF" />
+
+                            <!-- 4-Quadrant Sumbu Grid & Degrees -->
+                            <line x1="40" y1="300" x2="560" y2="300" stroke="#EBEBEB" stroke-width="1.2" />
+                            <line x1="300" y1="30" x2="300" y2="570" stroke="#EBEBEB" stroke-width="1.2" />
+                            
+                            <!-- Angle Vector Lines (30°, 60°, 120°) -->
+                            <line x1="300" y1="300" x2="480" y2="196" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="3 3" />
+                            <line x1="300" y1="300" x2="400" y2="127" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="3 3" />
+
+                            <!-- Telemetry Labels -->
+                            <text x="32" y="290" font-family="ui-monospace, monospace" font-size="9" fill="#595959" opacity="0.8">AKSA_AXIS: 120° QUANTITATIVE MATRIX</text>
+                            <text x="440" y="290" font-family="ui-monospace, monospace" font-size="9" fill="#0051C3" opacity="0.9" font-weight="600">ALPHA_VECTOR: +820.5%</text>
+                            <text x="310" y="60" font-family="ui-monospace, monospace" font-size="8.5" fill="#595959">090° ASCENT</text>
+                        </svg>
+                    </div>
+
+                    <h1 class="hero-title">
+                        <span class="hero-title-primary">QUANTITATIVE EDGE</span>
+                        <span class="hero-title-connector">for</span>
+                        <span class="hero-title-primary">INDONESIAN MARKETS</span>
+                    </h1>
+                </div>
+
+                <!-- Editorial Micro-Paragraph (Centered & Constrained) -->
+                <p class="hero-editorial-body">
+                    An autonomous screener evaluating 700+ BEI stocks daily. Engineered with a gradient-boosted decision engine, 20+ technical indicators, asymmetric news risk filtering, and 5-agent mathematical consensus. Realized +820.5% alpha. Audited 85.9% win rate.
+                </p>
+
+                <!-- Fully Rounded Pill CTA Actions (Centered) -->
+                <div class="hero-cta-actions">
+                    <a href="dashboard.html" class="hero-btn-pill-primary">
+                        Launch AKSA Terminal →
+                    </a>
+                    <a href="#live-intelligence" class="hero-btn-pill-secondary">
+                        Explore Market Signals
+                    </a>
+                </div>
+
+                <!-- Trust Indicators Row (Centered) -->
+                <div class="hero-trust-row">
+                    <span>700+ Tickers Screened</span>
+                    <span class="trust-sep">·</span>
+                    <span>Updated Daily at 16:05 WIB</span>
+                    <span class="trust-sep">·</span>
+                    <span>Free Open Access</span>
+                </div>
+
+            </div>
+        </header>
+
+        <!-- SECTION 00: MARKET INTELLIGENCE & SIGNALS -->
+        <section class="section section-live-intel" id="live-intelligence">
+            <div class="section-hdr reveal">
+                <h2>Market Intelligence &amp; Signals</h2>
+                <span>00 // High-Conviction Setups</span>
+            </div>
+
+            <div class="intel-grid reveal">
+                <!-- Card 1: Neural Momentum Topology -->
+                <div class="intel-card">
+                    <div class="intel-card-hdr">
+                        <span>NEURAL MOMENTUM TOPOLOGY // IDX</span>
+                        <span style="color: var(--c-blue);">● ACTIVE ALPHA VECTOR</span>
+                    </div>
+                    <div class="intel-card-body">
+                        <svg viewBox="0 0 460 110" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 110px; display: block;">
+                            <!-- Background Fine Coordinate Grid -->
+                            <line x1="0" y1="25" x2="460" y2="25" stroke="#EBEBEB" stroke-width="1" />
+                            <line x1="0" y1="55" x2="460" y2="55" stroke="#EBEBEB" stroke-width="1" />
+                            <line x1="0" y1="85" x2="460" y2="85" stroke="#EBEBEB" stroke-width="1" />
+                            
+                            <!-- Dashed Upward Trend Corridor -->
+                            <path d="M 20 90 L 110 75 L 190 82 L 270 50 L 350 42 L 430 18" fill="none" stroke="#EBEBEB" stroke-width="1.2" stroke-dasharray="3 3" />
+                            <path d="M 20 98 L 110 83 L 190 90 L 270 58 L 350 50 L 430 26" fill="none" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="2 4" />
+
+                            <!-- Interconnected Network Vectors -->
+                            <line x1="25" y1="88" x2="95" y2="70" stroke="#404040" stroke-width="1.4" />
+                            <line x1="95" y1="70" x2="160" y2="76" stroke="#404040" stroke-width="1.4" />
+                            <line x1="160" y1="76" x2="230" y2="44" stroke="#404040" stroke-width="1.4" />
+                            <line x1="230" y1="44" x2="300" y2="52" stroke="#404040" stroke-width="1.4" />
+                            <line x1="300" y1="52" x2="370" y2="28" stroke="#404040" stroke-width="1.4" />
+                            <line x1="370" y1="28" x2="435" y2="15" stroke="#0051C3" stroke-width="2" />
+
+                            <!-- Branching Line Vectors -->
+                            <line x1="95" y1="70" x2="150" y2="34" stroke="#8C8C8C" stroke-width="0.9" stroke-dasharray="2 2" />
+                            <line x1="150" y1="34" x2="230" y2="44" stroke="#8C8C8C" stroke-width="0.9" stroke-dasharray="2 2" />
+                            <line x1="230" y1="44" x2="290" y2="22" stroke="#8C8C8C" stroke-width="0.9" stroke-dasharray="2 2" />
+                            <line x1="290" y1="22" x2="370" y2="28" stroke="#8C8C8C" stroke-width="0.9" stroke-dasharray="2 2" />
+
+                            <!-- Nodes -->
+                            <circle cx="25" cy="88" r="3.5" fill="#404040" />
+                            <circle cx="95" cy="70" r="3.5" fill="#404040" />
+                            <circle cx="150" cy="34" r="2.5" fill="#8C8C8C" />
+                            <circle cx="160" cy="76" r="3.5" fill="#404040" />
+                            <circle cx="230" cy="44" r="4" fill="#404040" />
+                            <circle cx="290" cy="22" r="2.5" fill="#8C8C8C" />
+                            <circle cx="300" cy="52" r="3.5" fill="#404040" />
+                            <circle cx="370" cy="28" r="4.5" fill="#404040" />
+                            
+                            <!-- Glowing Alpha Node -->
+                            <circle cx="435" cy="15" r="6" fill="#0051C3" stroke="#FFFFFF" stroke-width="1.5" />
+                            <circle cx="435" cy="15" r="10" fill="none" stroke="#0051C3" stroke-width="0.8" opacity="0.6" />
+                            <text x="360" y="98" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">TARGET: ALPHA +3.0%</text>
+                        </svg>
+                        <div class="intel-card-meta">
+                            <span>14D MULTI-FACTOR VECTOR EMBEDDING</span>
+                            <span style="color: var(--c-blue); font-weight: 600;">+3.0% EXP. ALPHA</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: System Telemetry Feed -->
+                <div class="intel-card">
+                    <div class="intel-card-hdr">
+                        <span>AKSA SYSTEM TELEMETRY FEED</span>
+                        <span class="telemetry-clock">16:05:00 WIB</span>
+                    </div>
+                    <div class="intel-telemetry-body">
+                        <div class="intel-tele-row">
+                            <span class="t-k">EXECUTION CYCLE:</span>
+                            <span class="t-v">POST-MARKET SCAN (700+ STOCKS)</span>
+                        </div>
+                        <div class="intel-tele-row">
+                            <span class="t-k">ASYMMETRIC RISK:</span>
+                            <span class="t-v" style="color: var(--c-sell);">-25% NEWS VETO ACTIVE</span>
+                        </div>
+                        <div class="intel-tele-row">
+                            <span class="t-k">PIPELINE LATENCY:</span>
+                            <span class="t-v">&lt;5ms IN-MEMORY BUS</span>
+                        </div>
+                        <div class="intel-tele-row">
+                            <span class="t-k">KELLY SIZING:</span>
+                            <span class="t-v">HALF-KELLY (0.5x SIZING)</span>
+                        </div>
+                        <div class="intel-tele-row">
+                            <span class="t-k">AGENT CONSENSUS:</span>
+                            <span class="t-v" style="color: var(--c-blue); font-weight: 600;">5/5 UNANIMOUS ALIGNMENT</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: AKSA Terminal Signal Card -->
+                <div class="intel-card">
+                    <div class="terminal-mockup-header">
+                        <div class="terminal-dots">
+                            <span></span><span></span><span></span>
+                        </div>
+                        <div class="terminal-title">AKSA TERMINAL // HIGH-CONVICTION SIGNALS</div>
+                        <div class="terminal-badge">REALTIME 16:05 WIB</div>
+                    </div>
+
+                    <div class="terminal-signal-list">
+                        <!-- Signal 1 -->
+                        <div class="terminal-signal-row">
+                            <div class="sig-col-ticker">
+                                <span class="sig-badge buy">BUY</span>
+                                <span class="sig-ticker">BBCA.JK</span>
+                            </div>
+                            <div class="sig-col-price">
+                                <span class="sig-val">IDR 10,250</span>
+                                <span class="sig-score">CONF: 92%</span>
+                            </div>
+                            <div class="sig-col-target">
+                                <span class="sig-tp">+3.0% TP (10,550)</span>
+                                <span class="sig-sl">-1.5% SL (10,100)</span>
+                            </div>
+                            <div class="sig-col-sizing">
+                                <span class="sig-sizing-val">14.2%</span>
+                                <span class="sig-sizing-lbl">KELLY SIZING</span>
+                            </div>
+                        </div>
+
+                        <!-- Signal 2 -->
+                        <div class="terminal-signal-row">
+                            <div class="sig-col-ticker">
+                                <span class="sig-badge buy">BUY</span>
+                                <span class="sig-ticker">BBRI.JK</span>
+                            </div>
+                            <div class="sig-col-price">
+                                <span class="sig-val">IDR 4,850</span>
+                                <span class="sig-score">CONF: 88%</span>
+                            </div>
+                            <div class="sig-col-target">
+                                <span class="sig-tp">+3.0% TP (5,000)</span>
+                                <span class="sig-sl">-1.5% SL (4,780)</span>
+                            </div>
+                            <div class="sig-col-sizing">
+                                <span class="sig-sizing-val">12.0%</span>
+                                <span class="sig-sizing-lbl">KELLY SIZING</span>
+                            </div>
+                        </div>
+
+                        <!-- Signal 3 -->
+                        <div class="terminal-signal-row">
+                            <div class="sig-col-ticker">
+                                <span class="sig-badge buy">BUY</span>
+                                <span class="sig-ticker">TLKM.JK</span>
+                            </div>
+                            <div class="sig-col-price">
+                                <span class="sig-val">IDR 2,940</span>
+                                <span class="sig-score">CONF: 85%</span>
+                            </div>
+                            <div class="sig-col-target">
+                                <span class="sig-tp">+3.0% TP (3,030)</span>
+                                <span class="sig-sl">-1.5% SL (2,895)</span>
+                            </div>
+                            <div class="sig-col-sizing">
+                                <span class="sig-sizing-val">10.5%</span>
+                                <span class="sig-sizing-lbl">KELLY SIZING</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="terminal-footer">
+                        <span>CONSENSUS: 5/5 UNANIMOUS</span>
+                        <span>CACHE: &lt;5ms (SQLITE)</span>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 01: QUANTITATIVE ARCHITECTURE (INTERCONNECTED TELEMETRY BUS) -->
+        <section class="section" id="features">
+            <div class="section-hdr reveal">
+                <h2>Quantitative Architecture</h2>
+                <span>01 // Core System Engine</span>
+            </div>
+
+            <!-- Interconnected Telemetry Bus Wrapper -->
+            <div class="feat-interconnect-wrap">
+
+                <!-- Feature 1: Macro & News (Native Vector Blueprint) -->
+                <div class="feat-row">
+                    <div class="feat-copy reveal reveal-left">
+                        <div class="feat-connector-line">
+                            <span>SYSTEM SPEC. 01</span>
+                            <span>[ MACRO &amp; SENTIMENT RADAR ]</span>
+                        </div>
+                        <h3 class="feat-h3">Macroeconomic Radar &amp; Financial Sentiment Filter</h3>
+                        <p class="feat-p">
+                            <strong>Continuous real-time monitoring</strong> of Jakarta Composite Index (IHSG) trajectory, USD/IDR exchange rate dynamics, and issuer news streams with asymmetric risk filtering (-25% automated veto penalty on negative catalysts).
+                        </p>
+                        <span class="feat-glossary-tag">
+                            <strong>Capital Protection:</strong> Automatically vetoes buy signals when extreme negative sentiment is detected, shielding portfolio capital from sudden flash drops.
+                        </span>
+                    </div>
+                    <div class="feat-visual reveal reveal-right delay-1">
+                        <span class="feat-visual-tag">NODE 01 // MACRO</span>
+                        <!-- 100% Native Vector Blueprint: Polar Radar & IHSG Curve -->
+                        <svg viewBox="0 0 640 400" preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <pattern id="radarGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#EBEBEB" stroke-width="0.75" />
+                                </pattern>
+                                <pattern id="halftoneSweep" width="6" height="6" patternUnits="userSpaceOnUse">
+                                    <circle cx="3" cy="3" r="1.5" fill="#404040" />
+                                </pattern>
+                            </defs>
+                            <rect width="640" height="400" fill="#FFFFFF" />
+                            <rect width="640" height="400" fill="url(#radarGrid)" opacity="0.8" />
+
+                            <!-- Header Bar -->
+                            <text x="32" y="36" font-family="ui-monospace, monospace" font-size="12" font-weight="600"
+                                fill="#404040" letter-spacing="0.5">MACROECONOMIC RADAR // IHSG TELEMETRY</text>
+                            <line x1="32" y1="46" x2="608" y2="46" stroke="#EBEBEB" stroke-width="1.5" />
+
+                            <!-- Polar Coordinate System Left -->
+                            <g transform="translate(155, 198)">
+                                <!-- Concentric Radar Circles -->
+                                <circle cx="0" cy="0" r="105" fill="none" stroke="#404040" stroke-width="1.5" />
+                                <circle cx="0" cy="0" r="76" fill="none" stroke="#404040" stroke-width="1"
+                                    stroke-dasharray="4 3" />
+                                <circle cx="0" cy="0" r="48" fill="none" stroke="#404040" stroke-width="1" />
+                                <circle cx="0" cy="0" r="20" fill="none" stroke="#404040" stroke-width="0.8" />
+
+                                <!-- Radar Axes -->
+                                <line x1="-113" y1="0" x2="113" y2="0" stroke="#404040" stroke-width="1" />
+                                <line x1="0" y1="-113" x2="0" y2="113" stroke="#404040" stroke-width="1" />
+                                <line x1="-80" y1="-80" x2="80" y2="80" stroke="#EBEBEB" stroke-width="1"
+                                    stroke-dasharray="3 3" />
+                                <line x1="-80" y1="80" x2="80" y2="-80" stroke="#EBEBEB" stroke-width="1"
+                                    stroke-dasharray="3 3" />
+
+                                <!-- Sweep Sector with Halftone Pattern -->
+                                <path d="M 0 0 L 0 -105 A 105 105 0 0 1 91 -52 Z" fill="url(#halftoneSweep)"
+                                    opacity="0.35" />
+
+                                <!-- Degree Labels -->
+                                <text x="5" y="-111" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="500" fill="#595959">090°</text>
+                                <text x="118" y="4" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="500" fill="#595959">000°</text>
+                                <text x="5" y="121" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="500" fill="#595959">270°</text>
+                                <text x="-142" y="4" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="500" fill="#595959">180°</text>
+                            </g>
+
+                            <!-- Trajectory Vector & Financial Chart Right -->
+                            <g transform="translate(320, 62)">
+                                <rect x="0" y="0" width="288" height="238" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.5" rx="8" />
+                                <line x1="0" y1="30" x2="288" y2="30" stroke="#EBEBEB" stroke-width="1" />
+                                <text x="12" y="20" font-family="Montserrat, sans-serif" font-size="11" font-weight="600"
+                                    fill="#404040">JAKARTA COMPOSITE INDEX</text>
+
+                                <!-- Grid Lines -->
+                                <line x1="0" y1="85" x2="288" y2="85" stroke="#FAFAFA" stroke-width="1" />
+                                <line x1="0" y1="130" x2="288" y2="130" stroke="#FAFAFA" stroke-width="1" />
+                                <line x1="0" y1="175" x2="288" y2="175" stroke="#FAFAFA" stroke-width="1" />
+
+                                <!-- Undulating Candlestick Trend Line -->
+                                <polyline points="17,172 44,146 78,180 111,116 144,128 178,74 211,90 244,46 272,36"
+                                    fill="none" stroke="#404040" stroke-width="2.5" />
+
+                                <!-- Node Points -->
+                                <circle cx="17" cy="172" r="3" fill="#404040" />
+                                <circle cx="44" cy="146" r="3" fill="#404040" />
+                                <circle cx="78" cy="180" r="3" fill="#404040" />
+                                <circle cx="111" cy="116" r="3" fill="#404040" />
+                                <circle cx="144" cy="128" r="3" fill="#404040" />
+                                <circle cx="178" cy="74" r="3" fill="#404040" />
+                                <circle cx="211" cy="90" r="3" fill="#404040" />
+                                <circle cx="244" cy="46" r="3" fill="#404040" />
+                                <circle cx="272" cy="36" r="5" fill="#0051C3" />
+
+                                <text x="182" y="32" font-family="ui-monospace, monospace" font-size="10.5" font-weight="600"
+                                    fill="#0051C3">PEAK: 7,340</text>
+                            </g>
+
+                            <!-- Bottom Metrics Strip -->
+                            <g transform="translate(32, 318)">
+                                <rect x="0" y="0" width="180" height="68" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.3" rx="8" />
+                                <text x="12" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
+                                    fill="#595959">USD/IDR EXCHANGE RATE</text>
+                                <text x="12" y="40" font-family="Montserrat, sans-serif" font-size="13"
+                                    font-weight="700" fill="#404040">15,820</text>
+                                <text x="12" y="58" font-family="ui-monospace, monospace" font-size="9"
+                                    fill="#595959">STABLE · VELOCITY +0.2%</text>
+
+                                <rect x="195" y="0" width="180" height="68" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.3" rx="8" />
+                                <text x="207" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
+                                    fill="#595959">IHSG TREND REGIME</text>
+                                <text x="207" y="40" font-family="Montserrat, sans-serif" font-size="13"
+                                    font-weight="700" fill="#404040">UPTREND</text>
+                                <text x="207" y="58" font-family="ui-monospace, monospace" font-size="9"
+                                    fill="#595959">PRICE ABOVE SMA-20</text>
+
+                                <rect x="390" y="0" width="186" height="68" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.3" rx="8" />
+                                <text x="402" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
+                                    fill="#595959">NEGATIVE NEWS VETO</text>
+                                <text x="402" y="40" font-family="Montserrat, sans-serif" font-size="13"
+                                    font-weight="700" fill="#0051C3">-25% PENALTY</text>
+                                <text x="402" y="58" font-family="ui-monospace, monospace" font-size="9"
+                                    fill="#595959">ASYMMETRIC RISK FILTER</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Feature 2: XGBoost Quant Matrix (Native Vector Blueprint) -->
+                <div class="feat-row reverse">
+                    <div class="feat-copy reveal reveal-right">
+                        <div class="feat-connector-line">
+                            <span>SYSTEM SPEC. 02</span>
+                            <span>[ QUANT DECISION ENGINE ]</span>
+                        </div>
+                        <h3 class="feat-h3">Quantitative Matrix &amp; Feature Embeddings</h3>
+                        <p class="feat-p">
+                            <strong>Calibrated decision engine</strong> trained across 5 years of historical BEI trading data. Evaluates 20+ technical indicators (RSI, MACD, Stochastic %K, Money Flow Index, RVOL) with Bayesian hyperparameter optimization.
+                        </p>
+                        <span class="feat-glossary-tag">
+                            <strong>Objective Edge:</strong> Simultaneously evaluates 20+ indicators in milliseconds to compute the mathematical probability of hitting a +3.0% target without human emotional bias.
+                        </span>
+                    </div>
+                    <div class="feat-visual reveal reveal-left delay-1">
+                        <span class="feat-visual-tag">NODE 02 // XGBOOST</span>
+                        <!-- 100% Native Vector Blueprint: Decision Tree & Indicator Matrix -->
+                        <svg viewBox="0 0 640 400" preserveAspectRatio="xMidYMid meet">
+                            <rect width="640" height="400" fill="#FFFFFF" />
+                            <rect width="640" height="400" fill="url(#radarGrid)" opacity="0.8" />
+
+                            <!-- Header Bar -->
+                            <text x="32" y="36" font-family="ui-monospace, monospace" font-size="12" font-weight="600"
+                                fill="#404040" letter-spacing="0.5">XGBOOST DECISION TREE &amp; QUANT MATRIX</text>
+                            <line x1="32" y1="46" x2="608" y2="46" stroke="#EBEBEB" stroke-width="1.5" />
+
+                            <!-- Left: Binary Tree Structure -->
+                            <g transform="translate(32, 62)">
+                                <rect x="0" y="0" width="270" height="240" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.5" rx="8" />
+                                <text x="12" y="20" font-family="ui-monospace, monospace" font-size="10"
+                                    font-weight="600" fill="#404040">TREE DEPTH: N-14 [SAMPLES: 5,200]</text>
+                                <line x1="0" y1="28" x2="270" y2="28" stroke="#EBEBEB" stroke-width="1" />
+
+                                <!-- Root Node -->
+                                <rect x="85" y="38" width="100" height="34" fill="#FAFAFA" stroke="#EBEBEB"
+                                    stroke-width="1.2" rx="4" />
+                                <text x="95" y="53" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#404040">RSI &lt;= 38.5</text>
+                                <text x="95" y="66" font-family="ui-monospace, monospace" font-size="8.5"
+                                    fill="#595959">GAIN: 3.42</text>
+
+                                <!-- Branch Lines -->
+                                <polyline points="110,72 110,86 55,86 55,96" fill="none" stroke="#404040"
+                                    stroke-width="1.2" />
+                                <polyline points="160,72 160,86 215,86 215,96" fill="none" stroke="#404040"
+                                    stroke-width="1.2" />
+
+                                <!-- Depth 2 Nodes -->
+                                <rect x="12" y="96" width="90" height="32" fill="#FAFAFA" stroke="#EBEBEB"
+                                    stroke-width="1.2" rx="4" />
+                                <text x="20" y="111" font-family="ui-monospace, monospace" font-size="9" font-weight="600"
+                                    fill="#404040">MFI &lt;= 42</text>
+                                <text x="20" y="123" font-family="ui-monospace, monospace" font-size="8"
+                                    fill="#595959">GAIN: 1.80</text>
+
+                                <rect x="168" y="96" width="90" height="32" fill="#FAFAFA" stroke="#EBEBEB"
+                                    stroke-width="1.2" rx="4" />
+                                <text x="174" y="111" font-family="ui-monospace, monospace" font-size="9"
+                                    font-weight="600" fill="#404040">RVOL &gt; 1.5x</text>
+                                <text x="174" y="123" font-family="ui-monospace, monospace" font-size="8"
+                                    fill="#595959">GAIN: 2.15</text>
+
+                                <!-- Leaves -->
+                                <polyline points="40,128 40,146" fill="none" stroke="#404040" stroke-width="1.2" />
+                                <polyline points="75,128 75,146" fill="none" stroke="#404040" stroke-width="1.2" />
+                                <polyline points="195,128 195,146" fill="none" stroke="#404040" stroke-width="1.2" />
+                                <polyline points="230,128 230,146" fill="none" stroke="#404040" stroke-width="1.2" />
+
+                                <rect x="25" y="146" width="34" height="22" fill="#404040" rx="3" />
+                                <text x="30" y="161" font-family="ui-monospace, monospace" font-size="9" font-weight="600"
+                                    fill="#FFFFFF">+0.8</text>
+
+                                <rect x="60" y="146" width="34" height="22" fill="#404040" rx="3" />
+                                <text x="65" y="161" font-family="ui-monospace, monospace" font-size="9" font-weight="600"
+                                    fill="#FFFFFF">-0.3</text>
+
+                                <rect x="178" y="146" width="34" height="22" fill="#404040" rx="3" />
+                                <text x="183" y="161" font-family="ui-monospace, monospace" font-size="9"
+                                    font-weight="600" fill="#FFFFFF">+1.4</text>
+
+                                <rect x="214" y="146" width="34" height="22" fill="#0051C3" rx="3" />
+                                <text x="219" y="161" font-family="ui-monospace, monospace" font-size="9"
+                                    font-weight="600" fill="#FFFFFF">+3.2</text>
+                            </g>
+
+                            <!-- Right: Indicator Sparklines -->
+                            <g transform="translate(320, 62)">
+                                <rect x="0" y="0" width="288" height="240" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.5" rx="8" />
+                                <text x="12" y="20" font-family="ui-monospace, monospace" font-size="10"
+                                    font-weight="600" fill="#404040">INDICATOR MATRIX [20+ SIGNALS]</text>
+                                <line x1="0" y1="28" x2="288" y2="28" stroke="#EBEBEB" stroke-width="1" />
+
+                                <!-- RSI 14 -->
+                                <text x="12" y="48" font-family="Montserrat, sans-serif" font-size="9.5" font-weight="600"
+                                    fill="#404040">RSI (14)</text>
+                                <line x1="65" y1="42" x2="270" y2="42" stroke="#EBEBEB" stroke-dasharray="2 2" />
+                                <line x1="65" y1="68" x2="270" y2="68" stroke="#EBEBEB" stroke-dasharray="2 2" />
+                                <polyline points="65,70 95,74 125,61 155,64 185,44 215,49 245,39 275,35" fill="none"
+                                    stroke="#404040" stroke-width="2.2" />
+
+                                <line x1="12" y1="82" x2="276" y2="82" stroke="#FAFAFA" stroke-width="1" />
+
+                                <!-- MACD Cross -->
+                                <text x="12" y="102" font-family="Montserrat, sans-serif" font-size="9.5" font-weight="600"
+                                    fill="#404040">MACD (12,26,9)</text>
+                                <line x1="120" y1="112" x2="270" y2="112" stroke="#404040" stroke-width="0.8" />
+                                <polyline points="120,122 150,117 180,109 210,102 240,92 275,82" fill="none"
+                                    stroke="#0051C3" stroke-width="2.2" />
+                                <polyline points="120,127 150,123 180,117 210,111 240,105 275,97" fill="none"
+                                    stroke="#8C8C8C" stroke-width="1.4" stroke-dasharray="3 2" />
+
+                                <line x1="12" y1="140" x2="276" y2="140" stroke="#FAFAFA" stroke-width="1" />
+
+                                <!-- Volume Bars -->
+                                <text x="12" y="160" font-family="Montserrat, sans-serif" font-size="9.5" font-weight="600"
+                                    fill="#404040">VOLUME 20MA</text>
+                                <rect x="110" y="210" width="10" height="22" fill="#404040" />
+                                <rect x="126" y="202" width="10" height="30" fill="#404040" />
+                                <rect x="142" y="217" width="10" height="15" fill="#404040" />
+                                <rect x="158" y="197" width="10" height="35" fill="#404040" />
+                                <rect x="174" y="188" width="10" height="44" fill="#404040" />
+                                <rect x="190" y="206" width="10" height="26" fill="#404040" />
+                                <rect x="206" y="184" width="10" height="48" fill="#404040" />
+                                <rect x="222" y="170" width="10" height="62" fill="#0051C3" />
+                                <rect x="238" y="176" width="10" height="56" fill="#404040" />
+                                <rect x="254" y="166" width="10" height="66" fill="#404040" />
+                            </g>
+
+                            <!-- Bottom Metrics Strip -->
+                            <g transform="translate(32, 318)">
+                                <rect x="0" y="0" width="180" height="68" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.3" rx="8" />
+                                <text x="12" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
+                                    fill="#595959">TRAINING DATA</text>
+                                <text x="12" y="40" font-family="Montserrat, sans-serif" font-size="13"
+                                    font-weight="700" fill="#404040">5 YEARS HISTORY</text>
+                                <text x="12" y="58" font-family="ui-monospace, monospace" font-size="9"
+                                    fill="#595959">700+ BEI TICKERS DAILY</text>
+
+                                <rect x="195" y="0" width="180" height="68" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.3" rx="8" />
+                                <text x="207" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
+                                    fill="#595959">FEATURE INPUTS</text>
+                                <text x="207" y="40" font-family="Montserrat, sans-serif" font-size="13"
+                                    font-weight="700" fill="#404040">20+ SIGNALS</text>
+                                <text x="207" y="58" font-family="ui-monospace, monospace" font-size="9"
+                                    fill="#595959">RSI · MACD · MFI · RVOL · ADX</text>
+
+                                <rect x="390" y="0" width="186" height="68" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.3" rx="8" />
+                                <text x="402" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
+                                    fill="#595959">OPTIMIZATION</text>
+                                <text x="402" y="40" font-family="Montserrat, sans-serif" font-size="13"
+                                    font-weight="700" fill="#0051C3">OPTUNA TUNING</text>
+                                <text x="402" y="58" font-family="ui-monospace, monospace" font-size="9"
+                                    fill="#595959">BAYESIAN HYPERPARAM SEARCH</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Feature 3: Multi-Agent Consensus (Native Vector Blueprint) -->
+                <div class="feat-row">
+                    <div class="feat-copy reveal reveal-left">
+                        <div class="feat-connector-line">
+                            <span>SYSTEM SPEC. 03</span>
+                            <span>[ RISK MANAGEMENT ]</span>
+                        </div>
+                        <h3 class="feat-h3">Multi-Agent Consensus &amp; Half-Kelly Sizing</h3>
+                        <p class="feat-p">
+                            <strong>Five specialized autonomous quantitative agents</strong> debate market conditions (Technical, Sentiment, Macro, Bull vs. Bear Debaters, and Risk Manager) to establish +3.0% profit targets, -1.5% stop losses, and Half-Kelly allocations.
+                        </p>
+                        <span class="feat-glossary-tag">
+                            <strong>Half-Kelly Formula:</strong> Mathematically optimal position sizing that maximizes long-term capital compounding while eliminating the risk of ruin.
+                        </span>
+                    </div>
+                    <div class="feat-visual reveal reveal-right delay-1">
+                        <span class="feat-visual-tag">NODE 03 // CONSENSUS</span>
+                        <!-- 100% Native Vector Blueprint: Bull vs Bear Balance & Kelly Sizing -->
+                        <svg viewBox="0 0 640 400" preserveAspectRatio="xMidYMid meet">
+                            <rect width="640" height="400" fill="#FFFFFF" />
+                            <rect width="640" height="400" fill="url(#radarGrid)" opacity="0.8" />
+
+                            <!-- Header Bar -->
+                            <text x="32" y="36" font-family="ui-monospace, monospace" font-size="12" font-weight="600"
+                                fill="#404040" letter-spacing="0.5">MULTI-AGENT CONSENSUS &amp; RISK-REWARD</text>
+                            <line x1="32" y1="46" x2="608" y2="46" stroke="#EBEBEB" stroke-width="1.5" />
+
+                            <!-- Fulcrum Balance Scale -->
+                            <g transform="translate(320, 155)">
+                                <!-- Fulcrum Base Triangle -->
+                                <polygon points="0,55 -25,95 25,95" fill="#404040" />
+                                <circle cx="0" cy="55" r="7" fill="#FFFFFF" stroke="#404040" stroke-width="2" />
+
+                                <!-- Inclined Balance Beam (Bull upward tilt) -->
+                                <line x1="-240" y1="15" x2="240" y2="95" stroke="#404040" stroke-width="4"
+                                    stroke-linecap="round" />
+
+                                <!-- Bull Force Upward Left -->
+                                <g transform="translate(-180, -20)">
+                                    <text x="-40" y="-30" font-family="Montserrat, sans-serif" font-size="14"
+                                        font-weight="700" fill="#404040">BULL CONSENSUS</text>
+                                    <text x="-40" y="-14" font-family="ui-monospace, monospace" font-size="10.5"
+                                        font-weight="600" fill="#0051C3">UPWARD MOMENTUM</text>
+                                    <!-- Force Arrow Up -->
+                                    <line x1="-55" y1="20" x2="-55" y2="-45" stroke="#0051C3" stroke-width="3" />
+                                    <polygon points="-55,-55 -62,-40 -48,-40" fill="#0051C3" />
+                                </g>
+
+                                <!-- Bear Resistance Downward Right -->
+                                <g transform="translate(160, 60)">
+                                    <text x="-30" y="-30" font-family="Montserrat, sans-serif" font-size="14"
+                                        font-weight="700" fill="#595959">BEAR RESISTANCE</text>
+                                    <text x="-30" y="-14" font-family="ui-monospace, monospace" font-size="10.5"
+                                        font-weight="500" fill="#8C8C8C">ABSORBED BY VOLUME</text>
+                                    <!-- Force Arrow Down -->
+                                    <line x1="85" y1="-30" x2="85" y2="25" stroke="#8C8C8C" stroke-width="3" />
+                                    <polygon points="85,35 78,20 92,20" fill="#8C8C8C" />
+                                </g>
+                            </g>
+
+                            <!-- Bottom Metrics Strip -->
+                            <g transform="translate(32, 280)">
+                                <rect x="0" y="0" width="180" height="80" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.3" rx="8" />
+                                <text x="12" y="20" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
+                                    fill="#595959">CAPITAL SIZING</text>
+                                <text x="12" y="44" font-family="Montserrat, sans-serif" font-size="13"
+                                    font-weight="700" fill="#404040">HALF-KELLY (0.5×)</text>
+                                <text x="12" y="64" font-family="ui-monospace, monospace" font-size="9"
+                                    fill="#595959">f* = 0.5 · [p·R - (1-p)] / R</text>
+
+                                <rect x="195" y="0" width="180" height="80" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.3" rx="8" />
+                                <text x="207" y="20" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
+                                    fill="#595959">RISK PARAMETERS</text>
+                                <text x="207" y="44" font-family="Montserrat, sans-serif" font-size="13"
+                                    font-weight="700" fill="#404040">+3.0% TP / -1.5% SL</text>
+                                <text x="207" y="64" font-family="ui-monospace, monospace" font-size="9"
+                                    fill="#595959">ASYMMETRIC RISK RATIO 2:1</text>
+                                <rect x="390" y="0" width="186" height="80" fill="#FFFFFF" stroke="#EBEBEB"
+                                    stroke-width="1.3" rx="8" />
+                                <text x="402" y="20" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
+                                    fill="#595959">AGENT ALIGNMENT</text>
+                                <text x="402" y="44" font-family="Montserrat, sans-serif" font-size="13"
+                                    font-weight="700" fill="#0051C3">5/5 CONSENSUS VOTE</text>
+                                <text x="402" y="64" font-family="ui-monospace, monospace" font-size="9"
+                                    fill="#595959">TECH · SENT · MACRO · VETO</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- SECTION 02: END-TO-END PIPELINE -->
+        <section class="section" id="pipeline">
+            <div class="section-hdr reveal">
+                <h2>Quantitative Execution Pipeline</h2>
+                <span>02 // Execution Cycle</span>
+            </div>
+
+            <div class="pipeline-track reveal">
+                <!-- Step 1: Ingestion Vector (Uniform 3-Row Monitor Card) -->
+                <div class="pipeline-cell">
+                    <span class="pipe-num">
+                        <span>01 / DATA INGESTION</span>
+                        <span class="pipe-connector-pip">──────→</span>
                     </span>
-                </span>
-            </h1>
+                    <h4 class="pipe-h4">Data Ingestion</h4>
+                    <p class="pipe-p">Batch streaming 700+ BEI tickers in organized 50-stock chunks with automated suspension &amp; delisting filters.</p>
+                    <div class="pipe-visual">
+                        <svg viewBox="0 0 380 230" preserveAspectRatio="xMidYMid meet">
+                            <rect width="380" height="230" fill="#FFFFFF" />
+                            <text x="16" y="24" font-family="ui-monospace, monospace" font-size="10" font-weight="600"
+                                fill="#404040">700+ BEI DATA STREAMS [INGESTION]</text>
 
-            <p class="hero-desc">
-                Automated daily screening across 700+ Indonesia Stock Exchange tickers using 20+ technical indicators, chart embeddings, and news sentiment.
-            </p>
+                            <!-- Mini Ingestion Stream Rows (3 Aligned Cards) -->
+                            <g transform="translate(16, 38)">
+                                <!-- Row 1: BEI Ticker Streams -->
+                                <g transform="translate(0, 0)">
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
+                                    <text x="14" y="20" font-family="Montserrat, sans-serif" font-size="7.5" font-weight="700" fill="#FFFFFF">FEED</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">BEI TICKERS</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">700+ Equities</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">50-Chunk Batch</text>
+                                    <text x="300" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">100%</text>
+                                    <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">OHLCV Price &amp; Volume · Auto-Sanitized Data Lake</text>
+                                </g>
 
-            <div class="hero-actions">
-                <a href="dashboard.html" class="btn-solid">
-                    View recommendations
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </a>
-                <a href="https://t.me/stockaibot" target="_blank" class="btn-outline">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-                    Telegram bot
-                </a>
+                                <!-- Row 2: Macro & Exchange Rates -->
+                                <g transform="translate(0, 56)">
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
+                                    <text x="11" y="20" font-family="Montserrat, sans-serif" font-size="7.5" font-weight="700" fill="#FFFFFF">MACRO</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">IHSG &amp; USD</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">IHSG: 7,340</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">USD: 15,820</text>
+                                    <text x="288" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">SYNCED</text>
+                                    <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Macroeconomic Regime · Sector Rotation Tracking</text>
+                                </g>
+
+                                <!-- Row 3: Financial News Sentiment -->
+                                <g transform="translate(0, 112)">
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
+                                    <text x="13" y="20" font-family="Montserrat, sans-serif" font-size="7.5" font-weight="700" fill="#FFFFFF">NEWS</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">SENTIMENT</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">Indonesian Media</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#DE5052">Veto: -25%</text>
+                                    <text x="290" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">ACTIVE</text>
+                                    <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Negative Catalyst Scan · Extreme Risk Auto-Veto</text>
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Step 2: Feature Embeddings Vector (Uniform 3-Row Monitor Card) -->
+                <div class="pipeline-cell">
+                    <span class="pipe-num">
+                        <span>02 / FEATURE EXTRACTION</span>
+                        <span class="pipe-connector-pip">──────→</span>
+                    </span>
+                    <h4 class="pipe-h4">Feature Engine</h4>
+                    <p class="pipe-p">Precision calculation of 20+ technical indicators, sector relative strength rotations, and quantitative momentum vectors.</p>
+                    <div class="pipe-visual">
+                        <svg viewBox="0 0 380 230" preserveAspectRatio="xMidYMid meet">
+                            <rect width="380" height="230" fill="#FFFFFF" />
+                            <text x="16" y="24" font-family="ui-monospace, monospace" font-size="10" font-weight="600"
+                                fill="#404040">FEATURE EXTRACTION &amp; VECTORS</text>
+
+                            <!-- Mini Feature Layer Rows (3 Aligned Cards) -->
+                            <g transform="translate(16, 38)">
+                                <!-- Row 1: Technical Indicators -->
+                                <g transform="translate(0, 0)">
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
+                                    <text x="14" y="20" font-family="Montserrat, sans-serif" font-size="7.5" font-weight="700" fill="#FFFFFF">TECH</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">20+ SIGNALS</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">RSI: 38.5</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">MACD Cross</text>
+                                    <text x="290" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">CALC</text>
+                                    <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Momentum &amp; Exhaustion · Parameter Weight Tuning</text>
+                                </g>
+
+                                <!-- Row 2: Sector Rotations & Neural Tensors -->
+                                <g transform="translate(0, 56)">
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
+                                    <text x="10" y="20" font-family="Montserrat, sans-serif" font-size="7.5" font-weight="700" fill="#FFFFFF">VECTOR</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">EMBEDDINGS</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">14D Vector</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">RVOL: 2.4x</text>
+                                    <text x="286" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">EMBED</text>
+                                    <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Cross-Sector Relative Strength · Cluster Vectors</text>
+                                </g>
+
+                                <!-- Row 3: Quantitative Model Scorer -->
+                                <g transform="translate(0, 112)">
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
+                                    <text x="11" y="20" font-family="Montserrat, sans-serif" font-size="7.5" font-weight="700" fill="#FFFFFF">MODEL</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">XGBOOST ENGINE</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">5-Yr History</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">Tree Depth 14</text>
+                                    <text x="288" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">SCORED</text>
+                                    <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Gradient Boosted Trees · Alpha Probability Score</text>
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Step 3: Multi-Signal Output Preview (Uniform 3-Row Monitor Card) -->
+                <div class="pipeline-cell">
+                    <span class="pipe-num">
+                        <span>03 / CONSENSUS &amp; SIGNALS</span>
+                        <span class="pipe-connector-pip">[ FINAL // PINNACLE ]</span>
+                    </span>
+                    <h4 class="pipe-h4">Execution Output</h4>
+                    <p class="pipe-p">Top 10 high-probability stock candidates with dynamic ATR profit targets (+3.0%), disciplined stop losses (-1.5%), and Half-Kelly sizing.</p>
+                    <div class="pipe-visual">
+                        <svg viewBox="0 0 380 230" preserveAspectRatio="xMidYMid meet">
+                            <rect width="380" height="230" fill="#FFFFFF" />
+                            <text x="16" y="24" font-family="ui-monospace, monospace" font-size="10" font-weight="600"
+                                fill="#404040">QUANT SIGNAL EXECUTION (TOP 3)</text>
+
+                            <!-- Mini Signal Output Rows (3 Aligned Stock Candidate Cards) -->
+                            <g transform="translate(16, 38)">
+                                <!-- Row 1: BBCA.JK -->
+                                <g transform="translate(0, 0)">
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
+                                    <text x="17" y="20" font-family="Montserrat, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF">BUY</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">BBCA.JK</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">IDR 10,250</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">TP +3.0%</text>
+                                    <text x="295" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">92%</text>
+                                    <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Kelly: 14.2% · Stop Loss: -1.5% · 5/5 Consensus</text>
+                                </g>
+
+                                <!-- Row 2: BBRI.JK -->
+                                <g transform="translate(0, 56)">
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
+                                    <text x="17" y="20" font-family="Montserrat, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF">BUY</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">BBRI.JK</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">IDR 4,850</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">TP +3.0%</text>
+                                    <text x="295" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">88%</text>
+                                    <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Kelly: 12.0% · Stop Loss: -1.5% · 5/5 Consensus</text>
+                                </g>
+
+                                <!-- Row 3: TLKM.JK -->
+                                <g transform="translate(0, 112)">
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
+                                    <text x="17" y="20" font-family="Montserrat, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF">BUY</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">TLKM.JK</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">IDR 2,940</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">TP +3.0%</text>
+                                    <text x="295" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">85%</text>
+                                    <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Kelly: 10.5% · Stop Loss: -1.5% · 5/5 Consensus</text>
+                                </g>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 03: VERIFIED PERFORMANCE -->
+        <section class="section" id="performance">
+            <div class="section-hdr reveal">
+                <h2>System Telemetry &amp; Track Record</h2>
+                <span>03 // Performance Recap</span>
+            </div>
+
+            <div class="metrics-bar reveal">
+                <!-- Metric 1: Win Rate -->
+                <div class="metric-item">
+                    <span class="m-badge audit">AUDITED TRACK RECORD</span>
+                    <div class="m-val">85.9%</div>
+                    <div class="m-accent-line green"></div>
+                    <div class="m-lbl">Audited Model Win Rate</div>
+                    <div class="m-sub">298 Wins / 49 Losses (Audited Live Cycle)</div>
+                </div>
+
+                <!-- Metric 2: Cumulative Return -->
+                <div class="metric-item">
+                    <span class="m-badge alpha">REALIZED ALPHA</span>
+                    <div class="m-val highlight-red">+820.5%</div>
+                    <div class="m-accent-line"></div>
+                    <div class="m-lbl">Cumulative Model Alpha</div>
+                    <div class="m-sub">Multi-Year Compound Alpha vs. IHSG</div>
+                </div>
+
+                <!-- Metric 3: Universe Coverage -->
+                <div class="metric-item">
+                    <span class="m-badge tests">MARKET COVERAGE</span>
+                    <div class="m-val">700+</div>
+                    <div class="m-accent-line dark"></div>
+                    <div class="m-lbl">BEI Equities Screened Daily</div>
+                    <div class="m-sub">100% Market Universe Scanned at 16:05 WIB</div>
+                </div>
+
+                <!-- Metric 4: Cache Speed -->
+                <div class="metric-item">
+                    <span class="m-badge cache">INDEXED BUS</span>
+                    <div class="m-val">&lt;5ms</div>
+                    <div class="m-accent-line dark"></div>
+                    <div class="m-lbl">Cache Query Latency</div>
+                    <div class="m-sub">Sub-millisecond In-Memory Query Speed</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── CTA SECTION & THE LAST PUSH ──────────────────────── -->
+        <section class="cta-wrap reveal" id="cta-section">
+            <!-- Subtle Dashed Mathematical Curve Background Graphics -->
+            <div class="cta-trajectory-bg" aria-hidden="true">
+                <svg viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid meet">
+                    <!-- Concentric Target Coordinates Behind Button -->
+                    <circle cx="500" cy="220" r="180" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="4 6" opacity="0.6" />
+                    <circle cx="500" cy="220" r="110" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="3 5" opacity="0.4" />
+                    
+                    <!-- Ascending Compound Growth Trajectory -->
+                    <path d="M 40 440 C 280 440, 360 320, 500 220 C 640 120, 780 80, 960 30" fill="none" stroke="#EBEBEB" stroke-width="1.5" stroke-dasharray="5 5" />
+
+                    <!-- Key Data Nodes Along Trajectory -->
+                    <circle cx="180" cy="380" r="4" fill="#404040" />
+                    <circle cx="340" cy="320" r="4.5" fill="#404040" />
+                    
+                    <!-- Central Glowing Cobalt Blue Highlight Dot Aligned Directly with the CTA Button -->
+                    <circle cx="500" cy="220" r="7" fill="#0051C3" stroke="#FFFFFF" stroke-width="2" />
+                    <circle cx="500" cy="220" r="14" fill="none" stroke="#0051C3" stroke-width="1" stroke-dasharray="2 2" />
+                    <circle cx="500" cy="220" r="22" fill="none" stroke="#0051C3" stroke-width="0.7" opacity="0.5" />
+
+                    <circle cx="680" cy="130" r="5" fill="#404040" />
+                    <circle cx="860" cy="70" r="5.5" fill="#404040" />
+                </svg>
+            </div>
+
+            <div class="cta-bracket-top">[ READY FOR EXECUTION // 16:05 WIB DAILY ]</div>
+            <h2>Get Tomorrow's Breakout Signals Before Market Open</h2>
+            <p>Top 10 high-conviction picks. 5-agent consensus. Disciplined +3.0% targets. Half-Kelly downside protection. Free open access.</p>
+            
+            <!-- Closing Proof Strip -->
+            <div class="cta-proof-strip">
+                <div class="cta-proof-item">
+                    <span class="cta-proof-k">WIN RATE</span>
+                    <span class="cta-proof-v">85.9%</span>
+                </div>
+                <div class="cta-proof-item">
+                    <span class="cta-proof-k">CYCLE TIME</span>
+                    <span class="cta-proof-v">16:05 WIB</span>
+                </div>
+                <div class="cta-proof-item">
+                    <span class="cta-proof-k">RISK ASYMMETRY</span>
+                    <span class="cta-proof-v">2:1 RATIO</span>
+                </div>
+                <div class="cta-proof-item">
+                    <span class="cta-proof-k">ACCESS TIER</span>
+                    <span class="cta-proof-v">FREE / OPEN</span>
+                </div>
+            </div>
+
+            <!-- Helin Cobalt Blue Action Button -->
+            <a href="dashboard.html" class="btn-launch-primary">
+                Launch AKSA Terminal →
+            </a>
+            <div class="cta-subnote">
+                ✓ Zero black-box predictions · Full agent reasoning &amp; interactive charts included
+            </div>
+        </section>
+
+        <!-- FOOTER (CLEAN 3-COLUMN ARCHITECTURE) -->
+        <footer class="footer" role="contentinfo">
+            <div class="footer-grid">
+                <!-- Col 1: Brand & Mission -->
+                <div class="footer-col">
+                    <div class="footer-title">AKSA<span class="accent">.</span></div>
+                    <p class="footer-desc">
+                        Quantitative Stock Intelligence — autonomous screener engineered for the Indonesia Stock Exchange (IDX / BEI). Evaluates 700+ equities daily using quantitative decision trees, 20+ technical indicators, and multi-agent risk consensus.
+                    </p>
+                    <div class="footer-status-pill">
+                        <span class="footer-status-dot"></span>
+                        <span>ENGINE ONLINE // DAILY SCAN 16:05 WIB</span>
+                    </div>
+                </div>
+
+                <!-- Col 2: Terminal Navigation -->
+                <div class="footer-col">
+                    <div class="footer-title">NAVIGATION</div>
+                    <div class="footer-links">
+                        <a href="dashboard.html">Screener Terminal →</a>
+                        <a href="#features">Architecture Specs</a>
+                        <a href="#pipeline">Execution Pipeline</a>
+                        <a href="#performance">Performance Audit</a>
+                    </div>
+                </div>
+
+                <!-- Col 3: Community & Feeds -->
+                <div class="footer-col">
+                    <div class="footer-title">COMMUNITY &amp; FEEDS</div>
+                    <div class="footer-links">
+                        <a href="https://t.me/aksascreenerbot" target="_blank" rel="noopener noreferrer">Telegram Alert Feed ↗</a>
+                        <a href="dashboard.html">Live Market Signals</a>
+                        <a href="#performance">Historical Track Record</a>
+                        <a href="#features">Risk Methodology</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Bottom Bar & Disclaimer -->
+            <div class="footer-bottom">
+                <div class="footer-disclaimer">
+                    <strong>Disclaimer:</strong> All signals, probabilities, price targets, and capital sizing outputs are for quantitative research and educational purposes only — not financial advice. Trading equities carries capital risk. Past performance (+820.5% alpha) does not guarantee future results. Manage risk independently.
+                </div>
+                <div class="footer-copyright">
+                    <span>© 2026 AKSA · Quantitative Stock Intelligence · All Rights Reserved</span>
+                    <span>BEI / IDX Real-Time Data Pipeline</span>
+                </div>
+            </div>
+        </footer>
+
+    </div> <!-- End .page-content -->
+
+    <!-- RIGHT ARCHITECTURAL SPINE / INTERACTIVE SLIDER RAIL -->
+    <aside class="page-spine" id="page-spine" aria-label="Page Navigation Rail">
+        <span class="spine-label" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Back to top">BEI // IDX</span>
+        
+        <!-- Interactive Track Area -->
+        <div class="spine-track-container" id="spine-track-container" title="Click or drag to navigate">
+            <div class="spine-track-line" id="spine-track-line">
+                <!-- Section Pips with Tooltips -->
+                <div class="spine-pip active" data-target="hero" style="top: 5%;">
+                    <span class="pip-tooltip">Hero Section</span>
+                </div>
+                <div class="spine-pip" data-target="live-intelligence" style="top: 24%;">
+                    <span class="pip-tooltip">00 // Market Signals</span>
+                </div>
+                <div class="spine-pip" data-target="features" style="top: 45%;">
+                    <span class="pip-tooltip">01 // Architecture</span>
+                </div>
+                <div class="spine-pip" data-target="pipeline" style="top: 65%;">
+                    <span class="pip-tooltip">02 // Pipeline</span>
+                </div>
+                <div class="spine-pip" data-target="performance" style="top: 82%;">
+                    <span class="pip-tooltip">03 // Telemetry</span>
+                </div>
+                <div class="spine-pip" data-target="cta-section" style="top: 95%;">
+                    <span class="pip-tooltip">Deploy Alpha</span>
+                </div>
+            </div>
+
+            <!-- Tactile Draggable Slider Thumb -->
+            <div class="spine-thumb" id="spine-thumb" role="slider" aria-label="Page Scroll Position" aria-valuemin="0" aria-valuemax="100" tabindex="0" title="Drag to scroll">
+                <span class="thumb-grip"></span>
+                <span class="thumb-grip"></span>
             </div>
         </div>
 
-        <!-- Right: stat cards as visual anchor -->
-        <div class="hero-right">
-            <div class="hero-stats-grid">
-                <div class="hstat-card">
-                    <div class="hstat-num">700+</div>
-                    <div class="hstat-lbl">IDX Stocks</div>
-                </div>
-                <div class="hstat-card">
-                    <div class="hstat-num">20+</div>
-                    <div class="hstat-lbl">Indicators</div>
-                </div>
-                <div class="hstat-card">
-                    <div class="hstat-num">XGBoost</div>
-                    <div class="hstat-lbl">ML Model</div>
-                </div>
-                <div class="hstat-card">
-                    <div class="hstat-num">+3%</div>
-                    <div class="hstat-lbl">Daily Target</div>
-                </div>
-            </div>
+        <div class="spine-status-bottom">
+            <div class="spine-dot"></div>
+            <span class="spine-status-text">SYNCED</span>
         </div>
+    </aside>
 
-    </div>
-</section>
+    <!-- SCRIPT FOR IN/OUT SCROLL ANIMATIONS & INTERACTIVITY -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.classList.add('page-loaded');
 
-<!-- Features: alternating image/text splits (max 2 zigzags, then break) -->
-<section class="section" id="features">
-    <h2 class="section-title reveal">XGBoost trained on <em>5 years</em> of BEI data</h2>
-    <p class="section-desc reveal">Machine learning and quantitative technical analysis, integrated for daily IDX stock screening.</p>
+            // In / Out Scroll Observer for smooth entrance/exit reveals
+            const revealElements = document.querySelectorAll('.reveal');
 
-    <!-- Row 1: text left, image right -->
-    <div class="feature-row reveal">
-        <div class="feature-text">
-            <div class="feature-tag">Real-time</div>
-            <h3 class="feature-h3">Macro and market sentiment</h3>
-            <p class="feature-p">Automated evaluation of IHSG trends, USD/IDR exchange rates, and real-time news sentiment analysis from economic RSS feeds.</p>
-        </div>
-        <div class="feature-img">
-            <img src="nike_panel_1.png" alt="Macro and market sentiment analysis dashboard" loading="lazy">
-        </div>
-    </div>
+            const observerOptions = {
+                threshold: 0.15,
+                rootMargin: '0px 0px -40px 0px'
+            };
 
-    <!-- Row 2: image left, text right (flip) -->
-    <div class="feature-row flip reveal">
-        <div class="feature-text">
-            <h3 class="feature-h3">XGBoost quant engine</h3>
-            <p class="feature-p">Trained on 5 years of historical BEI data, 20+ technical indicators (RSI, MACD, BB, OBV, VWAP) with Optuna hyperparameter tuning.</p>
-        </div>
-        <div class="feature-img">
-            <img src="nike_panel_2.png" alt="XGBoost quant engine visualization" loading="lazy">
-        </div>
-    </div>
+            const revealObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('is-visible');
+                    }
+                });
+            }, observerOptions);
 
-    <!-- Row 3: full-width card (break the zigzag after 2 splits) -->
-    <div class="feature-row reveal">
-        <div class="feature-text">
-            <h3 class="feature-h3">Multi-agent consensus and daily audit</h3>
-            <p class="feature-p">Consensus signal validation with disciplined risk management: +3.0% profit target and -1.5% stop loss per trade.</p>
-        </div>
-        <div class="feature-img">
-            <img src="nike_panel_3.png" alt="Multi-agent consensus and daily audit system" loading="lazy">
-        </div>
-    </div>
-</section>
+            revealElements.forEach(el => revealObserver.observe(el));
 
-<!-- Workflow: different layout family (cell grid, not cards) -->
-<section class="steps-section">
-    <div class="steps-inner">
-        <h2 class="steps-title reveal">How <em>it works</em></h2>
-        <div class="steps-track reveal">
-            <div class="step-cell">
-                <span class="step-num">1</span>
-                <h4 class="step-h4">Data collection</h4>
-                <p class="step-p">Batch downloading 700+ BEI tickers from Yahoo Finance in organized 50-stock chunks at regular intervals.</p>
-                <div class="step-img">
-                    <img src="step_img_1.png" alt="Data collection pipeline" loading="lazy">
-                </div>
-            </div>
-            <div class="step-cell">
-                <span class="step-num">2</span>
-                <h4 class="step-h4">Quant and feature engine</h4>
-                <p class="step-p">Precision calculation of 20+ technical indicators alongside feature embedding vector extraction.</p>
-                <div class="step-img">
-                    <img src="step_img_2.png" alt="Feature engineering pipeline" loading="lazy">
-                </div>
-            </div>
-            <div class="step-cell">
-                <span class="step-num">3</span>
-                <h4 class="step-h4">Signal and consensus output</h4>
-                <p class="step-p">Top 10 daily stock recommendations with target profits, stop losses, and model narratives.</p>
-                <div class="step-img">
-                    <img src="step_img_3.png" alt="Signal consensus output" loading="lazy">
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+            // ── Zero-Latency Interactive Right Spine Slider & Navigation ──
+            const trackContainer = document.getElementById('spine-track-container');
+            const spineThumb = document.getElementById('spine-thumb');
+            const pips = document.querySelectorAll('.spine-pip');
 
-<!-- CTA: same warm theme, no dark inversion -->
-<section class="cta-section reveal">
-    <h2>Start screening</h2>
-    <p>Analyze 700+ IDX stocks in seconds with XGBoost-powered quantitative signals.</p>
-    <a href="dashboard.html" class="btn-solid">View recommendations</a>
-</section>
+            let isDragging = false;
+            let scrollTicking = false;
 
-<footer class="footer">For educational purposes</footer>
+            function getThumbMetrics() {
+                const trackHeight = trackContainer ? trackContainer.clientHeight : 1;
+                const thumbHeight = spineThumb ? spineThumb.offsetHeight : 52;
+                const halfThumb = thumbHeight / 2;
+                const playableHeight = Math.max(trackHeight - thumbHeight, 1);
+                return { trackHeight, thumbHeight, halfThumb, playableHeight };
+            }
 
-<script>
-var words = [
-    'XGBoost ML',
-    '20+ indicators',
-    'multi-agent consensus',
-    'macro intelligence',
-    'real-time data',
-];
+            function updateThumbFromScroll() {
+                if (isDragging || !trackContainer || !spineThumb) return;
+                const scrollY = window.scrollY || window.pageYOffset;
+                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                const percent = maxScroll > 0 ? Math.min(Math.max(scrollY / maxScroll, 0), 1) : 0;
+                
+                const { halfThumb, playableHeight } = getThumbMetrics();
+                const topPx = halfThumb + percent * playableHeight;
+                spineThumb.style.top = `${topPx}px`;
+                spineThumb.setAttribute('aria-valuenow', Math.round(percent * 100));
 
-var rotator = document.getElementById('rotator');
-var index = 0;
+                // Update active section pip
+                const scrollCenter = scrollY + window.innerHeight * 0.35;
+                pips.forEach(pip => {
+                    const targetId = pip.getAttribute('data-target');
+                    const targetEl = document.getElementById(targetId);
+                    if (targetEl) {
+                        const top = targetEl.offsetTop;
+                        const height = targetEl.offsetHeight;
+                        if (scrollCenter >= top && scrollCenter < top + height) {
+                            pips.forEach(p => p.classList.remove('active'));
+                            pip.classList.add('active');
+                        }
+                    }
+                });
+            }
 
-function rotateWord() {
-    index = (index + 1) % words.length;
-    var currentSpan = rotator.querySelector('span');
-    var newSpan = document.createElement('span');
-    newSpan.textContent = words[index];
-    newSpan.style.opacity = '0';
-    newSpan.style.transform = 'translateY(14px) scale(0.97)';
-    newSpan.style.filter = 'blur(6px)';
-    rotator.appendChild(newSpan);
+            // High-Performance Zero-Delay Scroll Sync with rAF
+            window.addEventListener('scroll', () => {
+                if (!scrollTicking) {
+                    requestAnimationFrame(() => {
+                        updateThumbFromScroll();
+                        scrollTicking = false;
+                    });
+                    scrollTicking = true;
+                }
+            }, { passive: true });
 
-    if (currentSpan) {
-        currentSpan.style.opacity = '0';
-        currentSpan.style.transform = 'translateY(-14px) scale(0.97)';
-        currentSpan.style.filter = 'blur(6px)';
-    }
+            window.addEventListener('resize', updateThumbFromScroll, { passive: true });
 
-    requestAnimationFrame(function() {
-        requestAnimationFrame(function() {
-            newSpan.style.opacity = '1';
-            newSpan.style.transform = 'translateY(0) scale(1)';
-            newSpan.style.filter = 'blur(0px)';
+            function scrollPageToPosition(clientY, instant = true) {
+                if (!trackContainer) return;
+                const rect = trackContainer.getBoundingClientRect();
+                const { halfThumb, playableHeight } = getThumbMetrics();
+                
+                const relativeY = clientY - rect.top - halfThumb;
+                const clampedY = Math.min(Math.max(relativeY, 0), playableHeight);
+                const percent = playableHeight > 0 ? clampedY / playableHeight : 0;
+                const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+                const targetScrollY = percent * maxScroll;
+                
+                if (spineThumb) {
+                    const topPx = halfThumb + clampedY;
+                    spineThumb.style.top = `${topPx}px`;
+                    spineThumb.setAttribute('aria-valuenow', Math.round(percent * 100));
+                }
+                
+                if (instant) {
+                    window.scrollTo(0, targetScrollY);
+                } else {
+                    window.scrollTo({
+                        top: targetScrollY,
+                        behavior: 'smooth'
+                    });
+                }
+            }
+
+            // Pointerdown on Track or Thumb -> Instant 1:1 Response with Zero Delay & Bounded Range
+            if (trackContainer) {
+                trackContainer.addEventListener('pointerdown', (e) => {
+                    if (e.target.closest('.spine-pip')) return;
+                    isDragging = true;
+                    if (spineThumb) spineThumb.classList.add('is-dragging');
+                    trackContainer.setPointerCapture(e.pointerId);
+                    scrollPageToPosition(e.clientY, true);
+                    e.preventDefault();
+                });
+
+                trackContainer.addEventListener('pointermove', (e) => {
+                    if (!isDragging) return;
+                    scrollPageToPosition(e.clientY, true);
+                });
+
+                const endDrag = (e) => {
+                    if (isDragging) {
+                        isDragging = false;
+                        if (spineThumb) spineThumb.classList.remove('is-dragging');
+                        try { trackContainer.releasePointerCapture(e.pointerId); } catch (_) { }
+                        updateThumbFromScroll();
+                    }
+                };
+
+                trackContainer.addEventListener('pointerup', endDrag);
+                trackContainer.addEventListener('pointercancel', endDrag);
+            }
+
+            function smoothScrollToTarget(targetId) {
+                if (targetId === 'hero' || targetId === '' || targetId === 'top') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                    return;
+                }
+                const targetEl = document.getElementById(targetId);
+                if (targetEl) {
+                    const navHeight = 65;
+                    const elementTop = targetEl.getBoundingClientRect().top + window.pageYOffset;
+                    window.scrollTo({
+                        top: Math.max(elementTop - navHeight, 0),
+                        behavior: 'smooth'
+                    });
+                }
+            }
+
+            // Click on section pips with smooth jump
+            pips.forEach(pip => {
+                pip.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const targetId = pip.getAttribute('data-target');
+                    smoothScrollToTarget(targetId);
+                });
+            });
+
+            // Smooth scroll for top nav links, brand logo, and hero jump buttons
+            document.querySelectorAll('.nav-brand, .nav-links a[href^="#"], .hero-actions a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    const href = this.getAttribute('href');
+                    if (href && href.startsWith('#')) {
+                        e.preventDefault();
+                        const targetId = href.substring(1);
+                        smoothScrollToTarget(targetId);
+                    }
+                });
+            });
+
+            // Keyboard navigation
+            if (spineThumb) {
+                spineThumb.addEventListener('keydown', (e) => {
+                    const step = 150;
+                    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+                        window.scrollBy({ top: step, behavior: 'smooth' });
+                        e.preventDefault();
+                    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+                        window.scrollBy({ top: -step, behavior: 'smooth' });
+                        e.preventDefault();
+                    } else if (e.key === 'Home') {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        e.preventDefault();
+                    } else if (e.key === 'End') {
+                        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            // Initialize positioning on load
+            setTimeout(updateThumbFromScroll, 50);
         });
-    });
 
-    setTimeout(function() {
-        if (currentSpan && rotator.contains(currentSpan)) rotator.removeChild(currentSpan);
-    }, 600);
-}
-
-setInterval(rotateWord, 3200);
-
-var observer = new IntersectionObserver(function(entries) {
-    entries.forEach(function(entry) {
-        if (entry.isIntersecting) entry.target.classList.add('visible');
-    });
-}, { threshold: 0.1 });
-document.querySelectorAll('.reveal').forEach(function(el) { observer.observe(el); });
-
-document.addEventListener('DOMContentLoaded', function() {
-    requestAnimationFrame(function() {
-        document.body.classList.add('page-loaded');
-    });
-});
-
-document.querySelectorAll('a[href="/dashboard"], a[href="dashboard.html"]').forEach(function(link) {
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        var targetUrl = window.location.protocol === 'file:' ? 'dashboard.html' : this.getAttribute('href');
-        document.body.classList.remove('page-loaded');
-        document.body.classList.add('page-exiting');
-        setTimeout(function() {
-            window.location.href = targetUrl;
-        }, 320);
-    });
-});
-</script>
+        // Page Exit Transition
+        document.querySelectorAll('a[href="dashboard.html"]').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.body.classList.remove('page-loaded');
+                document.body.classList.add('page-exiting');
+                setTimeout(() => {
+                    window.location.href = this.getAttribute('href');
+                }, 250);
+            });
+        });
+    </script>
 </body>
+
 </html>
