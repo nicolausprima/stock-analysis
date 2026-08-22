@@ -886,20 +886,22 @@
             line-height: 1.15;
         }
 
-        /* Editorial Paragraph directly under the mixed title (Constrained to ~640px) */
+        /* Editorial Paragraph directly under the mixed title */
+        .hero-desc,
         .hero-editorial-body {
             font-family: var(--font-sans);
-            font-size: 16.8px;
-            line-height: 1.65;
+            font-size: 17px;
+            line-height: 1.7;
             color: var(--c-body);
-            max-width: 640px;
-            margin: 0 auto 36px;
+            max-width: 660px;
+            margin: 0 auto 44px;
             font-weight: 500;
             position: relative;
             z-index: 2;
             text-align: center;
         }
 
+        .hero-desc strong,
         .hero-editorial-body strong {
             font-weight: 600;
             color: #000000;
@@ -1819,7 +1821,7 @@
                 </div>
 
                 <!-- Punchy, High-Converting Hero Description -->
-                <p class="hero-desc">
+                <p class="hero-desc hero-editorial-body">
                     Find high-probability breakout stocks before market open. AKSA evaluates 700+ IDX tickers daily using 20+ technical indicators, real-time news risk filtering, and 5-agent consensus — delivering disciplined +3.0% targets with strict capital protection.
                 </p>
 
