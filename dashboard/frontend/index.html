@@ -1042,7 +1042,7 @@
             padding: 14px 20px;
             font-family: var(--font-mono);
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 600;
             letter-spacing: 0.5px;
             text-transform: uppercase;
             border-bottom: 1px solid var(--c-border);
@@ -1051,32 +1051,37 @@
         }
 
         .intel-card-body {
-            padding: 24px 20px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
+            justify-content: center;
+            align-items: center;
             flex: 1;
         }
 
-        .intel-card-meta {
+        .intel-card-footer {
+            background: #FFFFFF;
+            border-top: 1px solid var(--c-border);
+            padding: 12px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-family: var(--font-mono);
             font-size: 10px;
+            font-weight: 500;
             color: var(--c-muted);
-            margin-top: 14px;
-            padding-top: 10px;
-            border-top: 1px solid var(--c-border);
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+            margin-top: auto;
         }
 
         .intel-telemetry-body {
-            padding: 24px 20px;
+            padding: 18px 20px;
             display: flex;
             flex-direction: column;
-            gap: 13px;
+            justify-content: space-between;
+            gap: 10px;
             flex: 1;
-            justify-content: center;
         }
 
         .intel-tele-row {
@@ -1086,7 +1091,7 @@
             font-family: var(--font-mono);
             font-size: 11.5px;
             border-bottom: 1px dashed var(--c-border);
-            padding-bottom: 8px;
+            padding-bottom: 7px;
         }
 
         .intel-tele-row:last-child {
@@ -1921,10 +1926,10 @@
                             <circle cx="435" cy="15" r="10" fill="none" stroke="#0051C3" stroke-width="0.8" opacity="0.6" />
                             <text x="360" y="98" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">TARGET: ALPHA +3.0%</text>
                         </svg>
-                        <div class="intel-card-meta">
-                            <span>14-DAY MULTI-FACTOR MOMENTUM</span>
-                            <span style="color: var(--c-blue); font-weight: 600;">+3.0% EXP. ALPHA</span>
-                        </div>
+                    </div>
+                    <div class="intel-card-footer">
+                        <span>14-Day Momentum</span>
+                        <span style="color: var(--c-blue); font-weight: 600;">+3.0% Exp. Alpha</span>
                     </div>
                 </div>
 
@@ -1951,10 +1956,10 @@
                             <span class="t-k">POSITION SIZING:</span>
                             <span class="t-v">HALF-KELLY (0.5x ALLOCATION)</span>
                         </div>
-                        <div class="intel-tele-row">
-                            <span class="t-k">AGENT CONSENSUS:</span>
-                            <span class="t-v" style="color: var(--c-blue); font-weight: 600;">5/5 UNANIMOUS ALIGNMENT</span>
-                        </div>
+                    </div>
+                    <div class="intel-card-footer">
+                        <span>Agent Consensus</span>
+                        <span style="color: var(--c-blue); font-weight: 600;">5/5 Unanimous Alignment</span>
                     </div>
                 </div>
 
@@ -2032,7 +2037,7 @@
                         </div>
                     </div>
 
-                    <div class="terminal-footer">
+                    <div class="intel-card-footer">
                         <span>Consensus: 5/5 Unanimous</span>
                         <span>Latency: &lt;5ms</span>
                     </div>
