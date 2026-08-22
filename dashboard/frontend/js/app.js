@@ -1,7 +1,14 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Tangkap API key dari URL (?api_key=xxx) & simpan untuk sesi berikutnya
+    // Tangkap API key dari URL (?api_key=xxx), simpan ke localStorage,
+    // lalu segera hapus dari address bar agar tidak tertinggal di browser history.
     const urlKey = new URLSearchParams(window.location.search).get('api_key');
-    if (urlKey) localStorage.setItem('api_key', urlKey);
+    if (urlKey) {
+        localStorage.setItem('api_key', urlKey);
+        const params = new URLSearchParams(window.location.search);
+        params.delete('api_key');
+        const qs = params.toString();
+        history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
+    }
 
     // Fetch wrapper: lampirkan X-API-Key jika tersedia
     const apiFetch = (url, opts = {}) => {
@@ -27,6 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const fmtPrice = v => (v && v > 0)
         ? idr(v)
         : '<span class="price-null">—</span>';
+
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => (
+        { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+    ));
 
     const rsiColor = r => r < 40 ? 'green' : r > 65 ? 'red' : 'amber';
     const rsiW     = r => Math.min(Math.max(r, 0), 100);
@@ -149,24 +160,24 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `
                 <td class="td-rank">${i + 1}</td>
                 <td class="td-ticker">
-                    <div class="t-name">${s.ticker.replace('.JK', '')}</div>
-                    <div class="t-code">${s.ticker}</div>
+                    <div class="t-name">${esc(s.ticker.replace('.JK', ''))}</div>
+                    <div class="t-code">${esc(s.ticker)}</div>
                 </td>
                 <td class="td-price">${fmtPrice(s.close_price)}</td>
                 <td class="td-target">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
                 <td class="td-sl">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
                 <td>
                     <div class="rsi-cell">
-                        <span class="rsi-val">${s.rsi}</span>
+                        <span class="rsi-val">${esc(s.rsi)}</span>
                         <div class="rsi-track">
                             <div class="rsi-fill ${rc}" style="width:${rw}%"></div>
                         </div>
-                        <span class="rsi-sig">${s.rsi_signal}</span>
+                        <span class="rsi-sig">${esc(s.rsi_signal)}</span>
                     </div>
                 </td>
-                <td><span class="badge ${macdClass}">${s.macd_signal}</span></td>
-                <td><span class="badge ${trendClass}">${s.trend}</span></td>
-                <td><span class="badge ${sentBadgeClass}">${sentImpact}</span></td>
+                <td><span class="badge ${macdClass}">${esc(s.macd_signal)}</span></td>
+                <td><span class="badge ${trendClass}">${esc(s.trend)}</span></td>
+                <td><span class="badge ${sentBadgeClass}">${esc(sentImpact)}</span></td>
                 <td>
                     <div class="score-cell">
                         <div class="score-track">
@@ -237,19 +248,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="chart-${s.ticker.replace('.JK', '')}" class="mini-chart-container"></div>
 
                 <div class="dc-quant-metrics">
-                    ${s.sector ? `<span class="qm-tag"><span class="qm-lbl">Sektor:</span> <strong>${s.sector}</strong>${s.is_leading_sector ? ' <span class="qm-leading">· Leading</span>' : ''}</span>` : ''}
-                    <span class="qm-tag"><span class="qm-lbl">Risk/Reward:</span> <strong>1:${s.risk_reward_ratio || '2.0'}</strong></span>
-                    <span class="qm-tag"><span class="qm-lbl">Saran Modal:</span> <strong style="color:var(--c-green);">${s.kelly_allocation || '10'}%</strong></span>
+                    ${s.sector ? `<span class="qm-tag"><span class="qm-lbl">Sektor:</span> <strong>${esc(s.sector)}</strong>${s.is_leading_sector ? ' <span class="qm-leading">· Leading</span>' : ''}</span>` : ''}
+                    <span class="qm-tag"><span class="qm-lbl">Risk/Reward:</span> <strong>1:${esc(s.risk_reward_ratio || '2.0')}</strong></span>
+                    <span class="qm-tag"><span class="qm-lbl">Saran Modal:</span> <strong style="color:var(--c-green);">${esc(s.kelly_allocation || '10')}%</strong></span>
                 </div>
 
                 <div class="dc-badges">
                     ${s.is_leading_sector ? '<span class="badge booster">Leading Sector</span>' : ''}
-                    ${s.rvol ? `<span class="badge ${s.rvol >= 1.2 ? 'booster' : 'neutral-sent'}">RVOL ${s.rvol}x</span>` : ''}
-                    ${s.adx ? `<span class="badge ${s.adx >= 25 ? 'bullish' : 'neutral-sent'}">ADX ${s.adx}</span>` : ''}
-                    <span class="badge ${macdClass}">MACD ${s.macd_signal}</span>
-                    <span class="badge ${trendClass}">${s.trend}</span>
-                    <span class="badge ${rsiClass}">RSI ${s.rsi}</span>
-                    <span class="badge ${sentBadgeClass}">${sentImpact}</span>
+                    ${s.rvol ? `<span class="badge ${s.rvol >= 1.2 ? 'booster' : 'neutral-sent'}">RVOL ${esc(s.rvol)}x</span>` : ''}
+                    ${s.adx ? `<span class="badge ${s.adx >= 25 ? 'bullish' : 'neutral-sent'}">ADX ${esc(s.adx)}</span>` : ''}
+                    <span class="badge ${macdClass}">MACD ${esc(s.macd_signal)}</span>
+                    <span class="badge ${trendClass}">${esc(s.trend)}</span>
+                    <span class="badge ${rsiClass}">RSI ${esc(s.rsi)}</span>
+                    <span class="badge ${sentBadgeClass}">${esc(sentImpact)}</span>
                     <span class="sig-pill sig-pill--sm ${isBuy ? 'buy' : 'watch'}">
                         <span class="sig-dot ${isBuy ? 'green' : 'blue'}"></span>
                         ${isBuy ? 'BUY' : 'WATCH'}

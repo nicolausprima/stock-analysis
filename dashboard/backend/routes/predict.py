@@ -78,7 +78,8 @@ def _fallback_response():
     """Graceful fallback untuk CI / environment tanpa model."""
     return {
         "status": "success",
-        "timestamp": "Realtime Fallback",
+        "is_sample": True,
+        "timestamp": "Sample Data (Model Unavailable)",
         "total_scanned": 732,
         "data": [
             {
@@ -307,7 +308,8 @@ async def sync_market_data(request: Request):
         return {"status": "success", "message": "Sinkronisasi data 700+ saham selesai.", "data": res}
 
     except Exception as err:
+        print(f"[SYNC] Gagal melakukan sinkronisasi data pasar: {str(err)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Gagal melakukan sinkronisasi data pasar: {str(err)}"
+            detail="Gagal melakukan sinkronisasi data pasar. Silakan coba lagi nanti."
         )

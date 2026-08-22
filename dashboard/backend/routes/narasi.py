@@ -1,11 +1,16 @@
 import os
 import json
 import requests
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
-from dashboard.backend.security import validate_ticker
+from dashboard.backend.security import (
+    validate_ticker,
+    sanitize_text,
+    sanitize_mapping,
+    require_api_key,
+)
 
 load_dotenv()
 
@@ -47,8 +52,12 @@ def parse_and_clean_response(text: str) -> str:
     return "".join(content_parts).strip()
 
 @router.post("/narasi")
-def generate_narrative(req: NarasiRequest):
-    """Menghasilkan ulasan opini analisis teknikal & sentimen berita terpadu menggunakan model AI."""
+def generate_narrative(request: Request, req: NarasiRequest):
+    """Menghasilkan ulasan opini analisis teknikal & sentimen berita terpadu menggunakan model AI.
+
+    [AUTH] Endpoint ini memanggil proxy LLM (berbiaya) -> wajib API key jika diset.
+    """
+    require_api_key(request)
     url = f"{OPENAI_API_BASE}/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -81,7 +90,7 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=120)
         if response.status_code == 200:
-            narrative = parse_and_clean_response(response.text)
+            narrative = sanitize_text(parse_and_clean_response(response.text))
             return {"status": "success", "narasi": narrative}
             
         # Jika gagal (misal docker network mapping mismatch), coba fallback ke localhost url
@@ -89,7 +98,7 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
             fallback_url = url.replace("host.docker.internal", "127.0.0.1")
             response = requests.post(fallback_url, json=payload, headers=headers, timeout=120)
             if response.status_code == 200:
-                narrative = parse_and_clean_response(response.text)
+                narrative = sanitize_text(parse_and_clean_response(response.text))
                 return {"status": "success", "narasi": narrative}
                 
         rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
@@ -110,7 +119,7 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
                 fallback_url = url.replace("host.docker.internal", "127.0.0.1")
                 response = requests.post(fallback_url, json=payload, headers=headers, timeout=120)
                 if response.status_code == 200:
-                    narrative = parse_and_clean_response(response.text)
+                    narrative = sanitize_text(parse_and_clean_response(response.text))
                     return {"status": "success", "narasi": narrative}
             except:
                 pass
@@ -129,8 +138,12 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
         return {"status": "success", "narasi": fallback_narrative}
 
 @router.post("/narasi/multi-agent")
-def generate_multi_agent_consensus(req: NarasiRequest):
-    """Menghasilkan konsensus analisis multi-agent (Technical, Sentiment, Macro, Bull vs Bear, Risk Manager)."""
+def generate_multi_agent_consensus(request: Request, req: NarasiRequest):
+    """Menghasilkan konsensus analisis multi-agent (Technical, Sentiment, Macro, Bull vs Bear, Risk Manager).
+
+    [AUTH] Endpoint ini memanggil proxy LLM (berbiaya) -> wajib API key jika diset.
+    """
+    require_api_key(request)
     try:
         req_dict = req.dict()
         req_dict["ticker"] = validate_ticker(req.ticker)
@@ -146,10 +159,15 @@ def generate_multi_agent_consensus(req: NarasiRequest):
                 pass
         agent_system = MultiAgentSystem()
         consensus = agent_system.generate_consensus(req_dict, macro_info=macro_info)
+        # Output agent mengandung teks turunan headline berita (konten eksternal)
+        # -> escape sebelum dirender frontend via innerHTML.
+        if isinstance(consensus, dict):
+            consensus = sanitize_mapping(consensus, ["bull_case", "bear_case", "risk_verdict"])
         return {"status": "success", "data": consensus}
     except Exception as e:
+        print(f"[NARASI] Gagal menjalankan sistem Multi-Agent: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"Gagal menjalankan sistem Multi-Agent: {str(e)}"
+            detail="Gagal menjalankan sistem Multi-Agent. Silakan coba lagi nanti."
         )
 

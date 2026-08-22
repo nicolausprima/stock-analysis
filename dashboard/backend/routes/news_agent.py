@@ -30,4 +30,5 @@ def fetch_news(request: NewsRequest):
         }
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[NEWS] Error mengambil berita {ticker}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Gagal mengambil berita. Silakan coba lagi nanti.")

@@ -92,7 +92,7 @@ def test_api_telegram_status_endpoint():
     assert response.status_code == 200
     json_data = response.json()
     assert json_data.get("status") == "success"
-    assert "bot_username" in json_data
+    assert "chat_id_detected" in json_data
 
 def test_api_telegram_status_does_not_leak_chat_id():
     response = client.get("/api/telegram/status")
@@ -140,6 +140,35 @@ def test_api_audit_run_and_seed_require_api_key(monkeypatch):
     # Key benar -> handler berjalan (aman: DB kosong/testing)
     res = client.get("/api/audit/run", headers={"X-API-Key": "test-secret-key"})
     assert res.status_code == 200
+
+def test_api_narasi_requires_api_key(monkeypatch):
+    import dashboard.backend.security as security
+    monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
+
+    payload = {
+        "ticker": "BBCA.JK",
+        "close_price": 9950,
+        "target_price": 10250,
+        "stop_loss": 9800,
+        "rsi": 54.2,
+        "macd_signal": "BULLISH",
+        "trend": "UPTREND",
+        "probability": 82.5,
+    }
+    # Tanpa key -> 401 (validasi key dieksekusi sebelum pemanggilan proxy LLM)
+    assert client.post("/api/narasi", json=payload).status_code == 401
+    assert client.post("/api/narasi/multi-agent", json=payload).status_code == 401
+    # Key salah -> 401
+    assert client.post("/api/narasi", json=payload, headers={"X-API-Key": "wrong"}).status_code == 401
+
+def test_security_headers_present():
+    response = client.get("/dashboard")
+    assert response.headers.get("x-content-type-options") == "nosniff"
+    assert response.headers.get("x-frame-options") == "DENY"
+    assert response.headers.get("referrer-policy") == "strict-origin-when-cross-origin"
+    csp = response.headers.get("content-security-policy", "")
+    assert "default-src 'self'" in csp
+    assert "frame-ancestors 'none'" in csp
 
 def test_api_chart_rejects_invalid_ticker():
     # Catatan: path traversal (../) dinormalisasi server -> 404, bukan sampai ke handler

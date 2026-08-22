@@ -1,12 +1,15 @@
 """
 dashboard/backend/security.py
-API authentication (X-API-Key) & input validation helpers.
+API authentication (X-API-Key), input validation & output sanitization helpers.
 - API_AUTH_TOKEN  : jika diset, semua operasi sensitif (sync, force scan, telegram,
                     audit write) wajib membawa header `X-API-Key` yang cocok.
 - validate_ticker : memfilter input user agar hanya simbol saham valid.
+- sanitize_text   : escape HTML pada teks hasil LLM/konten eksternal sebelum
+                    dikirim ke frontend (frontend me-render via innerHTML).
 """
 import os
 import re
+import html
 import hmac
 from fastapi import Request, HTTPException
 
@@ -45,3 +48,23 @@ def validate_ticker(ticker: str, allow_chart_specials: bool = False) -> str:
             detail=f"Format ticker tidak valid: '{ticker}'. Gunakan simbol BEI (mis. BBCA atau BBCA.JK).",
         )
     return clean
+
+
+def sanitize_text(text: str, max_length: int = 4000) -> str:
+    """Escape HTML entities pada teks tidak terpercaya (output LLM, headline berita).
+
+    Frontend me-render field ini via innerHTML; escape memastikan tag/atribut
+    berbahaya hanya tampil sebagai teks biasa, bukan dieksekusi browser.
+    """
+    if not isinstance(text, str):
+        return ""
+    return html.escape(text[:max_length])
+
+
+def sanitize_mapping(data: dict, fields: list[str]) -> dict:
+    """Return salinan dict dengan field terpilih yang sudah di-escape."""
+    out = dict(data)
+    for f in fields:
+        if f in out and isinstance(out[f], str):
+            out[f] = sanitize_text(out[f])
+    return out

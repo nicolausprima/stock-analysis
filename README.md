@@ -1,21 +1,23 @@
-# StockAI — AI-Powered Day Trading Screener (Indonesia Market) 🇮🇩
+# AKSA — Quantitative Stock Intelligence for Indonesian Markets 🇮🇩
+### *Analisis Kuantitatif Saham · Autonomous IDX Screener*
 
 > **Disclaimer:** This project is built for **educational and quantitative research purposes only**. It does not constitute financial or professional investment advice. Always conduct your own research and apply disciplined risk management before making any trading decisions.
 
 ---
 
 ## 🚧 Current Status
-**V7 (Multi-Tier Financial Sentiment Engine + Stochastic/MFI Institutional Proxies + IDX Sector Rotation + Multi-Agent Consensus + Real-Time Terminal CLI)**
+**AKSA V7 (Multi-Tier Financial Sentiment Engine + Stochastic/MFI Institutional Proxies + IDX Sector Rotation + Multi-Agent Consensus + Real-Time Terminal CLI + Hardened Security Architecture)**
 
-StockAI is a production-grade algorithmic day trading screener for the **Indonesia Stock Exchange (IDX / BEI)**. It scans 700+ active BEI tickers daily using an **XGBoost Classifier + Dense Chart Feature Embeddings** trained on 5 years of historical price data, combined with:
+AKSA (*Analisis Kuantitatif Saham*) is a production-grade algorithmic day trading screener for the **Indonesia Stock Exchange (IDX / BEI)**. It scans 700+ active BEI tickers daily using an **XGBoost Classifier + Dense Chart Feature Embeddings** trained on 5 years of historical price data, combined with:
 - **Multi-Tier Financial Sentiment Engine** (Lexicon-weighted NLP analysis with Asymmetric Risk Veto & SQLite 24h caching).
 - **Advanced Institutional Proxies** (Stochastic Oscillator, Money Flow Index / MFI, EMA Cross, Williams %R, CCI, RVOL & ADX 14).
 - **IDX 11-Sector Rotation & Momentum Intelligence** (identifies institutional capital inflow into leading sectors with probability boosters).
 - **Volatility-Adjusted Dynamic TP/SL** ($1.5 \sim 2.0\times\text{ATR}$ adaptive targets) & **Kelly Criterion Position Sizing** (% capital allocation).
 - **IHSG Macro Intelligence Agent** (evaluates USD/IDR, DXY, Nikkei, Wall St, Commodities & IHSG technicals into 3 market modes: `NORMAL`, `CAUTIOUS`, `BLOCK`).
 - **Interactive Multi-Agent Trading Consensus Framework** (Technical Analyst, Sentiment Analyst, Macro Context Agent, Bull vs. Bear Debate, Risk Manager).
-- **Interactive Terminal CLI (`python cli.py`)** with `/scan`, `/analyze <TICKER>`, `/macro`, `/sizing`, `/audit`, and `/chart`.
+- **Interactive Terminal CLI (`python main_cli.py`)** with `/scan`, `/analyze <TICKER>`, `/macro`, `/sizing`, `/audit`, and `/chart`.
 - **4-Phase Daily Telegram Broadcast** (08:30, 12:00, 15:30 BSJP, 16:05 WIB) and **Sub-5ms Glassmorphism Dashboard UI**.
+- **Enterprise-Grade Security & Hardening** (CSP, Security Headers, `X-API-Key` LLM Proxy Protection, HTML output escaping, and safe subprocess execution).
 
 ---
 
@@ -26,7 +28,7 @@ StockAI is a production-grade algorithmic day trading screener for the **Indones
 | **Overall Win Rate** | **85.9% (298 WIN / 49 LOSS)** 🚀 |
 | **Total Cumulative Return** | **+820.5% Realized Market Return** 💰 |
 | **Full BEI Universe Scanned** | **700+ BEI Tickers (Active & Liquid)** 🇮🇩 |
-| **Automated Test Suite** | **100% Pass (37/37 pytest Unit Tests)** 🧪 |
+| **Automated Test Suite** | **100% Pass (Automated Backend & Quant Tests)** 🧪 |
 | **UI Response Time** | **Sub-5ms (Pre-computed JSON Cache & SQLite)** ⚡ |
 | **Interactive API Documentation** | **`http://127.0.0.1:8000/docs` (Swagger UI)** 📖 |
 | **Audit Verification** | **100% Time-Aware Realized Return Engine (WIB UTC+7 Locked)** ✅ |
@@ -49,7 +51,8 @@ StockAI is a production-grade algorithmic day trading screener for the **Indones
 | Feature | Description |
 |---|---|
 | 🧠 **Multi-Tier Financial Sentiment Engine** | Context-aware Indonesian/English NLP sentiment analysis with Asymmetric Risk Veto (-25%) and 24h SQLite caching. |
-| 🛡️ **API Security & Input Validation Guard** | `X-API-Key` authorization on sensitive endpoints (sync, force scan, broadcast, audit) and strict ticker regex validation against injection. |
+| 🛡️ **Hardened API Security & Access Control** | `X-API-Key` protection on sensitive endpoints (sync, force scan, broadcast, audit, LLM proxy narrative), strict regex validation against injection, and automatic credential cleanup from browser history. |
+| 🔒 **Security Headers & Output Sanitization** | `Content-Security-Policy`, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and backend/frontend HTML escaping against XSS. |
 | 📈 **RVOL & ADX Breakout Filter** | Confirms volume accumulation ($\ge 1.2\text{x}$ 20-day average) and trend strength ($\text{ADX} \ge 20-25$), eliminating choppy sideways false breakouts. |
 | 🏢 **IDX 11-Sector Rotation Intelligence** | Maps all 700+ tickers into 11 BEI sectors and computes 5-day sector Relative Strength. Top 3 Leading Sectors receive +2.0% score boosters. |
 | ⚖️ **Dynamic ATR TP/SL & Kelly Sizing** | Adaptive Target Profit ($+2.5\%$ to $+5.0\%$) and Stop Loss ($-1.2\%$ to $-2.0\%$) scaled to ATR, plus Half-Kelly optimal capital allocation (% portfolio). |
@@ -63,7 +66,7 @@ StockAI is a production-grade algorithmic day trading screener for the **Indones
 | ⚡ **Async Non-Blocking Telegram Bot** | Responds instantly (<1s) to `/today`, `/midday`, `/bsjp`, `/audittoday`, and `/auditall` commands using background worker threads. |
 | 🌇 **BSJP (Beli Sore Jual Pagi) Engine** | Dedicated 15:30 WIB real-time scanner capturing late-afternoon volume accumulation without overwriting main recommendation caches. |
 | ⚡ **Sub-5ms UI Response & JSON Cache** | Pre-computes recommendations after market close into `data/latest_recommendations.json` for instant UI loading. |
-| 🎨 **Warm Editorial Dashboard UI** | Editorial design system (Epilogue + Fraunces typography, warm cream palette, split layout) displaying Sector Pills, Quant Metrics, Bull/Bear Debate, Risk Verdict, and TradingView Charts. |
+| 🎨 **State-of-the-Art Terminal Dashboard UI** | Clean editorial design system displaying Sector Pills, Quant Metrics, Bull/Bear Debate, Risk Verdict, and TradingView Charts. |
 
 ---
 

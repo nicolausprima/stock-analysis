@@ -25,7 +25,6 @@ def get_telegram_status():
     chat_id = get_active_chat_id()
     return {
         "status": "success",
-        "bot_username": "@StockAnalysisLocalBot",
         "chat_id_detected": bool(chat_id),
         "message": "Chat ID terdeteksi" if chat_id else "Belum terdeteksi (Kirim /start ke bot di Telegram)"
     }

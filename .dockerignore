@@ -1,0 +1,29 @@
+# Secret & konfigurasi lokal — JANGAN ikut ter-bake ke image
+.env
+.env.*
+!.env.example
+data/telegram_config.json
+
+# VCS & metadata
+.git
+.gitignore
+.gitattributes
+.github
+
+# Runtime artifacts
+__pycache__
+**/__pycache__
+*.pyc
+.pytest_cache
+logs/
+tmp/
+
+# Data besar / regenerable (DB dibuat ulang & diunduh ulang saat runtime)
+data/*.db
+data/*.db-wal
+data/*.db-shm
+
+# Tooling lokal
+.vscode
+.idea
+.claude

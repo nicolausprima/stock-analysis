@@ -22,6 +22,7 @@ import sys
 import os
 import re
 import difflib
+import subprocess
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 import pandas as pd
@@ -69,6 +70,19 @@ def _clean_text(text: str) -> str:
 def get_wib_now() -> datetime:
     """Mengembalikan datetime saat ini dalam WIB (UTC+7)."""
     return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7)))
+
+# Format ticker BEI tanpa suffix: 1-6 huruf/angka (konsisten dengan backend)
+CLI_TICKER_RE = re.compile(r"^[A-Z0-9]{1,6}$")
+
+def _validate_cli_ticker(raw: str) -> str:
+    """Normalisasi & validasi input ticker CLI.
+
+    Return string bersih jika valid, atau string kosong jika tidak.
+    Validasi ini juga membuang karakter Rich markup (kurung siku) sehingga
+    input pengguna tidak bisa menyuntik tag format ke output terminal.
+    """
+    clean = (raw or "").strip().upper().replace(".JK", "")
+    return clean if CLI_TICKER_RE.match(clean) else ""
 
 
 # =====================================================================
@@ -349,7 +363,10 @@ def cmd_analyze(ticker: str):
         _usage("analyze", "<TICKER> (contoh: /analyze BBCA)")
         return
 
-    clean_ticker = ticker.upper().replace(".JK", "").strip()
+    clean_ticker = _validate_cli_ticker(ticker)
+    if not clean_ticker:
+        console.print(f"[bold red]Format ticker tidak valid: '{ticker}'. Gunakan kode BEI tanpa simbol (mis. BBCA).[/bold red]")
+        return
     with console.status(f"[bold green]Menganalisis {clean_ticker} dengan Multi-Agent System...[/bold green]"):
         df = fetch_stock_data(clean_ticker)
         if df.empty:
@@ -584,7 +601,10 @@ def cmd_sizing(ticker: str, capital_str: str = ""):
         _usage("sizing", "<TICKER> [MODAL] (contoh: /sizing BBRI 50jt)")
         return
 
-    clean_ticker = ticker.upper().replace(".JK", "").strip()
+    clean_ticker = _validate_cli_ticker(ticker)
+    if not clean_ticker:
+        console.print(f"[bold red]Format ticker tidak valid: '{ticker}'. Gunakan kode BEI tanpa simbol (mis. BBRI).[/bold red]")
+        return
 
     # Parse modal: dukung 50jt, 50j, 50 juta, 50m, 500rb, 50000000
     capital = None
@@ -662,7 +682,10 @@ def cmd_chart(ticker: str):
         _usage("chart", "<TICKER> (contoh: /chart ASII)")
         return
 
-    clean_ticker = ticker.upper().replace(".JK", "").strip()
+    clean_ticker = _validate_cli_ticker(ticker)
+    if not clean_ticker:
+        console.print(f"[bold red]Format ticker tidak valid: '{ticker}'. Gunakan kode BEI tanpa simbol (mis. ASII).[/bold red]")
+        return
     with console.status(f"[bold green]Membuat grafik untuk {clean_ticker}...[/bold green]"):
         df = fetch_stock_data(clean_ticker)
         if df.empty:
@@ -742,7 +765,11 @@ def execute_command(line: str) -> bool:
             cmd_chart(args[0])
 
     elif cmd in ["clear", "cls"]:
-        os.system("cls" if os.name == "nt" else "clear")
+        # Tanpa shell: hindari os.system (S605) & bekerja aman lintas OS
+        if os.name == "nt":
+            subprocess.run(["cmd", "/c", "cls"], check=False)
+        else:
+            subprocess.run(["clear"], check=False)
 
     else:
         known = ["help", "scan", "analyze", "macro", "audit", "sizing", "chart", "clear", "exit"]

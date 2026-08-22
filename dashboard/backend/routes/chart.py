@@ -89,4 +89,5 @@ def get_chart_data(ticker: str, days: int = 60):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"[CHART] Error mengambil data {clean_ticker}: {str(e)}")
+        raise HTTPException(status_code=500, detail="Gagal mengambil data chart. Silakan coba lagi nanti.")

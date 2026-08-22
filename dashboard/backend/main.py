@@ -55,6 +55,31 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Tambahkan security headers ke semua response (halaman statis & API).
+
+    Catatan CSP: 'unsafe-inline' untuk script/style masih diperlukan karena
+    index.html & dashboard.html memakai blok <script>/<style> inline.
+    """
+    CSP_POLICY = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+    )
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        response.headers.setdefault("Content-Security-Policy", self.CSP_POLICY)
+        return response
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Jalankan scheduler harian & telegram interactive command listener di background thread."""
@@ -64,7 +89,7 @@ async def lifespan(app: FastAPI):
         print(f"[WARNING] Environment variables belum diset: {missing}")
 
     if not os.getenv("API_AUTH_TOKEN"):
-        print("[WARNING] API_AUTH_TOKEN belum diset. Endpoint sensitif (sync, telegram, audit write) TERBUKA tanpa autentikasi!")
+        print("[WARNING] API_AUTH_TOKEN belum diset. Endpoint sensitif (sync, narasi LLM, telegram, audit write) TERBUKA tanpa autentikasi!")
 
     if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
         print("[INFO] Mode testing terdeteksi. Background thread dilewati.")
@@ -82,6 +107,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AI Screener Backend", lifespan=lifespan)
 app.add_middleware(RateLimitMiddleware)
+# Didaftarkan setelah rate limit -> menjadi middleware paling luar,
+# sehingga header keamanan tetap menempel pada response 429 rate limiter.
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Include routers
 app.include_router(predict_router, prefix="/api", tags=["Predict"])
