@@ -361,21 +361,22 @@ strong {
     gap: 10px;
     background-color: var(--c-blue);
     color: #FFFFFF;
-    padding: 12px 28px;
+    padding: 13px 30px;
     border: 0px none;
     border-radius: var(--radius-pill);
     font-family: var(--font-primary);
-    font-size: 14px;
-    font-weight: 500;
-    line-height: 1.5;
-    box-shadow: none;
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.2;
+    box-shadow: 0 2px 8px rgba(0, 81, 195, 0.25);
     cursor: pointer;
-    transition: background-color 0.2s var(--ease-inout), transform 0.2s var(--ease-inout);
+    transition: background-color 0.2s var(--ease-inout), transform 0.2s var(--ease-inout), box-shadow 0.2s var(--ease-inout);
 }
 
 .btn-scan:hover:not(:disabled) {
     background-color: var(--c-blue-hover);
     transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 81, 195, 0.35);
 }
 
 .btn-scan:active:not(:disabled) {

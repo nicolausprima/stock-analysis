@@ -479,37 +479,44 @@
             z-index: 2;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
             background: var(--c-blue);
             color: #FFFFFF;
             font-family: var(--font-sans);
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 15px;
+            font-weight: 600;
             letter-spacing: 0px;
-            padding: 10px 24px;
+            padding: 14px 32px;
             border-radius: var(--radius-pill);
             border: none;
-            box-shadow: none;
-            transition: background-color 0.2s var(--ease-inout), transform 0.2s var(--ease-inout);
+            box-shadow: 0 2px 10px rgba(0, 81, 195, 0.28);
+            transition: background-color 0.2s var(--ease-inout), transform 0.2s var(--ease-inout), box-shadow 0.2s var(--ease-inout);
             cursor: pointer;
+            text-decoration: none;
+            line-height: 1.2;
         }
 
         .btn-launch-primary:hover {
             background: var(--c-blue-hover);
             transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0, 81, 195, 0.38);
+            color: #FFFFFF;
+            text-decoration: none;
         }
 
         .btn-launch-primary:active {
             background: var(--c-blue-active);
+            transform: translateY(0);
         }
 
         .cta-subnote {
             position: relative;
             z-index: 2;
             font-family: var(--font-sans);
-            font-size: 13px;
+            font-size: 13.5px;
             color: var(--c-muted);
-            margin-top: 16px;
+            margin-top: 22px;
             letter-spacing: 0px;
         }
 
@@ -722,18 +729,24 @@
             background: var(--c-blue);
             color: #FFFFFF;
             font-family: var(--font-sans);
-            font-size: 13px;
+            font-size: 13.5px;
             font-weight: 500;
             letter-spacing: 0px;
-            padding: 8px 18px;
+            padding: 9px 20px;
             border-radius: var(--radius-pill);
             border: none;
-            transition: background-color 0.2s ease;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            text-decoration: none;
+            line-height: 1.2;
+            display: inline-flex;
+            align-items: center;
         }
 
         .nav-cta:hover {
             background: var(--c-blue-hover);
-            opacity: 1;
+            transform: translateY(-1px);
+            color: #FFFFFF;
+            text-decoration: none;
         }
 
         /* ── HERO SECTION (MINIMAL SINGLE-COLUMN CENTERED EDITORIAL) ───── */
@@ -892,7 +905,7 @@
             color: #000000;
         }
 
-        /* Fully Rounded Pill CTA Buttons (Centered) */
+        /* Fully Rounded Pill CTA Buttons (Centered with Generous Breathing Room) */
         .hero-cta-actions {
             display: inline-flex;
             align-items: center;
@@ -906,62 +919,73 @@
         .hero-btn-pill-primary {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
             background: var(--c-blue);
             color: #FFFFFF;
             font-family: var(--font-sans);
-            font-size: 14px;
-            font-weight: 500;
+            font-size: 14.5px;
+            font-weight: 600;
             letter-spacing: 0px;
-            padding: 10px 24px;
+            padding: 13px 28px;
             border-radius: var(--radius-pill);
             border: none;
-            box-shadow: none;
-            transition: background-color 0.2s var(--ease-inout), transform 0.2s var(--ease-inout);
+            box-shadow: 0 2px 8px rgba(0, 81, 195, 0.25);
+            transition: background-color 0.2s var(--ease-inout), transform 0.2s var(--ease-inout), box-shadow 0.2s var(--ease-inout);
             cursor: pointer;
+            text-decoration: none;
+            line-height: 1.2;
         }
 
         .hero-btn-pill-primary:hover {
             background: var(--c-blue-hover);
             transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(0, 81, 195, 0.35);
+            color: #FFFFFF;
+            text-decoration: none;
         }
 
         .hero-btn-pill-primary:active {
             background: var(--c-blue-active);
+            transform: translateY(0);
         }
 
         .hero-btn-pill-secondary {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
-            background: transparent;
-            color: var(--c-muted);
+            background: #FFFFFF;
+            color: var(--c-body);
             font-family: var(--font-sans);
-            font-size: 14px;
+            font-size: 14.5px;
             font-weight: 500;
             letter-spacing: 0px;
-            padding: 10px 24px;
+            padding: 13px 26px;
             border-radius: var(--radius-pill);
             border: 1px solid var(--c-border);
-            box-shadow: none;
+            box-shadow: var(--shadow-sm);
             transition: background-color 0.2s var(--ease-inout), color 0.2s var(--ease-inout), border-color 0.2s, transform 0.2s var(--ease-inout);
             cursor: pointer;
+            text-decoration: none;
+            line-height: 1.2;
         }
 
         .hero-btn-pill-secondary:hover {
-            background: #F5F5F5;
-            border-color: #D0D0D0;
+            background: #F8F9FA;
+            border-color: #C5D0DE;
             color: var(--c-ink);
             transform: translateY(-1px);
+            text-decoration: none;
         }
 
-        /* Trust Indicators Row with ~22px spacing below CTAs */
+        /* Trust Indicators Row with generous ~28px spacing below CTAs */
         .hero-trust-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            margin-top: 22px;
+            gap: 12px;
+            margin-top: 28px;
             font-family: var(--font-sans);
             font-size: 13px;
             font-weight: 500;
