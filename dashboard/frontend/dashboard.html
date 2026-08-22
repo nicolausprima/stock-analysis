@@ -37,13 +37,14 @@
     <div class="nav-inner">
         <a href="/" class="logo" aria-label="AKSA Home" style="display: flex; align-items: center; gap: 8px;">
             <svg class="aksa-logo-mark" viewBox="0 0 32 32" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <!-- Pure Architectural 'A' Chevron -->
-                <path d="M16 3.5L4.5 27.5H9.8L16 14.5L22.2 27.5H27.5L16 3.5Z" fill="#111111" />
-                <!-- Minimalist Sumbu Ray -->
-                <line x1="2" y1="19" x2="30" y2="19" stroke="#0051C3" stroke-width="2" stroke-linecap="round" />
-                <!-- The Aksa Focus Lens -->
-                <circle cx="16" cy="19" r="4" fill="#FFFFFF" stroke="#0051C3" stroke-width="1.8" />
-                <circle cx="16" cy="19" r="1.6" fill="#0051C3" />
+                <defs>
+                    <linearGradient id="aksaCobaltGradDash" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#0066FF" />
+                        <stop offset="100%" stop-color="#0040B0" />
+                    </linearGradient>
+                </defs>
+                <path d="M15.2 3.5L3 28H13V20.5L10.5 20.5L15.2 11.5V3.5Z" fill="#111111" />
+                <path d="M16.8 3.5V11.5L21.5 20.5L19 20.5V28H29L16.8 3.5Z" fill="url(#aksaCobaltGradDash)" />
             </svg>
             <span>AKSA<span class="accent">.</span></span>
         </a>
@@ -145,8 +146,8 @@
                 <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
                 </div>
-                <h3>Real-time Data</h3>
-                <p>Latest prices fetched directly from Yahoo Finance upon scanning.</p>
+                <h3>Real-Time Data</h3>
+                <p>Live price and volume feeds refreshed directly upon scanning.</p>
             </div>
             <div class="feat-card glass-card">
                 <div class="feat-icon">
@@ -159,15 +160,15 @@
                 <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                 </div>
-                <h3>XGBoost Model</h3>
-                <p>Trained on 5 years of historical data with Optuna tuning.</p>
+                <h3>Quant Matrix Model</h3>
+                <p>Trained across 5 years of historical IDX data with Bayesian tuning.</p>
             </div>
             <div class="feat-card glass-card">
                 <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 </div>
-                <h3>Transparent Top 10</h3>
-                <p>Clear price targets, stop losses, and model reasoning.</p>
+                <h3>High-Conviction Top 10</h3>
+                <p>Disciplined +3.0% profit targets, stop losses, and agent reasoning.</p>
             </div>
         </div>
     </div>
