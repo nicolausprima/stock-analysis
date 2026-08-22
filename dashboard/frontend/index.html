@@ -1136,49 +1136,60 @@
         }
 
         .terminal-mockup-header {
-            background: var(--c-surface);
+            background: #FFFFFF;
             color: var(--c-ink);
-            padding: 14px 18px;
+            padding: 14px 20px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             font-family: var(--font-mono);
-            font-size: 11px;
-            font-weight: 500;
-            letter-spacing: 0.5px;
             border-bottom: 1px solid var(--c-border);
+        }
+
+        .terminal-mockup-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         .terminal-dots {
             display: flex;
-            gap: 6px;
+            gap: 5px;
+            align-items: center;
         }
 
         .terminal-dots span {
-            width: 8px;
-            height: 8px;
+            width: 7.5px;
+            height: 7.5px;
             border-radius: 50%;
             display: inline-block;
         }
 
-        .terminal-dots span:first-child { background: var(--c-sell); }
+        .terminal-dots span:first-child { background: #FF5F56; }
         .terminal-dots span:nth-child(2) { background: #FFBD2E; }
-        .terminal-dots span:last-child { background: var(--c-blue); }
+        .terminal-dots span:last-child { background: #27C93F; }
 
         .terminal-title {
             color: var(--c-ink);
+            font-family: var(--font-mono);
             font-size: 11px;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
         }
 
         .terminal-badge {
-            background: rgba(0, 81, 195, 0.1);
+            background: rgba(0, 81, 195, 0.08);
             color: var(--c-blue);
-            border: 1px solid rgba(0, 81, 195, 0.3);
-            font-size: 9px;
+            border: 1px solid rgba(0, 81, 195, 0.22);
+            font-size: 9.5px;
             font-family: var(--font-mono);
-            padding: 2px 6px;
-            border-radius: var(--radius-sharp);
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: var(--radius-pill);
+            white-space: nowrap;
+            letter-spacing: 0.3px;
         }
 
         .terminal-signal-list {
@@ -1190,112 +1201,121 @@
 
         .terminal-signal-row {
             background: #FFFFFF;
-            padding: 14px 18px;
+            padding: 13px 20px;
             display: grid;
-            grid-template-columns: 1.1fr 1.1fr 1.2fr 0.8fr;
-            gap: 12px;
+            grid-template-columns: 1.15fr 0.95fr 1.25fr 0.85fr;
+            gap: 8px;
             align-items: center;
             transition: background-color 0.2s ease;
         }
 
         .terminal-signal-row:hover {
-            background: #FAFAFA;
+            background: #F9FBFD;
         }
 
         .sig-col-ticker {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 7px;
+            white-space: nowrap;
         }
 
         .sig-badge.buy {
             background: var(--c-blue);
             color: #FFFFFF;
             font-family: var(--font-sans);
-            font-size: 10px;
-            font-weight: 500;
-            padding: 3px 8px;
+            font-size: 9.5px;
+            font-weight: 600;
+            padding: 2.5px 7px;
             border-radius: var(--radius-pill);
             line-height: 1;
         }
 
         .sig-ticker {
             font-family: var(--font-sans);
-            font-size: 14px;
+            font-size: 13.5px;
             font-weight: 600;
-            color: #404040;
+            color: var(--c-ink);
+            letter-spacing: -0.01em;
         }
 
         .sig-col-price {
             display: flex;
             flex-direction: column;
+            gap: 2px;
+            white-space: nowrap;
         }
 
         .sig-val {
             font-family: var(--font-mono);
-            font-size: 12px;
-            font-weight: 500;
-            color: #404040;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--c-ink);
         }
 
         .sig-score {
             font-family: var(--font-mono);
-            font-size: 10px;
+            font-size: 9.5px;
             color: var(--c-blue);
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .sig-col-target {
             display: flex;
             flex-direction: column;
-            gap: 1px;
+            gap: 2px;
+            white-space: nowrap;
         }
 
         .sig-tp {
             font-family: var(--font-mono);
-            font-size: 10.5px;
-            font-weight: 500;
+            font-size: 10px;
+            font-weight: 600;
             color: var(--c-blue);
         }
 
         .sig-sl {
             font-family: var(--font-mono);
-            font-size: 10.5px;
-            color: var(--c-sell);
+            font-size: 10px;
             font-weight: 500;
+            color: var(--c-sell);
         }
 
         .sig-col-sizing {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
+            gap: 2px;
+            white-space: nowrap;
         }
 
         .sig-sizing-val {
-            font-family: var(--font-sans);
-            font-size: 13px;
-            font-weight: 600;
-            color: #404040;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--c-ink);
         }
 
         .sig-sizing-lbl {
             font-family: var(--font-mono);
-            font-size: 9px;
+            font-size: 8.5px;
             color: var(--c-muted);
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
 
         .terminal-footer {
-            background: var(--c-surface);
+            background: #FFFFFF;
             border-top: 1px solid var(--c-border);
-            padding: 12px 18px;
+            padding: 12px 20px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
             font-family: var(--font-mono);
             font-size: 10px;
             font-weight: 500;
             color: var(--c-muted);
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
         }
 
         /* ── SECTION ARCHITECTURE (MODULAR GRID & CONNECTING BUS) ── */
@@ -1941,11 +1961,13 @@
                 <!-- Card 3: AKSA Terminal Signal Card -->
                 <div class="intel-card">
                     <div class="terminal-mockup-header">
-                        <div class="terminal-dots">
-                            <span></span><span></span><span></span>
+                        <div class="terminal-mockup-left">
+                            <div class="terminal-dots">
+                                <span></span><span></span><span></span>
+                            </div>
+                            <span class="terminal-title">Live Signals</span>
                         </div>
-                        <div class="terminal-title">AKSA Terminal · High-Conviction Signals</div>
-                        <div class="terminal-badge">Realtime · 16:05 WIB</div>
+                        <span class="terminal-badge">16:05 WIB</span>
                     </div>
 
                     <div class="terminal-signal-list">
@@ -2012,7 +2034,7 @@
 
                     <div class="terminal-footer">
                         <span>Consensus: 5/5 Unanimous</span>
-                        <span>Latency: &lt;5ms In-Memory</span>
+                        <span>Latency: &lt;5ms</span>
                     </div>
                 </div>
 
