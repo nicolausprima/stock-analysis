@@ -19,9 +19,9 @@ logs/
 tmp/
 
 # Data besar / regenerable (DB dibuat ulang & diunduh ulang saat runtime)
-data/*.db
-data/*.db-wal
-data/*.db-shm
+data/stock_market.db*
+data/raw/
+data/processed/
 
 # Tooling lokal
 .vscode

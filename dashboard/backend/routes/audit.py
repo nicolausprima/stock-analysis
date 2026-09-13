@@ -312,6 +312,8 @@ def run_audit():
         today_date_str_audit = now_audit.strftime("%Y-%m-%d")
         market_open_audit = now_audit.hour < 16  # BEI tutup ~16:00 WIB
 
+        candle_count = 0
+        last_candle_close = entry_price
         for row_idx, row in df.iterrows():
             row_date_str = str(row_idx.date() if hasattr(row_idx, 'date') else row_idx)[:10]
             # Abaikan candle pada atau sebelum tanggal pembuatan sinyal
@@ -322,15 +324,22 @@ def run_audit():
                 continue
 
             has_future_candles = True
+            candle_count += 1
             high = float(row["High"])
             low = float(row["Low"])
+            open_p = float(row["Open"]) if "Open" in row else entry_price
+            last_candle_close = float(row["Close"]) if "Close" in row else entry_price
 
             is_tp = high >= target_price
             is_sl = low <= stop_loss
 
             if is_tp and is_sl:
-                new_status = "LOSS"
-                real_ret = -1.5
+                if open_p >= entry_price:
+                    new_status = "WIN"
+                    real_ret = round(((target_price - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 3.0
+                else:
+                    new_status = "LOSS"
+                    real_ret = -1.5
                 break
             elif is_tp:
                 new_status = "WIN"
@@ -341,10 +350,13 @@ def run_audit():
                 real_ret = -1.5
                 break
 
-        # Jika TP/SL belum tercapai dan ADA hari bursa setelah tanggal sinyal:
-        if new_status == "PENDING" and has_future_candles:
-            latest_close = float(df["Close"].iloc[-1])
-            ret_pct = round(((latest_close - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
+            # Batasi jendela evaluasi maksimal 5 hari bursa (swing holding period)
+            if candle_count >= 5:
+                break
+
+        # Jika TP/SL belum tercapai setelah maksimal 5 hari bursa:
+        if new_status == "PENDING" and has_future_candles and candle_count >= 5:
+            ret_pct = round(((last_candle_close - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
             if ret_pct > 0:
                 new_status = "WIN"
                 real_ret = ret_pct
@@ -692,8 +704,12 @@ def seed_simulation_audit():
                     ihsg_matches = ihsg_close.index[ihsg_close.index.strftime('%Y-%m-%d') == date_str]
                     if len(ihsg_matches) > 0:
                         m_dt = ihsg_matches[0]
-                        if pd.notna(ihsg_sma20.loc[m_dt]) and ihsg_close.loc[m_dt] < ihsg_sma20.loc[m_dt] * 0.99:
+                        if pd.notna(ihsg_sma20.loc[m_dt]) and ihsg_close.loc[m_dt] < ihsg_sma20.loc[m_dt] * 0.995:
                             is_market_bullish = False
+
+                    # Lapis 1: Market Regime Guard — Jangan beli saat IHSG dalam tren turun/risk-off
+                    if not is_market_bullish:
+                        continue
 
                     rsi_val = float(row['RSI_14']) if pd.notna(row['RSI_14']) else 50.0
                     macd_val = float(row['MACD']) if pd.notna(row['MACD']) else 0.0
@@ -703,17 +719,16 @@ def seed_simulation_audit():
                     vol_val = float(row['Volume']) if pd.notna(row['Volume']) else 1.0
                     vol_sma = float(row['Vol_SMA20']) if pd.notna(row['Vol_SMA20']) else 1.0
 
-                    if macd_val >= macd_sig and close_p >= sma20_val * 0.985:
-                        base_score = 68.0
-                        if is_market_bullish:
+                    # Lapis 2 & 3: Momentum Crossover + Konfirmasi Volume & Trend
+                    if macd_val >= macd_sig and close_p >= sma20_val * 0.99 and vol_val >= vol_sma * 1.05:
+                        base_score = 72.0
+                        if 40.0 <= rsi_val <= 65.0:
                             base_score += 4.0
-                        if 40.0 <= rsi_val <= 60.0:
-                            base_score += 5.0
-                        if vol_val >= vol_sma * 1.05:
-                            base_score += 4.0
+                        if vol_val >= vol_sma * 1.2:
+                            base_score += 3.0
 
                         prob = round(min(88.5, max(65.0, base_score)), 1)
-                        if prob < 70.0:
+                        if prob < 72.0:
                             continue
 
                         entry_price = close_p
@@ -725,18 +740,34 @@ def seed_simulation_audit():
                             status = "PENDING"
                             real_ret = 0.0
                         else:
-                            max_h = float(fw['High'].max())
-                            min_l = float(fw['Low'].min())
-                            if max_h >= target_price and min_l <= stop_loss:
-                                status = "LOSS"
-                                real_ret = -1.5
-                            elif max_h >= target_price:
-                                status = "WIN"
-                                real_ret = round(((target_price - entry_price) / entry_price) * 100, 1)
-                            elif min_l <= stop_loss:
-                                status = "LOSS"
-                                real_ret = -1.5
-                            else:
+                            status = "PENDING"
+                            real_ret = 0.0
+                            for _, cand in fw.iterrows():
+                                c_high = float(cand['High'])
+                                c_low = float(cand['Low'])
+                                c_open = float(cand['Open']) if 'Open' in cand else entry_price
+
+                                is_tp = c_high >= target_price
+                                is_sl = c_low <= stop_loss
+
+                                if is_tp and is_sl:
+                                    if c_open >= entry_price:
+                                        status = "WIN"
+                                        real_ret = round(((target_price - entry_price) / entry_price) * 100, 1)
+                                    else:
+                                        status = "LOSS"
+                                        real_ret = -1.5
+                                    break
+                                elif is_tp:
+                                    status = "WIN"
+                                    real_ret = round(((target_price - entry_price) / entry_price) * 100, 1)
+                                    break
+                                elif is_sl:
+                                    status = "LOSS"
+                                    real_ret = -1.5
+                                    break
+
+                            if status == "PENDING":
                                 last_c = float(fw['Close'].iloc[-1])
                                 ret_pct = round(((last_c - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
                                 if ret_pct > 0:
