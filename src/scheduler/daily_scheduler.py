@@ -181,11 +181,16 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     is_block_mode = macro_eval.get('mode') == 'BLOCK'
     min_prob = 75.0 if is_block_mode else 65.0
 
-    candidate_df = combined_df[(combined_df['Signal'] == 1) & (combined_df['Probability'] >= min_prob)].sort_values('Probability', ascending=False).head(15)
-    if candidate_df.empty:
-        candidate_df = combined_df[combined_df['Probability'] >= min_prob].sort_values('Probability', ascending=False).head(15)
-    if candidate_df.empty:
-        candidate_df = combined_df.sort_values('Probability', ascending=False).head(15)
+    # Prioritaskan sinyal beli konvinsi tinggi (Signal == 1 & Prob >= min_prob)
+    high_conviction = combined_df[(combined_df['Signal'] == 1) & (combined_df['Probability'] >= min_prob)].sort_values('Probability', ascending=False)
+    
+    # Lengkapi hingga minimal 15 kandidat terbaik dari universe bursa untuk menjamin Top 10 penuh
+    if len(high_conviction) < 15:
+        secondary = combined_df[combined_df['Probability'] >= min_prob].sort_values('Probability', ascending=False)
+        remaining = combined_df.sort_values('Probability', ascending=False)
+        candidate_df = pd.concat([high_conviction, secondary, remaining]).drop_duplicates(subset=['Ticker']).head(15)
+    else:
+        candidate_df = high_conviction.head(15)
 
     from src.agents.ihsg_macro_agent import get_ticker_sector
     leading_sectors = macro_eval.get("sector_rotation", {}).get("leading_sectors", [])

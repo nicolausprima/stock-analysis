@@ -20,10 +20,18 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def prepare_test_environment():
-    """Memastikan folder data, DB schema, dan cache file rekomendasi selalu terisi dengan data valid sebelum testing."""
+    """Memastikan folder data, DB schema, dan cache file rekomendasi selalu terisi dengan data valid sebelum testing tanpa menimpa permanen cache produksi."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     from dashboard.backend.routes.audit import init_db
     init_db()
+
+    original_cache_data = None
+    if CACHE_FILE.exists():
+        try:
+            with open(CACHE_FILE, "r", encoding="utf-8") as f:
+                original_cache_data = f.read()
+        except Exception:
+            pass
     
     dummy_cache = {
         "status": "success",
@@ -53,8 +61,17 @@ def prepare_test_environment():
             }
         ]
     }
-    with open(CACHE_FILE, "w") as f:
+    with open(CACHE_FILE, "w", encoding="utf-8") as f:
         json.dump(dummy_cache, f, indent=2)
+
+    yield
+
+    if original_cache_data is not None:
+        try:
+            with open(CACHE_FILE, "w", encoding="utf-8") as f:
+                f.write(original_cache_data)
+        except Exception:
+            pass
 
 
 def test_api_recommendations_endpoint():
