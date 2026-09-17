@@ -1,6 +1,6 @@
 yfinance
 pandas
-numpy
+numpy<2
 ta
 xgboost
 scikit-learn
@@ -16,3 +16,8 @@ feedparser
 python-dotenv
 httpx
 pytest
+duckdb
+polars
+vectorbt
+akshare
+shap

@@ -147,7 +147,7 @@ def generate_multi_agent_consensus(request: Request, req: NarasiRequest):
     try:
         req_dict = req.dict()
         req_dict["ticker"] = validate_ticker(req.ticker)
-        from src.agents.multi_agent_system import MultiAgentSystem
+        from src.agents.multi_agent_v2 import MultiAgentSystemV2
         from src.config import CACHE_FILE
         macro_info = None
         if CACHE_FILE.exists():
@@ -157,7 +157,7 @@ def generate_multi_agent_consensus(request: Request, req: NarasiRequest):
                     macro_info = c_data.get("macro_eval")
             except Exception:
                 pass
-        agent_system = MultiAgentSystem()
+        agent_system = MultiAgentSystemV2()
         consensus = agent_system.generate_consensus(req_dict, macro_info=macro_info)
         # Output agent mengandung teks turunan headline berita (konten eksternal)
         # -> escape sebelum dirender frontend via innerHTML.

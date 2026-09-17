@@ -21,6 +21,8 @@ env/
 data/raw/
 data/processed/
 data/stock_market.db*
+*.duckdb
+data/*.duckdb
 data/*.json
 !data/latest_recommendations.json
 !data/signals_audit.db
