@@ -46,7 +46,7 @@ def _read_cache():
     try:
         with open(CACHE_FILE, 'r') as f:
             data = json.load(f)
-        if isinstance(data, dict) and data.get("status") == "success" and len(data.get("data", [])) >= 5:
+        if isinstance(data, dict) and data.get("status") == "success" and (len(data.get("data", [])) >= 1 or data.get("macro_mode") == "BLOCK"):
             return data
     except Exception as e:
         print(f"Gagal membaca cache JSON: {str(e)}")
@@ -61,12 +61,12 @@ def _run_fresh_scan():
     try:
         from src.scheduler.daily_scheduler import run_daily_after_market_job
         res = run_daily_after_market_job(skip_download=True, broadcast_telegram=False)
-        if isinstance(res, dict) and res.get("status") == "success" and len(res.get("data", [])) > 0:
+        if isinstance(res, dict) and res.get("status") == "success" and (len(res.get("data", [])) > 0 or res.get("macro_mode") == "BLOCK"):
             return res
 
         # Jika DB lokal kosong / fresh deployment di cloud, jalankan scan dengan download data
         res = run_daily_after_market_job(skip_download=False, broadcast_telegram=False)
-        if isinstance(res, dict) and res.get("status") == "success" and len(res.get("data", [])) > 0:
+        if isinstance(res, dict) and res.get("status") == "success" and (len(res.get("data", [])) > 0 or res.get("macro_mode") == "BLOCK"):
             return res
     except Exception as err:
         print(f"Scheduler execution warning: {str(err)}")

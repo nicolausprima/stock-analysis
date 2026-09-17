@@ -301,7 +301,7 @@ def cmd_help():
     table.add_column("Fungsi & Deskripsi", style="white", overflow="fold")
     table.add_column("Contoh", style="yellow")
 
-    table.add_row("/scan, /top", "Scan seluruh bursa BEI & tampilkan Top 10 sinyal rekomendasi hari ini", "/scan")
+    table.add_row("/scan [force]", "Scan seluruh bursa BEI & tampilkan Top 10 sinyal rekomendasi (gunakan 'force' untuk rescan)", "/scan force")
     table.add_row("/analyze <TICKER>", "Deep-dive analisa multi-agent lengkap (Teknikal, Makro, Sentimen, Kelly)", "/analyze BBCA")
     table.add_row("/macro", "Cek rezim pasar IHSG, kurs USD/IDR, bursa Asia & rotasi 11 sektor", "/macro")
     table.add_row("/audit", "Lihat rekapitulasi performa sinyal & Win Rate historis sistem", "/audit")
@@ -314,18 +314,27 @@ def cmd_help():
     console.print("[dim]Tip: Anda bisa mengetik perintah dengan atau tanpa awalan '/' (misal: 'scan' atau '/scan')[/dim]\n")
 
 
-def cmd_scan():
+def cmd_scan(force: bool = False):
     """Menjalankan scan rekomendasi Top 10."""
-    with console.status("[bold green]Memindai saham bursa BEI & mengevaluasi probabilitas quant...[/bold green]"):
+    status_msg = "[bold green]Menjalankan fresh scan model quant bursa BEI...[/bold green]" if force else "[bold green]Memindai saham bursa BEI & mengevaluasi probabilitas quant...[/bold green]"
+    with console.status(status_msg):
         try:
             from dashboard.backend.routes.predict import _read_cache, _run_fresh_scan
-            res = _read_cache()
-            if res is None or len(res.get("data", [])) < 5:
+            res = None
+            if not force:
+                res = _read_cache()
+            if res is None or len(res.get("data", [])) == 0 or res.get("is_sample"):
                 res = _run_fresh_scan()
             data = res.get("data", [])
         except Exception as e:
             console.print(f"[bold red]Error saat memindai rekomendasi: {e}[/bold red]")
             return
+
+    if res.get("is_sample"):
+        console.print("[bold yellow][PERINGATAN] Menampilkan data sampel/fallback. Jalankan '/scan force' untuk rescan quant penuh dari database.[/bold yellow]\n")
+
+    if res.get("macro_mode") == "BLOCK":
+        console.print("[bold red][REZIM MAKRO: DEFENSIVE / BLOCK MODE] IHSG sedang dalam tekanan downtrend/volatilitas tinggi. Menampilkan saham konvinsi tertinggi dengan alokasi defensif.[/bold red]\n")
 
     if not data:
         console.print("[yellow]Tidak ada rekomendasi yang ditemukan saat ini.[/yellow]")
@@ -736,7 +745,8 @@ def execute_command(line: str) -> bool:
         cmd_help()
 
     elif cmd in ["scan", "top", "s"]:
-        cmd_scan()
+        force = len(args) > 0 and args[0].lower() in ["force", "fresh", "-f", "--force"]
+        cmd_scan(force=force)
 
     elif cmd in ["analyze", "a", "inspect"]:
         if not args:

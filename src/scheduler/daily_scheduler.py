@@ -75,14 +75,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             print(f"   {safe_d}")
         
         if macro_eval.get('mode') == 'BLOCK':
-            print(f"[MACRO GUARD] Market risk-off active ({mode_text}). Skip buy recommendations for today.")
-            return {
-                "status": "success",
-                "data": [],
-                "macro_mode": "BLOCK",
-                "macro_eval": macro_eval,
-                "message": f"IHSG Macro Guard Active: Downtrend/High Risk detected."
-            }
+            print(f"[MACRO GUARD] Market risk-off active ({mode_text}). Menerapkan filter ketat High Conviction (Prob >= 75%) & alokasi defensif.")
     except Exception as e:
         print(f"[WARNING] Gagal mengevaluasi IHSG Macro Agent: {str(e)}")
 
@@ -107,7 +100,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     # Dapatkan tanggal data paling akhir di database sebagai referensi
     all_dates = [pd.to_datetime(df.index[-1]) for df in history_dict.values() if not df.empty]
     max_db_dt = max(all_dates) if all_dates else pd.Timestamp.now()
-    ref_dt = pd.Timestamp.now() if not skip_download else max_db_dt
+    ref_dt = max_db_dt
 
     for ticker in TICKERS:
         df = history_dict.get(ticker, pd.DataFrame())
@@ -185,7 +178,12 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     combined_df['Signal'] = predictions
     combined_df['Probability'] = (probabilities * 100).round(1)
 
-    candidate_df = combined_df[combined_df['Signal'] == 1].sort_values('Probability', ascending=False).head(15)
+    is_block_mode = macro_eval.get('mode') == 'BLOCK'
+    min_prob = 75.0 if is_block_mode else 65.0
+
+    candidate_df = combined_df[(combined_df['Signal'] == 1) & (combined_df['Probability'] >= min_prob)].sort_values('Probability', ascending=False).head(15)
+    if candidate_df.empty:
+        candidate_df = combined_df[combined_df['Probability'] >= min_prob].sort_values('Probability', ascending=False).head(15)
     if candidate_df.empty:
         candidate_df = combined_df.sort_values('Probability', ascending=False).head(15)
 
@@ -199,6 +197,14 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         is_leading = sec in leading_sectors
         # Sektor Booster: +2.0% probabilitas jika saham berada di sektor leading inflow
         boosted_prob = min(98.5, float(row['Probability']) + (2.0 if is_leading else 0.0))
+
+        # Jika BLOCK mode aktif, Kelly allocation dipotong 50% untuk manajemen risiko defensif
+        base_kelly = signals.get('kelly_allocation', 10.0)
+        adj_kelly = round(base_kelly * 0.5, 1) if is_block_mode else base_kelly
+
+        base_reason = generate_reason(row)
+        if is_block_mode:
+            base_reason = f"[DEFENSIVE] IHSG Downtrend. High-conviction setup only. {base_reason}"
 
         candidates.append({
             "ticker": row['Ticker'],
@@ -216,8 +222,8 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             "adx": signals.get('adx', 20),
             "rvol": signals.get('rvol', 1.0),
             "risk_reward_ratio": signals.get('risk_reward_ratio', 2.0),
-            "kelly_allocation": signals.get('kelly_allocation', 10.0),
-            "reason": generate_reason(row)
+            "kelly_allocation": adj_kelly,
+            "reason": base_reason
         })
 
     # 3. Jalankan audit sinyal trading hari ini (SEBELUM membuat/menyimpan sinyal esok hari)
@@ -244,6 +250,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
         "total_scanned": len(combined_df),
         "macro_eval": macro_eval,
+        "macro_mode": macro_eval.get("mode", "NORMAL"),
         "data": results
     }
     
