@@ -124,6 +124,21 @@
             transition: opacity 0.3s ease, transform 0.3s ease;
         }
 
+        /* Fallback no-JS: tanpa JS, class page-loaded tidak pernah ditambahkan
+           sehingga body tetap opacity:0 (halaman blank permanen). Class no-js
+           dihapus oleh inline script satu baris tepat setelah <body> saat JS aktif. */
+        body.no-js {
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
+        /* Elemen .reveal disembunyikan sampai IntersectionObserver (JS) menjalankannya.
+           Tanpa JS, tampilkan langsung agar konten section tetap terbaca. */
+        body.no-js .reveal {
+            opacity: 1;
+            transform: none;
+        }
+
         a {
             color: inherit;
             text-decoration: none;
@@ -1774,7 +1789,13 @@
     </style>
 </head>
 
-<body>
+<body class="no-js">
+<script>document.body.classList.remove('no-js');</script>
+<noscript>
+    <div role="alert" style="max-width: 720px; margin: 16px auto 0; padding: 12px 18px; background-color: rgba(229, 193, 88, 0.1); border: 1px solid #E5C158; border-radius: 6px; font-family: 'Montserrat', sans-serif; font-size: 13.5px; line-height: 1.6; color: #404040;">
+        <strong>JavaScript dinonaktifkan.</strong> Sebagian interaksi (animasi scroll, navigasi halus) tidak akan berfungsi. Konten tetap dapat dibaca penuh.
+    </div>
+</noscript>
 
     <!-- MAIN PAGE CONTENT -->
     <div class="page-content">

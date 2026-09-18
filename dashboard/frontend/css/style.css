@@ -185,19 +185,6 @@ strong {
     color: var(--c-blue);
 }
 
-.logo-mark {
-    width: 28px;
-    height: 28px;
-    background-color: var(--c-surface);
-    color: var(--c-blue);
-    border: 1px solid var(--c-border);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
 .last-scan {
     font-family: var(--font-mono);
     font-size: 11px;
@@ -824,25 +811,8 @@ strong {
     border: 1px solid rgba(222, 80, 82, 0.3);
 }
 
-.badge.neutral, .badge.sideways {
-    background-color: var(--c-surface);
-    color: var(--c-medium-gray);
-    border: 1px solid var(--c-border);
-}
-
-.badge.win {
-    background-color: var(--c-blue);
-    color: #FFFFFF;
-    border: 1px solid var(--c-blue);
-}
-
-.badge.loss {
-    background-color: var(--c-red-lt);
-    color: var(--c-red);
-    border: 1px solid rgba(222, 80, 82, 0.3);
-}
-
-.badge.pending {
+/* Status NETRAL/PENDING (JS memakai ejaan Indonesia: "badge netral") */
+.badge.neutral, .badge.netral {
     background-color: var(--c-surface);
     color: var(--c-medium-gray);
     border: 1px solid var(--c-border);
@@ -1235,25 +1205,6 @@ strong {
 }
 
 /* AI Sentiment Button & Results (index secondary pill) */
-.ai-news-btn {
-    width: 100%;
-    margin-top: var(--sp-4);
-    padding: 10px 16px;
-    background-color: var(--c-surface);
-    border: 1px solid var(--c-border);
-    border-radius: var(--radius-pill);
-    color: var(--c-charcoal);
-    font-family: var(--font-primary);
-    font-size: 13px;
-    font-weight: 500;
-    height: 44px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--sp-2);
-    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-}
-
 /* Multi-Agent Trading Framework Styles */
 .agent-toggle-btn {
     display: inline-flex;
@@ -1384,29 +1335,6 @@ strong {
     border: 1px solid var(--c-border);
     margin-left: var(--sp-2);
 }
-.ai-news-btn:hover:not(:disabled) {
-    background-color: var(--c-blue);
-    color: #FFFFFF;
-    border-color: var(--c-blue);
-}
-
-.ai-news-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.ai-result-box {
-    margin-top: var(--sp-3);
-    padding: var(--sp-4);
-    background-color: var(--c-bg);
-    border: 1px solid var(--c-border);
-    border-radius: var(--radius-sharp);
-    font-family: var(--font-primary);
-    font-size: 14px;
-    line-height: 1.65;
-    color: var(--c-charcoal);
-}
-
 .ai-loading {
     font-style: italic;
     color: var(--c-medium-gray);
@@ -1951,56 +1879,6 @@ strong {
 .chart-msg--sm { font-size: 10px; padding: 0; }
 .chart-msg--err { color: var(--c-red); }
 .chart-msg--muted { color: var(--c-soft-gray); }
-
-/* Today's audit summary card */
-.today-card {
-    padding: var(--sp-5);
-    border-radius: var(--radius-card);
-    margin-bottom: 16px;
-}
-
-.today-hd {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 12px;
-    margin-bottom: 16px;
-}
-
-.today-title {
-    font-family: var(--font-primary);
-    font-size: 15px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0;
-    color: var(--c-charcoal);
-    margin: 0;
-}
-
-.today-sub {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--c-soft-gray);
-    margin: 4px 0 0 0;
-}
-
-.today-chip {
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.today-meta {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    margin-bottom: 16px;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-.today-meta .win  { color: var(--c-blue); }
-.today-meta .loss { color: var(--c-red); }
 
 /* Multi-agent consensus extras */
 .ma-rr-row {

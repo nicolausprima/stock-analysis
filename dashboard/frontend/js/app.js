@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const lastScan   = document.getElementById('last-scan-time');
     const emptyState = document.getElementById('empty-state');
 
+    // Referensi handler resize disimpan agar bisa dilepas saat chart dirender ulang (anti memory-leak)
+    let ihsgResizeHandler = null;
+
     // Helpers
     const idr = v => new Intl.NumberFormat('id-ID', {
         style: 'currency', currency: 'IDR', minimumFractionDigits: 0
@@ -44,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load: render IHSG chart
     renderIHSGChart(1);
-    runAuditAndLoad();
+    loadAuditSection();
 
     // Progressive Scan Loader & Elapsed Timer
     let scanTimerInterval = null;
@@ -145,8 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const macdClass      = s.macd_signal.toLowerCase();
             const trendClass     = s.trend.toLowerCase();
             const isBuy          = s.signal === 1;
-            const sentStatus     = s.sentiment_status || 'NEUTRAL';
-            const sentImpact     = s.sentiment_impact || 'NEUTRAL';
+            const sentStatus     = s.sentiment_status || 'NETRAL';
+            const sentImpact     = s.sentiment_impact || 'NETRAL';
             const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
 
             const tpPct = (s.close_price > 0 && s.target_price > 0)
@@ -204,8 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const trendClass     = s.trend.toLowerCase();
             const rsiClass       = rc === 'green' ? 'bullish' : rc === 'red' ? 'bearish' : 'uptrend';
             const isBuy          = s.signal === 1;
-            const sentStatus     = s.sentiment_status || 'NEUTRAL';
-            const sentImpact     = s.sentiment_impact || 'NEUTRAL';
+            const sentStatus     = s.sentiment_status || 'NETRAL';
+            const sentImpact     = s.sentiment_impact || 'NETRAL';
             const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
 
             const tpPct = (s.close_price > 0 && s.target_price > 0)
@@ -363,9 +366,11 @@ document.addEventListener('DOMContentLoaded', () => {
             areaSeries.setData(data);
             chart.timeScale().fitContent();
 
-            window.addEventListener('resize', () => {
+            if (ihsgResizeHandler) window.removeEventListener('resize', ihsgResizeHandler);
+            ihsgResizeHandler = () => {
                 if (ihsgChartDiv.clientWidth > 0) chart.resize(ihsgChartDiv.clientWidth, 200);
-            });
+            };
+            window.addEventListener('resize', ihsgResizeHandler);
         } catch (e) {
             ihsgChartDiv.innerHTML = '<p class="chart-msg chart-msg--err">Chart error: ' + (e.message || e) + '</p>';
             ihsgPriceVal.textContent = 'Error';
@@ -380,29 +385,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     async function renderAllMiniCharts(stocks) {
+        // Guard library: jika gagal dimuat, tandai semua container & hentikan
+        if (typeof LightweightCharts === 'undefined') {
+            stocks.forEach(s => {
+                const container = document.getElementById(`chart-${s.ticker.replace('.JK', '')}`);
+                if (container) {
+                    container.innerHTML = '<span class="chart-msg chart-msg--sm chart-msg--muted">Chart library unavailable</span>';
+                }
+            });
+            return;
+        }
+
+        // Kumpulkan job chart yang valid
+        const jobs = [];
         for (const s of stocks) {
             const cleanTicker = s.ticker.replace('.JK', '');
             const container = document.getElementById(`chart-${cleanTicker}`);
-            if (!container) continue;
+            if (container) jobs.push({ s, cleanTicker, container });
+        }
 
-            const { data } = await fetchChartData(cleanTicker, 60);
-            if (!data || data.length === 0) {
-                container.innerHTML = '<span class="chart-msg chart-msg--sm chart-msg--muted">No chart data</span>';
-                continue;
-            }
+        // Lempar semua fetch SEKALIGUS (paralel) — bukan menunggu satu per satu
+        const fetchPromises = jobs.map(job => fetchChartData(job.cleanTicker, 60));
 
-            const isUp = s.trend.toLowerCase() === 'uptrend' || (data[data.length - 1].value >= data[0].value);
-            const isBuy = s.signal === 1;
-
-            // Cobalt/rose rules for BUY (index palette), soft gray for WATCH
-            const lineColor = isBuy
-                ? (isUp ? '#0051C3' : '#DE5052')
-                : '#8C8C8C';
-            const topColor = isBuy
-                ? (isUp ? 'rgba(0, 81, 195, 0.1)' : 'rgba(222, 80, 82, 0.1)')
-                : 'rgba(140, 140, 140, 0.1)';
-
+        // Render progresif: chart masing-masing saham tampil begitu datanya siap
+        await Promise.all(jobs.map(async (job, i) => {
+            const { container } = job;
             try {
+                const { data } = await fetchPromises[i];
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<span class="chart-msg chart-msg--sm chart-msg--muted">No chart data</span>';
+                    return;
+                }
+
+                const s = job.s;
+                const isUp = s.trend.toLowerCase() === 'uptrend' || (data[data.length - 1].value >= data[0].value);
+                const isBuy = s.signal === 1;
+
+                // Cobalt/rose rules for BUY (index palette), soft gray for WATCH
+                const lineColor = isBuy
+                    ? (isUp ? '#0051C3' : '#DE5052')
+                    : '#8C8C8C';
+                const topColor = isBuy
+                    ? (isUp ? 'rgba(0, 81, 195, 0.1)' : 'rgba(222, 80, 82, 0.1)')
+                    : 'rgba(140, 140, 140, 0.1)';
+
                 const chart = LightweightCharts.createChart(container, {
                     width: container.clientWidth || 240,
                     height: 80,
@@ -429,14 +455,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     lineWidth: 2,
                     crosshairMarkerVisible: true
                 });
-                
+
                 areaSeries.setData(data);
                 chart.timeScale().fitContent();
             } catch (e) {
                 container.innerHTML = '<span class="chart-msg chart-msg--sm chart-msg--err">Chart Error</span>';
                 console.error(e);
             }
-        }
+        }));
     }
 
     async function fetchNarrative(s, card) {
@@ -503,8 +529,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 macd_signal: s.macd_signal,
                                 trend: s.trend,
                                 probability: s.probability,
-                                sentiment_status: s.sentiment_status || 'NEUTRAL',
-                                sentiment_impact: s.sentiment_impact || 'NEUTRAL'
+                                sentiment_status: s.sentiment_status || 'NETRAL',
+                                sentiment_impact: s.sentiment_impact || 'NETRAL'
                             })
                         });
                         const json = await res.json();
@@ -556,101 +582,18 @@ document.addEventListener('DOMContentLoaded', () => {
         let isMonthlyExpanded = false;
         let allAuditData = [];
         let isAuditExpanded = false;
+        let equityResizeHandler = null;
 
-        async function runAuditAndLoad() {
-            try {
-                await apiFetch('/api/audit/run');
-            } catch (e) {
-                console.error('Failed to run audit:', e);
-            }
+        async function loadAuditSection() {
+            // Catatan: GET /api/audit/track-record sudah menjalankan run_audit()
+            // di sisi server, jadi tidak perlu memanggil /api/audit/run (endpoint
+            // berat + wajib API key) saat page-load — request itu akan gagal 401
+            // untuk pengunjung anonim dan memperlambat loading awal.
             await loadTrackRecord();
             await loadAuditRecapAndChart();
         }
 
-        async function loadTodayAudit() {
-            const container = document.getElementById('today-audit-container');
-            if (!container) return;
-
-            try {
-                const res = await apiFetch('/api/audit/today');
-                const data = await res.json();
-
-                if (res.ok && data.status === 'success' && data.signals?.length > 0) {
-                    let signalsHtml = '';
-                    data.signals.forEach((s, idx) => {
-                        const tpPct = (s.entry_price > 0 && s.target_price > 0)
-                            ? (((s.target_price - s.entry_price) / s.entry_price) * 100).toFixed(1)
-                            : '3.0';
-                        const slPct = (s.entry_price > 0 && s.stop_loss > 0)
-                            ? (((s.stop_loss - s.entry_price) / s.entry_price) * 100).toFixed(1)
-                            : '-1.5';
-                        const retVal = s.status === 'LOSS' ? -1.5 : (s.return_pct != null ? s.return_pct : 0);
-                        const retSign = retVal >= 0 ? '+' : '';
-                        const badge = s.status === 'WIN' ? `<span class="badge bullish">WIN ${retSign}${retVal.toFixed(1)}%</span>` :
-                                      (s.status === 'LOSS' ? `<span class="badge bearish">LOSS ${retVal.toFixed(1)}%</span>` : '<span class="badge netral">PENDING</span>');  
-                        signalsHtml += `
-                            <tr>
-                                <td>${idx + 1}</td>
-                                <td class="td-ticker-cell">${s.ticker}</td>
-                                <td>${fmtPrice(s.entry_price)}</td>
-                                <td class="td-win">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
-                                <td class="td-loss">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
-                                <td>${s.probability.toFixed(1)}%</td>
-                                <td>${badge}</td>
-                            </tr>
-                        `;
-                    });
-
-                    const gainSign = data.total_gain >= 0 ? '+' : '';
-
-                    container.innerHTML = `
-                        <div class="glass-card today-card">
-                            <div class="today-hd">
-                                <div>
-                                    <h4 class="today-title">
-                                        Today's Trading Audit Results (${data.date})
-                                    </h4>
-                                    <p class="today-sub">
-                                        Evaluation of trading signals executed on this market day
-                                    </p>
-                                </div>
-                                <span class="chip ${data.total_gain >= 0 ? 'green' : 'red'} today-chip">
-                                    Daily Gain: ${gainSign}${data.total_gain.toFixed(1)}%
-                                </span>
-                            </div>
-
-                            <div class="today-meta">
-                                <span>Signal Outcome: <strong class="win">${data.win_count} WIN</strong> / <strong class="loss">${data.loss_count} LOSS</strong> ${data.pending_count > 0 ? `/ <strong>${data.pending_count} PENDING</strong>` : ''}</span>
-                                <span>Today's Win Rate: <strong>${data.win_rate.toFixed(1)}%</strong></span>
-                            </div>
-
-                            <div class="table-scroll" tabindex="0">
-                                <table class="stock-table">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Stock</th>
-                                            <th>Entry Price</th>
-                                            <th>Target Profit</th>
-                                            <th>Stop Loss</th>
-                                            <th>Quant Score</th>
-                                            <th>Audit Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>${signalsHtml}</tbody>
-                                </table>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    container.innerHTML = '';
-                }
-            } catch (e) {
-                console.error('Failed to load today audit:', e);
-            }
-        }
-
-        window.switchMainTab = function(tabName) {
+        window.switchMainTab = function(tabName, scrollToView = true) {
             const resultsDiv = document.getElementById('results');
             const auditSec = document.getElementById('audit-section');
             const btnRecom = document.getElementById('tab-btn-recom');
@@ -661,18 +604,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 inactiveBtn.classList.remove('is-active');
             };
 
-            if (tabName === 'recom') {
-                if (resultsDiv) resultsDiv.classList.remove('hidden');
-                if (auditSec) auditSec.style.display = 'block';
-                if (btnRecom && btnAudit) setActive(btnRecom, btnAudit);
-                if (resultsDiv) resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else if (tabName === 'audit') {
-                if (resultsDiv) resultsDiv.classList.remove('hidden');
-                if (auditSec) auditSec.style.display = 'block';
-                if (btnRecom && btnAudit) setActive(btnAudit, btnRecom);
-                if (auditSec) auditSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const isRecomTab = tabName !== 'audit';
+            const hasScanResults = tableBody && tableBody.children.length > 0;
+            const showResults = isRecomTab && hasScanResults;
+
+            // Tampilkan satu view saja: rekomendasi ATAU audit
+            if (resultsDiv) resultsDiv.classList.toggle('hidden', !showResults);
+            if (auditSec) auditSec.classList.toggle('hidden', isRecomTab);
+
+            // Empty-state hanya tampil di tab rekomendasi saat belum ada hasil scan
+            if (emptyState) emptyState.classList.toggle('hidden', !isRecomTab || showResults);
+
+            if (btnRecom && btnAudit) {
+                setActive(isRecomTab ? btnRecom : btnAudit, isRecomTab ? btnAudit : btnRecom);
+            }
+
+            if (scrollToView) {
+                const target = showResults ? resultsDiv : (isRecomTab ? emptyState : auditSec);
+                if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
         };
+
+        // Sinkronkan view awal dengan tab default yang aktif (rekomendasi)
+        window.switchMainTab('recom', false);
 
         async function loadTrackRecord() {
             const body = document.getElementById('audit-table-body');
@@ -725,7 +679,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             visibleRows.forEach(s => {
                 const row = document.createElement('tr');
-                const statusClass = s.status.toLowerCase();
                 const tpPct = (s.entry_price > 0 && s.target_price > 0)
                     ? (((s.target_price - s.entry_price) / s.entry_price) * 100).toFixed(1)
                     : '3.0';
@@ -816,9 +769,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             areaSeries.setData(data.equity_curve);
                             chart.timeScale().fitContent();
 
-                            window.addEventListener('resize', () => {
+                            if (equityResizeHandler) window.removeEventListener('resize', equityResizeHandler);
+                            equityResizeHandler = () => {
                                 if (chartDiv.clientWidth > 0) chart.resize(chartDiv.clientWidth, 220);
-                            });
+                            };
+                            window.addEventListener('resize', equityResizeHandler);
                         } catch (ce) {
                             console.error('Equity chart error:', ce);
                         }
@@ -894,10 +849,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const res = await apiFetch('/api/audit/seed-simulation');
-                const data = await res.json();
-                if (res.ok && data.status === 'success') {
-                    await runAuditAndLoad();
-                } else {
+                const data = await res.json();                if (res.ok && data.status === 'success') {
+                    await loadAuditSection();
+                }
+ else {
                     alert('Failed to generate simulation: ' + (data.message || 'Error'));
                 }
             } catch (err) {

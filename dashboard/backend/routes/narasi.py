@@ -16,6 +16,14 @@ load_dotenv()
 
 router = APIRouter()
 
+def format_idr(value: float) -> str:
+    """Format angka gaya Indonesia (IDR): pemisah ribuan titik, mis. 10250 -> '10.250'.
+
+    Menggantikan format spec ':,.0f' gaya US (koma) yang salah konteks untuk
+    narasi BEI berbahasa Indonesia (Rp 10,250 -> Rp 10.250).
+    """
+    return f"{int(round(value)):,}".replace(",", ".")
+
 # Konfigurasi Omniroute
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "http://127.0.0.1:20128/v1")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -35,6 +43,23 @@ class NarasiRequest(BaseModel):
     probability: float
     sentiment_status: str = "NETRAL"
     sentiment_impact: str = "NETRAL"
+
+def build_fallback_narrative(req: NarasiRequest) -> str:
+    """Rangkuman analisis kuantitatif saat LLM proxy tidak tersedia.
+
+    Sumber tunggal untuk semua jalur fallback di /narasi (sebelumnya blok ini
+    diduplikasi dua kali). Output di-escape karena dirender frontend via innerHTML.
+    """
+    rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
+    tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
+    sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
+    ticker_clean = validate_ticker(req.ticker).replace(".JK", "")
+    narrative = (
+        f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
+        f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
+        f"Target profit ditetapkan pada Rp {format_idr(req.target_price)} (+{tp_pct:.1f}%) dan Stop Loss pada Rp {format_idr(req.stop_loss)} ({sl_pct:.1f}%)."
+    )
+    return sanitize_text(narrative)
 
 def parse_and_clean_response(text: str) -> str:
     """Parse SSE streaming response dari Omniroute (data: {...} chunks)."""
@@ -101,16 +126,7 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
                 narrative = sanitize_text(parse_and_clean_response(response.text))
                 return {"status": "success", "narasi": narrative}
                 
-        rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
-        tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
-        sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
-        ticker_clean = validate_ticker(req.ticker).replace(".JK", "")
-        fallback_narrative = (
-            f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
-            f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
-            f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+{tp_pct:.1f}%) dan Stop Loss pada Rp {req.stop_loss:,.0f} ({sl_pct:.1f}%)."
-        )
-        return {"status": "success", "narasi": fallback_narrative}
+        return {"status": "success", "narasi": build_fallback_narrative(req)}
         
     except Exception as e:
         # Cobalah fallback ke localhost jika terjadi error koneksi
@@ -126,16 +142,7 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
 
         # Graceful fallback: Jika LLM proxy tidak dapat dijangkau (misal pada cloud deployment Render),
         # kembalikan narasi analisis kuantitatif terstruktur yang bersih tanpa error.
-        rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
-        tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
-        sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
-        ticker_clean = validate_ticker(req.ticker).replace(".JK", "")
-        fallback_narrative = (
-            f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
-            f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
-            f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+{tp_pct:.1f}%) dan Stop Loss pada Rp {req.stop_loss:,.0f} ({sl_pct:.1f}%)."
-        )
-        return {"status": "success", "narasi": fallback_narrative}
+        return {"status": "success", "narasi": build_fallback_narrative(req)}
 
 @router.post("/narasi/multi-agent")
 def generate_multi_agent_consensus(request: Request, req: NarasiRequest):
