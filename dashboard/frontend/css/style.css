@@ -1520,6 +1520,49 @@ strong {
     .btn-scan {
         width: 100%;
     }
+    /* CTA/stack vertikal penuh di HP: hero CTA + error actions + ghost buttons */
+    .hero-ihsg-preview {
+        padding: var(--sp-4);
+        min-width: 0;
+    }
+    .hisg-preview-hd {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--sp-3);
+    }
+    .chart-range-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
+        padding-bottom: 4px;
+    }
+    .chart-range-tabs .chart-tab {
+        scroll-snap-align: start;
+        flex: 0 0 auto;
+    }
+    .ihsg-chart-container { height: 160px; min-height: 140px; }
+    .mini-chart-container { height: 72px; min-height: 64px; }
+    .panel-chart { height: 180px; min-height: 160px; }
+    .hd-split { flex-direction: column; align-items: stretch; }
+    .hd-split .btn-scan, .hd-split .btn-ghost, .hd-split .btn-toggle {
+        width: 100%;
+    }
+    #seed-sim-btn, #toggle-monthly-btn, #toggle-audit-btn {
+        width: 100%;
+    }
+    .audit-stats-grid { grid-template-columns: 1fr; }
+    .alert-error { flex-direction: column; }
+    .alert-error > div { width: 100%; min-width: 0; }
+    .alert-error .btn-scan, .alert-error .btn-ghost {
+        width: 100%;
+        min-height: 44px;
+    }
+    .loader { padding: var(--sp-8) 0; }
+    .pixel-loader-container { flex-wrap: wrap; max-width: 100%; }
+    .loader-shimmer-text { white-space: normal; text-align: center; }
+    .dc-prices { flex-direction: column; }
+    .dc-price-col { border-right: none; border-bottom: 1px solid var(--c-border); }
+    .dc-price-col:last-child { border-bottom: none; }
 
     /* Grids stack vertically */
     .feat-grid, .cards-grid {
@@ -1717,15 +1760,57 @@ strong {
     font-variant-numeric: tabular-nums;
 }
 
-/* Main view switcher tabs (index pill tabs) */
-.main-tabs-bar {
+/* Main view switcher tabs (index pill tabs) — scrollable di HP */
+.main-tabs-wrap {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 24px;
     padding-bottom: 12px;
     border-bottom: 1px solid var(--c-border);
-    flex-wrap: wrap;
 }
+.main-tabs-bar {
+    display: flex;
+    gap: 12px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    padding-bottom: 12px;
+    margin-bottom: -12px;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+}
+.main-tabs-bar::-webkit-scrollbar { height: 4px; }
+.main-tabs-bar::-webkit-scrollbar-thumb {
+    background: rgba(64, 64, 64, 0.25);
+    border-radius: var(--radius-pill);
+}
+.main-tab-btn {
+    scroll-snap-align: start;
+    flex: 0 0 auto;
+    max-width: 86vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.tabs-arrow {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 44px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--c-border);
+    border-radius: 50%;
+    background: var(--c-surface);
+    color: var(--c-charcoal);
+    font-size: 18px;
+    line-height: 1;
+}
+.tabs-arrow.is-visible { display: inline-flex; }
+.tabs-arrow:hover { background: #F5F5F5; }
 
 .main-tab-btn {
     display: inline-flex;
@@ -2010,9 +2095,248 @@ strong {
     padding: 8px;
 }
 
-/* Audit section offset */
+/* ── Audit section offset ── */
 .audit-section {
     margin-top: var(--sp-6);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Agent-1 RESPONSIVE OVERHAUL (360 / 768 / 1024)
+   - Page-level: no horizontal scroll di 360px
+   - Grid/flex collapse ke 1 kolom di HP
+   - Tabel scroll-x aman di dalam .table-scroll
+   - Font clamp() anti-overflow, CTA >=44px
+   ═══════════════════════════════════════════════════════ */
+
+/* Base guards: cegah page-level horizontal scroll */
+html, body {
+    overflow-x: clip;
+    max-width: 100%;
+}
+body {
+    overflow-wrap: break-word;
+}
+img, svg, canvas, video, table {
+    max-width: 100%;
+}
+canvas {
+    height: auto;
+}
+/* Chart containers: canvas di dalamnya boleh full-width tapi tak boleh dorong page */
+.ihsg-chart-container, .mini-chart-container, .panel-chart {
+    max-width: 100%;
+    overflow: hidden;
+}
+/* Tabel: scroll terkunci di dalam wrapper, bukan page */
+.table-card {
+    max-width: 100%;
+    overflow: hidden;
+}
+.table-scroll {
+    max-width: 100%;
+    overscroll-behavior-x: contain;
+}
+.stock-table {
+    min-width: 680px; /* paksa scroll dalam wrapper di HP, bukan page */
+}
+/* .table-empty td (colspan) tak perlu nowrap */
+.table-empty {
+    white-space: normal;
+}
+/* Hero stats boleh wrap kapan saja */
+.hero-stats {
+    flex-wrap: wrap;
+}
+/* Font fluid anti-overflow */
+.hero-title {
+    font-size: clamp(1.75rem, 1.2rem + 4.5vw, 4rem);
+    overflow-wrap: break-word;
+}
+.section-hd h2, .cards-hd h3, .es-label {
+    overflow-wrap: break-word;
+}
+.hisg-price {
+    font-size: clamp(1.25rem, 1rem + 3vw, 1.625rem);
+    overflow-wrap: anywhere;
+}
+.dc-pval {
+    overflow-wrap: anywhere;
+}
+/* CTA / tab sentuh tetap >=44px */
+.btn-scan, .btn-ghost, .btn-toggle, .chart-tab, .main-tab-btn {
+    min-height: 44px;
+    min-width: 44px;
+}
+
+/* ── Breakpoint 1024px (laptop kecil / tablet landscape) ── */
+@media (max-width: 1024px) {
+    .hero-inner {
+        grid-template-columns: 1fr 1fr;
+        gap: var(--sp-8);
+    }
+    .hero-title {
+        font-size: clamp(1.75rem, 1.1rem + 4vw, 2.75rem);
+    }
+    .audit-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ── Breakpoint 768px (tablet portrait) ── */
+@media (max-width: 768px) {
+    .nav-inner, .hero-inner, .main, .footer-inner {
+        padding-left: var(--sp-6);
+        padding-right: var(--sp-6);
+    }
+    .hero {
+        padding: var(--sp-8) 0;
+    }
+    /* Semua grid 2 kolom runtuh ke 1 kolom */
+    .hero-inner {
+        grid-template-columns: 1fr;
+        gap: var(--sp-8);
+    }
+    .hero-right {
+        order: -1;
+    }
+    .feat-grid, .cards-grid {
+        grid-template-columns: 1fr;
+    }
+    .cards-grid {
+        gap: var(--sp-4);
+    }
+    .audit-stats-grid {
+        grid-template-columns: 1fr;
+    }
+    .section-hd {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--sp-2);
+    }
+    .risk-banner {
+        flex-direction: column;
+        gap: var(--sp-4);
+        padding: var(--sp-6);
+    }
+    .main-tabs-bar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 12px;
+    }
+    .main-tab-btn {
+        flex-shrink: 0;
+    }
+    .hd-split {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .panel-chart {
+        height: 180px;
+    }
+    .ihsg-chart-container {
+        height: 170px;
+    }
+}
+
+/* ── Breakpoint 360px (HP kecil) ── */
+@media (max-width: 360px) {
+    .nav-inner, .hero-inner, .main, .footer-inner {
+        padding-left: var(--sp-4);
+        padding-right: var(--sp-4);
+    }
+    .logo {
+        font-size: 22px;
+    }
+    .last-scan {
+        font-size: 10px;
+        overflow-wrap: anywhere;
+    }
+    .hero {
+        padding: var(--sp-6) 0;
+    }
+    .hero-eyebrow {
+        font-size: 12px;
+        padding: 6px 14px;
+        max-width: 100%;
+        overflow-wrap: break-word;
+    }
+    .hero-desc {
+        font-size: 14px;
+    }
+    .btn-scan {
+        width: 100%;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    .hero-ihsg-preview {
+        padding: var(--sp-4);
+        min-width: 0;
+    }
+    .hisg-preview-hd {
+        flex-direction: column;
+        gap: var(--sp-3);
+    }
+    .chart-range-tabs {
+        width: 100%;
+        overflow-x: auto;
+        gap: 4px;
+    }
+    .chart-tab {
+        flex-shrink: 0;
+    }
+    .detail-card {
+        padding: 20px 16px;
+        min-width: 0;
+    }
+    /* 3 kolom harga jadi 1 kolom di 360px */
+    .dc-prices {
+        flex-direction: column;
+    }
+    .dc-price-col {
+        border-right: none;
+        border-bottom: 1px solid var(--c-border);
+        padding: var(--sp-2) var(--sp-3);
+    }
+    .dc-price-col:last-child {
+        border-bottom: none;
+    }
+    .stat-card {
+        padding: var(--sp-4);
+        min-width: 0;
+    }
+    .stat-val {
+        font-size: clamp(1.5rem, 1.1rem + 8vw, 1.875rem);
+    }
+    .risk-pills {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .rpill {
+        width: 100%;
+    }
+    .section-hd h2, .cards-hd h3, .es-label {
+        font-size: 22px;
+    }
+    .stock-table {
+        min-width: 600px;
+        font-size: 13px;
+    }
+    .stock-table th, .stock-table td {
+        padding: 10px 12px;
+    }
+    .loader-shimmer-text {
+        white-space: normal;
+        text-align: center;
+    }
+    .pixel-loader-container {
+        flex-wrap: wrap;
+        max-width: 100%;
+    }
+    .footer-note {
+        font-size: 10px;
+        overflow-wrap: break-word;
+    }
 }
 
 /* Quant Metrics & Kelly Position Sizing Badges */

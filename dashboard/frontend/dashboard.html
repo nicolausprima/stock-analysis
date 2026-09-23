@@ -202,14 +202,18 @@
         </div>
     </div>
 
-    <!-- Main View Switcher Tabs -->
-    <div class="main-tabs-bar" role="tablist" aria-label="Main views">
+    <!-- Main View Switcher Tabs (scrollable di HP + panah) -->
+    <div class="main-tabs-wrap">
+        <button type="button" class="tabs-arrow tabs-arrow--prev" id="tabs-arrow-prev" aria-label="Geser tab ke kiri" hidden>‹</button>
+        <div class="main-tabs-bar" role="tablist" aria-label="Main views" id="main-tabs-bar">
         <button id="tab-btn-recom" class="main-tab-btn is-active" role="tab" aria-selected="true" aria-controls="results" onclick="switchMainTab('recom')" onkeydown="mainTabKeyNav(event)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>Riset Sinyal Kuantitatif Esok Hari <span class="sample-badge">Riset · Bukan order</span>
         </button>
         <button id="tab-btn-audit" class="main-tab-btn" role="tab" aria-selected="false" aria-controls="audit-section" onclick="switchMainTab('audit')" onkeydown="mainTabKeyNav(event)">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Simulasi Backtest 6 Bulan <span class="sample-badge">Simulasi</span>
         </button>
+        </div>
+        <button type="button" class="tabs-arrow tabs-arrow--next" id="tabs-arrow-next" aria-label="Geser tab ke kanan" hidden>›</button>
     </div>
 
     <!-- Results (Rekomendasi Esok Hari) -->

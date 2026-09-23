@@ -105,38 +105,71 @@ document.addEventListener('DOMContentLoaded', () => {
     const rsiColor = r => r < 40 ? 'green' : r > 65 ? 'red' : 'amber';
     const rsiW     = r => Math.min(Math.max(r, 0), 100);
 
-    // --- Chart registry: SATU resize listener untuk semua chart (anti-leak) ---
-    // Sebelumnya tiap render memasang window.addEventListener('resize') baru tanpa
-    // dilepas -> listener menumpuk tiap klik tab 1D/60D + chart mati ikut di-resize.
-    const liveCharts = new Map(); // container -> { chart, height }
+    // --- Chart registry: SATU resize listener + ResizeObserver (anti-leak, responsif) ---
+    // Tinggi adaptif HP: IHSG 200->160, mini 80->72, equity 220->180 bila lebar <420px.
+    const liveCharts = new Map(); // container -> { chart, baseHeight }
+    const adaptiveHeight = (container, base) => {
+        try {
+            const w = container.clientWidth || window.innerWidth || base;
+            if (w <= 360) return Math.round(base * 0.75);
+            if (w <= 480) return Math.round(base * 0.85);
+            return base;
+        } catch (_) { return base; }
+    };
     const disposeChart = (container) => {
         const entry = liveCharts.get(container);
         if (entry) {
             try { entry.chart.remove(); } catch (_) { /* already disposed */ }
             liveCharts.delete(container);
         }
+        try { if (chartObserver) chartObserver.unobserve(container); } catch (_) { /* noop */ }
         try { delete container._chart; } catch (_) { /* noop */ }
     };
-    const registerChart = (container, chart, height) => {
+    const registerChart = (container, chart, baseHeight) => {
         disposeChart(container);
-        liveCharts.set(container, { chart, height });
+        liveCharts.set(container, { chart, baseHeight });
         try { container._chart = chart; } catch (_) { /* noop */ }
+        try {
+            if (chartObserver && document.contains(container)) chartObserver.observe(container);
+        } catch (_) { /* noop */ }
+        // Terapkan tinggi adaptif segera setelah daftar
+        try {
+            const h = adaptiveHeight(container, baseHeight);
+            if (h !== baseHeight) chart.resize(container.clientWidth || 300, h);
+        } catch (_) { /* noop */ }
+    };
+    const resizeOneChart = (container) => {
+        const entry = liveCharts.get(container);
+        if (!entry) return;
+        try {
+            if (document.contains(container) && container.clientWidth > 0) {
+                entry.chart.resize(container.clientWidth, adaptiveHeight(container, entry.baseHeight));
+            } else {
+                disposeChart(container);
+            }
+        } catch (_) { disposeChart(container); }
     };
     let _resizeTimer = null;
-    window.addEventListener('resize', () => {
+    const scheduleResizeAll = () => {
         clearTimeout(_resizeTimer);
         _resizeTimer = setTimeout(() => {
-            liveCharts.forEach(({ chart, height }, container) => {
-                try {
-                    if (document.contains(container) && container.clientWidth > 0) {
-                        chart.resize(container.clientWidth, height);
-                    } else {
-                        disposeChart(container);
-                    }
-                } catch (_) { disposeChart(container); }
-            });
+            liveCharts.forEach((_, container) => resizeOneChart(container));
         }, 150);
-    }, { passive: true });
+    };
+    window.addEventListener('resize', scheduleResizeAll, { passive: true });
+    window.addEventListener('orientationchange', scheduleResizeAll, { passive: true });
+    let chartObserver = null;
+    try {
+        if ('ResizeObserver' in window) {
+            let roTimer = null;
+            chartObserver = new ResizeObserver(() => {
+                clearTimeout(roTimer);
+                roTimer = setTimeout(() => {
+                    liveCharts.forEach((_, container) => resizeOneChart(container));
+                }, 120);
+            });
+        }
+    } catch (_) { chartObserver = null; }
 
     // Initial load: render IHSG chart
     renderIHSGChart(1);
@@ -780,6 +813,41 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         // Arrow-key nav antar tab (roving tabindex) + deep-link #rekomendasi/#simulasi.
+        // Panah scroll tabs di HP: tampil hanya bila bar overflow; sentuh >=44px.
+        (function wireMainTabsArrows() {
+            const bar = document.getElementById('main-tabs-bar');
+            const prev = document.getElementById('tabs-arrow-prev');
+            const next = document.getElementById('tabs-arrow-next');
+            if (!bar || !prev || !next) return;
+            const step = () => Math.max(160, Math.floor(bar.clientWidth * 0.7));
+            const update = () => {
+                const overflow = bar.scrollWidth > bar.clientWidth + 4;
+                prev.hidden = next.hidden = !overflow;
+                prev.classList.toggle('is-visible', overflow);
+                next.classList.toggle('is-visible', overflow);
+                if (!overflow) return;
+                const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                prev.disabled = bar.scrollLeft <= 1;
+                next.disabled = bar.scrollLeft >= bar.scrollWidth - bar.clientWidth - 1;
+                prev.style.opacity = prev.disabled ? '0.4' : '';
+                next.style.opacity = next.disabled ? '0.4' : '';
+                void reduce;
+            };
+            prev.addEventListener('click', () => bar.scrollBy({ left: -step(), behavior: 'smooth' }));
+            next.addEventListener('click', () => bar.scrollBy({ left: step(), behavior: 'smooth' }));
+            bar.addEventListener('scroll', update, { passive: true });
+            window.addEventListener('resize', update, { passive: true });
+            update();
+            // Tab aktif selalu terlihat di HP
+            const mo = new MutationObserver(update);
+            try { mo.observe(bar, { childList: true, subtree: true }); } catch (_) { /* noop */ }
+            window.scrollActiveMainTab = () => {
+                try {
+                    const active = bar.querySelector('.main-tab-btn.is-active');
+                    if (active) active.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+                } catch (_) { /* noop */ }
+            };
+        })();
         window.mainTabKeyNav = function(e) {
             const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
             if (!keys.includes(e.key)) return;
