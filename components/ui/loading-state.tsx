@@ -60,7 +60,11 @@ export default function LoadingState({
   const { delays, dur, round } = PATTERNS[variant] ?? PATTERNS.Drive;
 
   return (
-    <div className="flex w-fit items-center gap-2.5">
+    <div className="flex w-fit items-center gap-2.5" role="status" aria-live="polite">
+      {/* Satu live region: label + timer dibaca sekali; grid dekoratif disembunyikan dari SR. */}
+      <span className="sr-only">
+        {label}, mohon tunggu.
+      </span>
       <span aria-hidden className="grid grid-cols-[repeat(3,4px)] gap-[1.5px]">
         {delays.map((d, i) => (
           <span
@@ -77,6 +81,7 @@ export default function LoadingState({
         ))}
       </span>
       <span
+        aria-hidden="true"
         className="bg-clip-text text-[13px] font-medium text-transparent"
         style={{
           backgroundImage:
@@ -87,7 +92,7 @@ export default function LoadingState({
       >
         {label}
       </span>
-      <span className="font-mono text-[12px] text-muted-foreground tabular-nums">
+      <span aria-hidden="true" className="font-mono text-[12px] text-muted-foreground tabular-nums">
         {elapsed}
       </span>
     </div>

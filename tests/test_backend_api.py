@@ -1,8 +1,9 @@
+import json
 import os
 import sys
-import json
-import pytest
 from pathlib import Path
+
+import pytest
 from fastapi.testclient import TestClient
 
 os.environ["TESTING"] = "true"
@@ -11,8 +12,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.config import CACHE_FILE, DATA_DIR
 from dashboard.backend.main import app
+from src.config import CACHE_FILE, DATA_DIR
 
 client = TestClient(app)
 
@@ -117,7 +118,7 @@ def test_api_telegram_status_does_not_leak_chat_id():
     assert "chat_id" not in json_data
 
 def test_api_sync_requires_api_key(monkeypatch):
-    import dashboard.backend.security as security
+    from dashboard.backend import security
     monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
 
     # Tanpa key -> 401
@@ -132,7 +133,7 @@ def test_api_sync_requires_api_key(monkeypatch):
     assert res.json().get("status") == "success"
 
 def test_api_recommendations_force_requires_api_key(monkeypatch):
-    import dashboard.backend.security as security
+    from dashboard.backend import security
     monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
 
     # Tanpa key -> 401
@@ -142,14 +143,14 @@ def test_api_recommendations_force_requires_api_key(monkeypatch):
     assert res.status_code == 200
 
 def test_api_telegram_broadcast_requires_api_key(monkeypatch):
-    import dashboard.backend.security as security
+    from dashboard.backend import security
     monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
 
     assert client.post("/api/telegram/test", json={"message": "x"}).status_code == 401
     assert client.post("/api/telegram/broadcast-test").status_code == 401
 
 def test_api_audit_run_and_seed_require_api_key(monkeypatch):
-    import dashboard.backend.security as security
+    from dashboard.backend import security
     monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
 
     assert client.get("/api/audit/run").status_code == 401
@@ -159,7 +160,7 @@ def test_api_audit_run_and_seed_require_api_key(monkeypatch):
     assert res.status_code == 200
 
 def test_api_narasi_requires_api_key(monkeypatch):
-    import dashboard.backend.security as security
+    from dashboard.backend import security
     monkeypatch.setattr(security, "API_AUTH_TOKEN", "test-secret-key")
 
     payload = {

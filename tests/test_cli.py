@@ -1,6 +1,12 @@
-import pytest
 import pandas as pd
-from main_cli import execute_command, calculate_indicators, render_ascii_chart, _clean_text
+
+from main_cli import (
+    _clean_text,
+    calculate_indicators,
+    execute_command,
+    render_ascii_chart,
+)
+
 
 def test_clean_text():
     raw = "🟡 MODE CAUTIOUS ⚡ LEADING ✅ OK ⚠️ WARNING"

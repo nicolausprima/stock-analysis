@@ -1,15 +1,14 @@
-import os
-import pytest
-from pathlib import Path
 import sys
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.agents.news_macro_agent import NewsMacroAgent
 from src.agents.ihsg_macro_agent import IHSGMacroAgent
 from src.agents.multi_agent_system import MultiAgentSystem
+from src.agents.news_macro_agent import NewsMacroAgent
+
 
 def test_news_macro_agent_keyword_evaluation():
     agent = NewsMacroAgent()

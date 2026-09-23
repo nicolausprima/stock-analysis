@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -87,8 +87,9 @@
                 <div class="hstat-div"></div>
                 <div class="hstat"><span class="hstat-n">20+</span><span class="hstat-l">Indicators</span></div>
                 <div class="hstat-div"></div>
-                <div class="hstat"><span class="hstat-n">+3.0%</span><span class="hstat-l">Daily Target</span></div>
+                <div class="hstat"><span class="hstat-n">+3.0% / -1.5%</span><span class="hstat-l">Target Model / SL</span></div>
             </div>
+            <p class="legal-microcopy" style="margin:8px 0 12px">Target model statistik. Bukan jaminan profit. Saham berisiko rugi.</p>
             <button id="scan-btn" class="btn-scan" aria-label="Scan market and get stock recommendations">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
                 Scan Market Now
@@ -103,15 +104,24 @@
                         <div class="hisg-label">IHSG · Jakarta Composite</div>
                         <div id="hero-ihsg-price" class="hisg-price">—</div>
                     </div>
-                    <div class="chart-range-tabs" role="group" aria-label="Time range">
-                        <button class="chart-tab active" id="tab-1d" onclick="switchIhsgRange(1)">1D</button>
-                        <button class="chart-tab" id="tab-60d" onclick="switchIhsgRange(60)">60D</button>
+                    <div class="chart-range-tabs" role="group" aria-label="Time range" id="ihsg-range-tabs">
+                        <button class="chart-tab active" id="tab-1d" onclick="switchIhsgRange(1)" aria-pressed="true">1D</button>
+                        <button class="chart-tab" id="tab-60d" onclick="switchIhsgRange(60)" aria-pressed="false">60D</button>
+                        <select class="chart-range-select" id="ihsg-range-select" aria-label="Time range (compact)" onchange="switchIhsgRange(Number(this.value))" hidden>
+                            <option value="1">1D</option>
+                            <option value="60">60D</option>
+                        </select>
                     </div>
                 </div>
                 <div class="hisg-desc-wrap">
                     <p id="ihsg-desc" class="hisg-sub">Scan market to view chart</p>
+                    <div class="chart-legend" aria-label="Legenda chart IHSG">
+                        <span><span class="lg-swatch" style="background:#0051C3"></span>Harga IHSG (area)</span>
+                        <span><span class="lg-swatch" style="background:#DE5052"></span>Zona koreksi / tren turun</span>
+                    </div>
                 </div>
-                <div id="ihsg-chart" class="ihsg-chart-container"></div>
+                <div id="ihsg-chart" class="ihsg-chart-container" role="img" aria-label="Grafik area harga IHSG. Ringkasan teks tersedia pada label harga dan deskripsi di atas."></div>
+                <p id="ihsg-summary" class="legal-microcopy sr-only" aria-live="polite"></p>
             </div>
         </div>
 
@@ -121,11 +131,12 @@
 <!-- MAIN -->
 <main class="main" id="main-content">
 
-    <!-- Loader — Pixel-Grid Wavefront Loader & Shimmering Timer -->
-    <div id="loader" class="loader hidden" role="status" aria-label="Loading">
-        <div class="loader-box glass-card">
-            <div class="pixel-loader-container">
-                <span class="pixel-grid" aria-hidden="true">
+    <!-- Loader — Pixel-Grid Wavefront Loader & Shimmering Timer (UX-05: sunyi bagi SR) -->
+    <div id="loader" class="loader hidden">
+        <div class="loader-box glass-card" role="status">
+            <span class="sr-only" id="loader-sr">Memindai pasar, mohon tunggu.</span>
+            <div class="pixel-loader-container" aria-hidden="true">
+                <span class="pixel-grid">
                     <span class="pixel p-0"></span>
                     <span class="pixel p-1"></span>
                     <span class="pixel p-2"></span>
@@ -136,24 +147,29 @@
                     <span class="pixel p-7"></span>
                     <span class="pixel p-8"></span>
                 </span>
-                <span id="loader-shimmer-label" class="loader-shimmer-text">
+                <span class="loader-shimmer-text">
                     Scanning 700+ IDX Tickers...
                 </span>
-                <span id="loader-timer" class="loader-timer">0.0s</span>
+                <span class="loader-timer">0.0s</span>
             </div>
-            <p class="loader-sub">XGBoost Quant Matrix · Asymmetric Risk Filter · Multi-Agent Consensus</p>
+            <p class="loader-sub" aria-hidden="true">XGBoost Quant Matrix · Asymmetric Risk Filter · Multi-Agent Consensus</p>
         </div>
     </div>
 
-    <!-- Error -->
-    <div id="error-box" class="alert-error hidden" role="alert" aria-live="assertive">
+    <!-- Error (UX-05: satu live region, tombol tutup + coba lagi 44px) -->
+    <div id="error-box" class="alert-error hidden" role="alert">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div><strong>An Error Occurred</strong><p id="error-text"></p></div>
+        <div><strong>Gagal memuat</strong><p id="error-text"></p>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+                <button type="button" id="error-retry-btn" class="btn-scan btn-ghost" style="min-height:44px">Coba lagi</button>
+                <button type="button" id="error-dismiss-btn" class="btn-scan btn-ghost" style="min-height:44px" aria-label="Tutup pesan error">Tutup</button>
+            </div>
+        </div>
     </div>
 
     <!-- Empty State -->
     <div id="empty-state" class="empty-state">
-        <p class="es-label">How AKSA Works</p>
+        <h2 class="es-label">How AKSA Works</h2>
         <div class="feat-grid">
             <div class="feat-card glass-card">
                 <div class="feat-icon">
@@ -180,47 +196,48 @@
                 <div class="feat-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                 </div>
-                <h3>High-Conviction Top 10</h3>
-                <p>Disciplined +3.0% profit targets, stop losses, and agent reasoning.</p>
+                <h3>Quant-Screened Top 10</h3>
+                <p>Hasil skrining kuantitatif: target model +3.0%, stop loss -1.5%, plus penalaran agen. Sinyal riset, bukan order. Saham berisiko rugi.</p>
             </div>
         </div>
     </div>
 
     <!-- Main View Switcher Tabs -->
-    <div class="main-tabs-bar">
-        <button id="tab-btn-recom" class="main-tab-btn is-active" onclick="switchMainTab('recom')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>Tomorrow's Buy Signal Recommendations
+    <div class="main-tabs-bar" role="tablist" aria-label="Main views">
+        <button id="tab-btn-recom" class="main-tab-btn is-active" role="tab" aria-selected="true" aria-controls="results" onclick="switchMainTab('recom')" onkeydown="mainTabKeyNav(event)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>Riset Sinyal Kuantitatif Esok Hari <span class="sample-badge">Riset · Bukan order</span>
         </button>
-        <button id="tab-btn-audit" class="main-tab-btn" onclick="switchMainTab('audit')">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>6-Month Performance &amp; Track Record
+        <button id="tab-btn-audit" class="main-tab-btn" role="tab" aria-selected="false" aria-controls="audit-section" onclick="switchMainTab('audit')" onkeydown="mainTabKeyNav(event)">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Simulasi Backtest 6 Bulan <span class="sample-badge">Simulasi</span>
         </button>
     </div>
 
     <!-- Results (Rekomendasi Esok Hari) -->
-    <div id="results" class="results hidden">
+    <div id="results" class="results hidden" role="tabpanel" aria-labelledby="tab-btn-recom" tabindex="0">
 
         <!-- Section header -->
         <div class="section-hd">
             <div class="section-hd-left">
-                <h2>Top 10 Buy Signal Recommendations for Tomorrow</h2>
-                <span class="chip green">BUY SIGNAL</span>
+                <h2>Top 10 Kandidat Hasil Skrining Kuantitatif Esok Hari</h2>
+                <span class="chip green">SINYAL RISET</span>
             </div>
             <p class="section-note">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                Buy at tomorrow's Open · Target +3.0% · Stop Loss -1.5% · (Analyzed from Latest Market Data)
+                Harga acuan pembukaan esok hari · Target model +3.0% · Stop loss -1.5% · Sinyal riset, bukan perintah beli/jual
             </p>
         </div>
+        <p class="legal-microcopy" style="margin:0 0 16px">Konten ini riset kuantitatif untuk edukasi — BUKAN nasihat/rekomendasi investasi. Saham berisiko rugi. Kinerja masa lalu tidak menjamin hasil. Keputusan &amp; risiko milik Anda (DYOR).</p>
 
         <!-- Table -->
         <div class="table-card glass-card">
             <div class="table-scroll" role="region" aria-label="Stock recommendation table" tabindex="0">
-                <table class="stock-table" aria-label="Top 10 stock recommendations">
+                <table class="stock-table" aria-label="Top 10 kandidat hasil skrining kuantitatif">
                     <thead>
                         <tr>
                             <th scope="col">#</th>
                             <th scope="col">Stock</th>
                             <th scope="col">Price</th>
-                            <th scope="col">Target Profit</th>
+                            <th scope="col">Target Model</th>
                             <th scope="col">Stop Loss</th>
                             <th scope="col">RSI (14)</th>
                             <th scope="col">MACD</th>
@@ -237,20 +254,21 @@
 
         <!-- Cards -->
         <div class="cards-hd">
-            <h3>Detailed Analysis (Tomorrow's Transaction Targets)</h3>
-            <p>Breakdown of technical indicators &amp; quantitative analysis for tomorrow's trade execution</p>
+            <h3>Detail Analisis (target model statistik, bukan target transaksi)</h3>
+            <p>Rincian indikator teknikal &amp; analisis kuantitatif — sinyal riset, bukan perintah beli/jual.</p>
         </div>
         <div class="cards-grid" id="cards-grid" role="list" aria-label="Stock analysis cards"></div>
 
     </div>
 
     <!-- Permanent Track Record Audit & Monthly Recap Section -->
-    <section class="audit-section" id="audit-section">
+    <section class="audit-section" id="audit-section" role="tabpanel" aria-labelledby="tab-btn-audit" tabindex="0">
 
+        <p class="legal-microcopy" style="margin:0 0 12px"><span class="sample-badge" style="margin-left:0;margin-right:8px">Simulasi backtest</span>Angka di bawah hasil simulasi historis — bukan hasil nyata, bukan jaminan. Saham berisiko rugi. Keputusan &amp; risiko milik Anda (DYOR).</p>
         <div class="cards-hd hd-split">
             <div>
-                <h3>Performance &amp; Cumulative Track Record Audit</h3>
-                <p>Daily statistics, Equity Curve growth chart, and monthly recap</p>
+                <h3>Simulasi Backtest &amp; Rekap Kumulatif</h3>
+                <p>Statistik harian, grafik equity curve simulasi, dan rekap bulanan</p>
             </div>
             <button id="seed-sim-btn" class="btn-scan btn-ghost" onclick="runAuditSimulationSeed()">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
@@ -263,12 +281,12 @@
             <div class="glass-card stat-card">
                 <div class="stat-lbl">Overall Win Rate</div>
                 <div id="stat-win-rate" class="stat-val">—</div>
-                <div class="stat-sub stat-sub--pos">Target Profit +3.0% / SL -1.5%</div>
+                <div class="stat-sub stat-sub--pos">Target model +3.0% / SL -1.5% (asumsi simulasi)</div>
             </div>
             <div class="glass-card stat-card">
                 <div class="stat-lbl">Total WIN / LOSS</div>
                 <div id="stat-win-loss" class="stat-val stat-val--sm">—</div>
-                <div class="stat-sub">Audit-Confirmed Signals</div>
+                <div class="stat-sub">Sinyal Simulasi Terkonfirmasi</div>
             </div>
             <div class="glass-card stat-card">
                 <div class="stat-lbl">Cumulative Profit (%)</div>
@@ -280,10 +298,14 @@
         <!-- Equity Curve Chart -->
         <div class="panel-card glass-card">
             <div class="panel-hd">
-                <h4 class="panel-title">Equity Curve Growth Chart (Cumulative %)</h4>
-                <span class="panel-note">Historical Signal Activity</span>
+                <h3 class="panel-title">Equity Curve Simulasi (Kumulatif %)</h3>
+                <span class="panel-note">Aktivitas sinyal historis · Simulasi</span>
             </div>
-            <div id="audit-equity-chart" class="panel-chart"></div>
+            <div class="chart-legend" aria-label="Legenda equity curve">
+                <span><span class="lg-swatch" style="background:#0051C3"></span>Equity kumulatif simulasi (%)</span>
+            </div>
+            <div id="audit-equity-chart" class="panel-chart sim-watermark" role="img" aria-label="Grafik equity curve simulasi. Nilai kumulatif tersedia pada kartu statistik di atas; bukan hasil nyata."></div>
+            <p id="equity-summary" class="legal-microcopy sr-only" aria-live="polite"></p>
         </div>
 
         <!-- Monthly Recap Table -->
@@ -292,7 +314,7 @@
                 <h3>Monthly Performance Recap</h3>
                 <p>Breakdown of signal accuracy and monthly returns</p>
             </div>
-            <button id="toggle-monthly-btn" class="btn-scan btn-toggle" onclick="toggleMonthlyRecap()">
+            <button id="toggle-monthly-btn" class="btn-scan btn-toggle" onclick="toggleMonthlyRecap()" aria-expanded="false" aria-controls="monthly-recap-table">
                 View More ↓
             </button>
         </div>
@@ -326,7 +348,7 @@
                 <h3>Daily Signal Audit Log</h3>
                 <p>Individual history of registered signals audited by the system</p>
             </div>
-            <button id="toggle-audit-btn" class="btn-scan btn-toggle" onclick="toggleAuditLog()">
+            <button id="toggle-audit-btn" class="btn-scan btn-toggle" onclick="toggleAuditLog()" aria-expanded="false" aria-controls="audit-table">
                 View More ↓
             </button>
         </div>
@@ -338,7 +360,7 @@
                             <th scope="col">Audit / Trading Date</th>
                             <th scope="col">Stock</th>
                             <th scope="col">Entry Price</th>
-                            <th scope="col">Target Profit</th>
+                            <th scope="col">Target Model (sim)</th>
                             <th scope="col">Stop Loss</th>
                             <th scope="col">Quant Score</th>
                             <th scope="col">Audit Status</th>
@@ -357,17 +379,17 @@
 
 
         <!-- Risk -->
-        <div class="risk-banner glass-card" role="note">
+        <div class="risk-banner glass-card" role="note" aria-label="Peringatan risiko">
             <div class="risk-icon" aria-hidden="true">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
             <div class="risk-body">
-                <h4>Risk Management</h4>
-                <p>Quantitative recommendations are analytical tools — not guaranteed profit advice.</p>
+                <h3>Manajemen Risiko — Bukan Nasihat Investasi</h3>
+                <p>Konten ini riset kuantitatif untuk edukasi — BUKAN nasihat/rekomendasi investasi. Saham berisiko rugi. Kinerja masa lalu tidak menjamin hasil. Keputusan &amp; risiko milik Anda (DYOR). AKSA tidak terafiliasi sekuritas mana pun; skor = output statistik, bukan jaminan.</p>
                 <div class="risk-pills">
-                    <span class="rpill"><span class="rpill-lbl">BUY</span> Tomorrow's Open Price</span>
+                    <span class="rpill"><span class="rpill-lbl">SINYAL</span> Acuan harga pembukaan esok hari</span>
                     <span class="rpill"><span class="rpill-lbl red">STOP LOSS</span> –1.5%</span>
-                    <span class="rpill"><span class="rpill-lbl green">TAKE PROFIT</span> +3.0%</span>
+                    <span class="rpill"><span class="rpill-lbl green">TARGET MODEL</span> +3.0%</span>
                 </div>
             </div>
         </div>
@@ -376,7 +398,7 @@
 
 <!-- FOOTER -->
 <footer class="footer" role="contentinfo">
-    <p class="footer-note">For Educational Purpose</p>
+    <p class="footer-note">Riset kuantitatif untuk edukasi — bukan nasihat investasi. Saham berisiko rugi. Keputusan &amp; risiko milik Anda (DYOR).</p>
 </footer>
 
 <script src="js/app.js?v=27"></script>
@@ -389,6 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 document.querySelectorAll('a[href="/"], a[href="index.html"]').forEach(function(link) {
     link.addEventListener('click', function(e) {
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
         e.preventDefault();
         var targetUrl = this.getAttribute('href');
         document.body.classList.remove('page-loaded');

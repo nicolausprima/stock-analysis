@@ -1,14 +1,13 @@
-import os
-import pytest
-from pathlib import Path
 import sys
+from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.collector.openbb_provider import OpenBBProvider
 from src.agents.multi_agent_system import MultiAgentSystem
+from src.collector.openbb_provider import OpenBBProvider
+
 
 def test_openbb_provider_fallback():
     provider = OpenBBProvider()
