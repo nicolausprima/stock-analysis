@@ -60,6 +60,7 @@ CLAUDE.md
 DESIGN.md
 PROJECT_OVERVIEW.md
 AUDIT_REVIEW.md
+memory/
 
 # ── Docker ───────────────────────────────────────────────
 # (docker-compose.yml dan Dockerfile tetap di-track)
