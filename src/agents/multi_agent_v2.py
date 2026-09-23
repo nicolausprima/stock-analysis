@@ -1,8 +1,8 @@
-import os
-import json
-import requests
 import logging
-from typing import Dict, Any, List
+import os
+from typing import Any
+
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -45,31 +45,60 @@ def _call_llm(system: str, user: str, temperature: float = 0.2, timeout: int = 1
     return ""
 
 
-def _get_fundamental_context(ticker: str) -> str:
+def _get_fundamental_context(ticker: str, max_age_days: int = 120) -> str:
+    """Konteks fundamental point-in-time (AI-07): tolak snapshot basi/NULL.
+
+    get_fundamental kembalikan None untuk field missing (bukan 0.0:
+    PER=0 = sinyal cheap palsu). Snapshot lebih tua dari max_age_days
+    dianggap basi -> lapor tidak tersedia.
+    """
     try:
+        from datetime import date
+
         from src.database.duckdb_fundamental import get_fundamental
         from src.features.fundamental_features import compute_valuation_score
         fund = get_fundamental(ticker)
-        if fund and (fund.get("per") or fund.get("pbv")):
-            val = compute_valuation_score(
-                fund.get("per", 0), fund.get("pbv", 0),
-                fund.get("roe", 0), fund.get("debt_to_equity", 0)
-            )
-            notes = ", ".join(val.get("valuation_notes", [])) or "tanpa catatan khusus"
-            return (
-                f"PER {fund.get('per', 0):.1f}x, PBV {fund.get('pbv', 0):.2f}x, "
-                f"ROE {(fund.get('roe', 0)*100):.1f}%, Div Yield {(fund.get('dividend_yield', 0)*100):.2f}%. "
-                f"Skor valuasi {val.get('valuation_score', 0):+.1f}. Catatan: {notes}."
-            )
+        as_of = fund.get("as_of")
+        if as_of:
+            try:
+                age = (date.today() - date.fromisoformat(str(as_of)[:10])).days
+                if age > max_age_days:
+                    return (f"Data fundamental {ticker} basi (as-of {as_of}, "
+                            f"umur {age} hari): tidak dipakai untuk keputusan.")
+            except ValueError:
+                pass
+        per, pbv = fund.get("per"), fund.get("pbv")
+        if per is None and pbv is None:
+            return "Data fundamental belum tersedia di cache lokal."
+        val = compute_valuation_score(
+            per if per is not None else float("nan"),
+            pbv if pbv is not None else float("nan"),
+            fund.get("roe"), fund.get("debt_to_equity")
+        )
+        notes = ", ".join(val.get("valuation_notes", [])) or "tanpa catatan khusus"
+        per_s = f"{per:.1f}x" if per is not None else "n/a"
+        pbv_s = f"{pbv:.2f}x" if pbv is not None else "n/a"
+        roe = fund.get("roe")
+        roe_s = f"{(roe * 100):.1f}%" if roe is not None else "n/a"
+        dy = fund.get("dividend_yield")
+        dy_s = f"{(dy * 100):.2f}%" if dy is not None else "n/a"
+        return (
+            f"PER {per_s}, PBV {pbv_s}, ROE {roe_s}, Div Yield {dy_s}. "
+            f"Skor valuasi {val.get('valuation_score', 0):+.1f}. Catatan: {notes}."
+        )
     except Exception:
         pass
     return "Data fundamental belum tersedia di cache lokal."
 
 
-def _get_shap_context(ticker: str, features: Dict[str, Any]) -> str:
+def _get_shap_context(ticker: str, features: dict[str, Any]) -> str:
     try:
         import pandas as pd
-        from src.explainability.shap_explainer import explain_single_prediction, _get_feature_columns
+
+        from src.explainability.shap_explainer import (
+            _get_feature_columns,
+            explain_single_prediction,
+        )
         cols = _get_feature_columns()
         clean_row = {}
         for c in cols:
@@ -85,10 +114,12 @@ def _get_shap_context(ticker: str, features: Dict[str, Any]) -> str:
                     val = features.get("atr") or features.get("atr_14")
                 elif c == "MACD_Diff":
                     val = features.get("macd_diff")
+            # AI-06: missing -> NaN (explain_single_prediction menolak),
+            # bukan 0.0 (RSI=0/MACD=0 palsu).
             try:
-                clean_row[c] = float(val or 0.0)
+                clean_row[c] = float(val) if val is not None else float("nan")
             except (ValueError, TypeError):
-                clean_row[c] = 0.0
+                clean_row[c] = float("nan")
 
         df = pd.DataFrame([clean_row])
         shp = explain_single_prediction(ticker, df)
@@ -104,7 +135,7 @@ def _get_shap_context(ticker: str, features: Dict[str, Any]) -> str:
 
 
 class FundamentalAnalystAgentV2:
-    def analyze(self, ticker: str, data: Dict[str, Any]) -> str:
+    def analyze(self, ticker: str, data: dict[str, Any]) -> str:
         fund_ctx = _get_fundamental_context(ticker)
         if _is_llm_configured():
             out = _call_llm(
@@ -117,7 +148,7 @@ class FundamentalAnalystAgentV2:
 
 
 class TechnicalAnalystAgentV2:
-    def analyze(self, data: Dict[str, Any]) -> str:
+    def analyze(self, data: dict[str, Any]) -> str:
         rsi = data.get("rsi", 50.0)
         macd = data.get("macd_signal", "BULLISH")
         trend = data.get("trend", "UPTREND")
@@ -131,7 +162,7 @@ class TechnicalAnalystAgentV2:
 
 
 class SentimentAnalystAgentV2:
-    def analyze(self, data: Dict[str, Any]) -> str:
+    def analyze(self, data: dict[str, Any]) -> str:
         status = data.get("sentiment_status", "NETRAL")
         impact = data.get("sentiment_impact", "NETRAL")
         highlights = data.get("sentiment_highlights", []) or []
@@ -147,7 +178,7 @@ class SentimentAnalystAgentV2:
 
 
 class AdversarialDebateAgentV2:
-    def debate(self, tech: str, fund: str, sent: str, macro: str, data: Dict[str, Any], rounds: int = 2) -> Dict[str, str]:
+    def debate(self, tech: str, fund: str, sent: str, macro: str, data: dict[str, Any], rounds: int = 2) -> dict[str, str]:
         ticker = data.get("ticker", "SAHAM").replace(".JK", "")
         prob = data.get("probability", 50.0)
         bull_ctx = f"{tech} {fund} {sent} {macro}"
@@ -175,7 +206,7 @@ class AdversarialDebateAgentV2:
 
 
 class RiskManagerAgentV2:
-    def evaluate(self, debate: Dict[str, str], data: Dict[str, Any], macro_mode: str = "NORMAL") -> Dict[str, Any]:
+    def evaluate(self, debate: dict[str, str], data: dict[str, Any], macro_mode: str = "NORMAL") -> dict[str, Any]:
         close = data.get("close_price", 1)
         target = data.get("target_price", 1)
         stop = data.get("stop_loss", 1)
@@ -206,7 +237,7 @@ class MultiAgentSystemV2:
         self.debate = AdversarialDebateAgentV2()
         self.risk = RiskManagerAgentV2()
 
-    def generate_consensus(self, data: Dict[str, Any], macro_info: Dict[str, Any] = None) -> Dict[str, Any]:
+    def generate_consensus(self, data: dict[str, Any], macro_info: dict[str, Any] | None = None) -> dict[str, Any]:
         macro_info = macro_info or {}
         macro_mode = macro_info.get("mode", "NORMAL")
         ticker = data.get("ticker", "SAHAM").replace(".JK", "")

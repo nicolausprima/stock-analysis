@@ -18,18 +18,20 @@ Penggunaan:
        python main_cli.py /chart ASII
 """
 
-import sys
+import contextlib
+import difflib
+import io
 import os
 import re
-import difflib
 import subprocess
+import sys
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
-import pandas as pd
+
 import numpy as np
-import yfinance as yf
-import contextlib
-import io
+import pandas as pd
+
+# S-6: yfinance mentah dilarang; semua download via dashboard.backend.yf_client.
 
 # Setup path agar dapat mengimpor seluruh modul di proyek
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -46,11 +48,10 @@ except Exception:
     pass
 
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
-from rich.text import Text
-from rich.columns import Columns
 from rich.prompt import Prompt
+from rich.table import Table
+from rich.text import Text
 
 console = Console()
 
@@ -106,9 +107,12 @@ def fetch_stock_data(ticker: str, period: str = "6mo") -> pd.DataFrame:
         pass
 
     # 2. Download via Yahoo Finance jika tidak ada di local DB
+    # S-6: via download_with_timeout (hard 25 dtk) agar CLI tak gantung.
     try:
+        from dashboard.backend.yf_client import download_with_timeout
+
         with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
-            df_yf = yf.download(yf_ticker, period=period, interval="1d", progress=False)
+            df_yf = download_with_timeout(yf_ticker, period=period, interval="1d", progress=False)
             if not df_yf.empty:
                 if isinstance(df_yf.columns, pd.MultiIndex):
                     df_yf.columns = df_yf.columns.get_level_values(0)
@@ -185,7 +189,6 @@ def calculate_indicators(df: pd.DataFrame) -> dict:
     low14 = low.rolling(14).min()
     high14 = high.rolling(14).max()
     stoch_k = 100 * ((close - low14) / (high14 - low14 + 1e-9))
-    stoch_d = stoch_k.rolling(3).mean()
     stoch_val = float(stoch_k.iloc[-1]) if pd.notna(stoch_k.iloc[-1]) else 50.0
 
     # Money Flow Index (MFI) Proxy
@@ -397,7 +400,11 @@ def cmd_analyze(ticker: str):
         is_leading = sector in leading_sectors
 
         # Multi-Agent Reasoning
-        from src.agents.multi_agent_system import TechnicalAnalystAgent, SentimentAnalystAgent, MacroContextAgent
+        from src.agents.multi_agent_system import (
+            MacroContextAgent,
+            SentimentAnalystAgent,
+            TechnicalAnalystAgent,
+        )
         
         tech_agent = TechnicalAnalystAgent()
         tech_reason = tech_agent.analyze({
@@ -484,7 +491,7 @@ def cmd_analyze(ticker: str):
     # Mini ASCII Chart
     chart_str = render_ascii_chart(ind["history"], height=6, width=45)
     console.print(Panel(chart_str, title=f"[dim]Grafik Tren Harga 30 Hari Terakhir: {clean_ticker}[/dim]", expand=False))
-    console.print("[dim]Tip: ketik [bold yellow]/sizing {0} <MODAL>[/bold yellow] untuk kalkulasi lot berdasarkan modal Anda.[/dim]\n".format(clean_ticker))
+    console.print(f"[dim]Tip: ketik [bold yellow]/sizing {clean_ticker} <MODAL>[/bold yellow] untuk kalkulasi lot berdasarkan modal Anda.[/dim]\n")
 
 
 def cmd_macro():
@@ -734,8 +741,7 @@ def execute_command(line: str) -> bool:
     cmd = parts[0].lower()
     args = parts[1:]
 
-    if cmd.startswith("/"):
-        cmd = cmd[1:]
+    cmd = cmd.removeprefix("/")
 
     if cmd in ["exit", "quit", "q"]:
         console.print("[bold cyan]Terima kasih telah menggunakan IDX Quant AI Terminal. Sampai jumpa![/bold cyan]")

@@ -1,14 +1,17 @@
 import json
 import os
-import time
-from datetime import datetime, timedelta, timezone
-import pandas as pd
-import numpy as np
-import yfinance as yf
-import joblib
-from pathlib import Path
 import sys
 import threading
+import time
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import joblib
+import numpy as np
+import pandas as pd
+
+from dashboard.backend.yf_client import download_with_timeout
+
 
 def _get_wib_now():
     """Mengembalikan datetime saat ini dalam WIB (UTC+7) yang akurat di mana pun server di-deploy."""
@@ -20,14 +23,15 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.config import TICKERS, CACHE_FILE, PROJECT_ROOT
-from src.collector.batch_collector import download_universe_in_batches
-from src.database.market_db import get_ticker_history_from_db, get_all_histories_from_db
-from src.features.technical_indicators import add_technical_indicators
-from src.features.embedding import extract_chart_feature_embeddings
+from dashboard.backend.routes.audit import save_signals_to_db
 from dashboard.backend.routes.features import derive_signals, generate_reason
 from dashboard.backend.routes.sentiment_filter import apply_asymmetric_sentiment_filter
-from dashboard.backend.routes.audit import save_signals_to_db
+from src.collector.batch_collector import download_universe_in_batches
+from src.config import CACHE_FILE, PROJECT_ROOT, TICKERS
+from src.database.market_db import get_all_histories_from_db, get_ticker_history_from_db
+from src.features.embedding import extract_chart_feature_embeddings
+from src.features.technical_indicators import add_technical_indicators
+
 
 def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, save_to_json=True, save_to_db=True):
     """
@@ -77,11 +81,11 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         if macro_eval.get('mode') == 'BLOCK':
             print(f"[MACRO GUARD] Market risk-off active ({mode_text}). Menerapkan filter ketat High Conviction (Prob >= 75%) & alokasi defensif.")
     except Exception as e:
-        print(f"[WARNING] Gagal mengevaluasi IHSG Macro Agent: {str(e)}")
+        print(f"[WARNING] Gagal mengevaluasi IHSG Macro Agent: {e!s}")
 
     if not skip_download:
         try:
-            ihsg = yf.download('^JKSE', period='100d', progress=False)
+            ihsg = download_with_timeout('^JKSE', period='100d', progress=False)
             if isinstance(ihsg.columns, pd.MultiIndex):
                 ihsg_close = ihsg['Close'].iloc[:, 0]
             else:
@@ -90,7 +94,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             if ihsg_returns.index.tz is not None:
                 ihsg_returns.index = ihsg_returns.index.tz_localize(None)
         except Exception as e:
-            print(f"[WARNING] Gagal download data IHSG returns: {str(e)}")
+            print(f"[WARNING] Gagal download data IHSG returns: {e!s}")
 
     all_latest = []
     
@@ -131,15 +135,19 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         df['Return_3d'] = df['Close'].pct_change(3, fill_method=None)
         df['Return_5d'] = df['Close'].pct_change(5, fill_method=None)
         df['Day_of_Week'] = df.index.dayofweek
-        
+
         if not ihsg_returns.empty:
             if df.index.tz is not None:
                 df.index = df.index.tz_localize(None)
             df = df.join(ihsg_returns, how='left')
-            df['IHSG_Return'] = df['IHSG_Return'].fillna(0)
+            # Kalender libur beda: benchmark flat HANYA kolom IHSG (AI-06).
+            if 'IHSG_Return' in df.columns:
+                df['IHSG_Return'] = df['IHSG_Return'].fillna(0)
+            else:
+                df['IHSG_Return'] = 0.0
         else:
             df['IHSG_Return'] = 0.0
-            
+
         df['Ticker'] = ticker
         df['_raw_close'] = last_close
         
@@ -153,21 +161,32 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
 
     combined_df = pd.concat(all_latest)
     combined_df.replace([np.inf, -np.inf], np.nan, inplace=True)
-    combined_df.fillna(0, inplace=True)
+    # AI-06: TANPA fillna(0). Baris warm-up/missing ditolak per-ticker di
+    # bawah (skip), bukan diisi nol (RSI=0 = sinyal oversold palsu).
 
     # Ekstraksi Feature Embeddings
     embed_df = extract_chart_feature_embeddings(combined_df)
-    
-    # Matriks Fitur X
-    X = pd.DataFrame(0.0, index=combined_df.index, columns=expected_cols)
-    for col in expected_cols:
-        if col in combined_df.columns:
-            X[col] = combined_df[col].astype(float)
-        elif col in embed_df.columns:
-            X[col] = embed_df[col].astype(float)
-            
-    X.replace([np.inf, -np.inf], np.nan, inplace=True)
-    X.fillna(0, inplace=True)
+
+    # Matriks Fitur X — skema + urutan = expected_cols (AI-01).
+    # Ticker warm-up/missing (NaN) di-skip, bukan di-zero-fill.
+    from src.screener import build_serve_matrix
+    ok_idx = []
+    for idx in combined_df.index:
+        row = combined_df.loc[[idx]]
+        emb = embed_df.loc[[idx]] if idx in embed_df.index else embed_df.iloc[0:0]
+        try:
+            build_serve_matrix(row, emb, expected_cols)
+            ok_idx.append(idx)
+        except ValueError:
+            continue
+    if not ok_idx:
+        print("[WARNING] Semua ticker warm-up/missing: tidak ada prediksi.")
+        return {"status": "error", "message": "All tickers in warm-up"}
+    combined_df = combined_df.loc[ok_idx]
+    embed_df = embed_df.loc[combined_df.index]
+    X = build_serve_matrix(combined_df, embed_df, expected_cols)
+    assert list(X.columns) == list(expected_cols), \
+        f"Serve/train schema mismatch: serve={list(X.columns)} vs train={list(expected_cols)}"
 
     X_scaled = scaler.transform(X)
     X_scaled_df = pd.DataFrame(X_scaled, index=X.index, columns=X.columns)
@@ -235,12 +254,16 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     today_audit = {}
     recap = {}
     try:
-        from dashboard.backend.routes.audit import run_audit, get_audit_recap, get_today_audit_summary
+        from dashboard.backend.routes.audit import (
+            get_audit_recap,
+            get_today_audit_summary,
+            run_audit,
+        )
         run_audit()
         today_audit = get_today_audit_summary()
         recap = get_audit_recap()
     except Exception as ae:
-        print(f"[AUDIT] Warning running pre-scan audit: {str(ae)}")
+        print(f"[AUDIT] Warning running pre-scan audit: {ae!s}")
 
     # 4. Terapkan Asymmetric Risk Filter & Score Booster untuk sinyal esok hari
     filtered_candidates = apply_asymmetric_sentiment_filter(candidates)
@@ -269,11 +292,11 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             from src.notifications.telegram_bot import send_after_market_audit_broadcast
             send_after_market_audit_broadcast(recap, new_recommendations=results, today_audit=today_audit, macro_eval=macro_eval)
         except Exception as te:
-            print(f"[TELEGRAM] Error sending scheduler broadcast: {str(te)}")
+            print(f"[TELEGRAM] Error sending scheduler broadcast: {te!s}")
     else:
         print("[INFO] Telegram broadcast dilewati (dipanggil dari UI / skip_download mode).")
 
-    print(f"[SUCCESS] [SCHEDULER 16:05 WIB] Selesai! Data disinkronkan, sinyal di-audit & Telegram Broadcast tersampaikan.")
+    print("[SUCCESS] [SCHEDULER 16:05 WIB] Selesai! Data disinkronkan, sinyal di-audit & Telegram Broadcast tersampaikan.")
     return payload
 
 def run_morning_premarket_job():
@@ -294,7 +317,7 @@ def run_morning_premarket_job():
                 print("[SUCCESS] [SCHEDULER 08:30 WIB] Morning Radar berhasil dikirim ke Telegram!")
                 return res
         except Exception as e:
-            print(f"[ERROR] [SCHEDULER 08:30 WIB] Gagal membaca cache JSON: {str(e)}")
+            print(f"[ERROR] [SCHEDULER 08:30 WIB] Gagal membaca cache JSON: {e!s}")
 
     print("[WARNING] [SCHEDULER 08:30 WIB] Cache JSON rekomendasi belum tersedia.")
     return {"status": "error", "message": "Cache not available"}
@@ -306,15 +329,15 @@ def run_midday_recap_job():
     """
     print("[SCHEDULER 12:00 WIB] Memulai pengiriman Midday Market Recap ke Telegram...")
     try:
-        from src.notifications.telegram_bot import send_midday_recap_broadcast
         from dashboard.backend.routes.audit import get_today_audit_summary, run_audit
+        from src.notifications.telegram_bot import send_midday_recap_broadcast
         run_audit()
         today_info = get_today_audit_summary()
         res = send_midday_recap_broadcast(today_info)
         print("[SUCCESS] [SCHEDULER 12:00 WIB] Midday Market Recap berhasil dikirim ke Telegram!")
         return res
     except Exception as e:
-        print(f"[ERROR] [SCHEDULER 12:00 WIB] Gagal menjalankan Midday Recap: {str(e)}")
+        print(f"[ERROR] [SCHEDULER 12:00 WIB] Gagal menjalankan Midday Recap: {e!s}")
         return {"status": "error", "message": str(e)}
 
 def run_bsjp_radar_job():
@@ -332,7 +355,7 @@ def run_bsjp_radar_job():
             print("[SUCCESS] [SCHEDULER 15:30 WIB] BSJP Radar berhasil dikirim ke Telegram!")
             return b_res
     except Exception as e:
-        print(f"[ERROR] [SCHEDULER 15:30 WIB] Gagal menjalankan BSJP Radar: {str(e)}")
+        print(f"[ERROR] [SCHEDULER 15:30 WIB] Gagal menjalankan BSJP Radar: {e!s}")
     return {"status": "error", "message": "BSJP scan failed"}
 
 def start_background_scheduler():
@@ -361,7 +384,7 @@ def start_background_scheduler():
                     try:
                         job_fn()
                     except Exception as e:
-                        print(f"[SCHEDULER] Error running {sched_time} job: {str(e)}")
+                        print(f"[SCHEDULER] Error running {sched_time} job: {e!s}")
 
             time.sleep(20)
             

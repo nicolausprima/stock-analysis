@@ -1,16 +1,17 @@
-import os
-import sys
-import pandas as pd
-import numpy as np
-import yfinance as yf
-import joblib
 import logging
+import sys
 from pathlib import Path
+
+import joblib
+import numpy as np
+import pandas as pd
+
+from dashboard.backend.yf_client import download_with_timeout
 
 # Setup Path agar bisa membaca src.config
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from src.config import TICKERS, PRICE_DATA_DIR, PROCESSED_DATA_DIR, PROFIT_THRESHOLD
+from src.config import TICKERS
 from src.features.technical_indicators import add_technical_indicators
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -18,7 +19,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def get_latest_data(ticker: str, ihsg_returns: pd.DataFrame) -> pd.DataFrame:
     """Download 100 hari terakhir dan hitung fitur untuk saham tertentu."""
     # Download 100 hari terakhir agar SMA_50 bisa dihitung
-    df = yf.download(ticker, period='100d', progress=False)
+    df = download_with_timeout(ticker, period='100d', progress=False)
     if df.empty:
         return pd.DataFrame()
         
@@ -42,7 +43,11 @@ def get_latest_data(ticker: str, ihsg_returns: pd.DataFrame) -> pd.DataFrame:
     if df.index.tz is not None:
         df.index = df.index.tz_localize(None)
     df = df.join(ihsg_returns, how='left')
-    df['IHSG_Return'] = df['IHSG_Return'].fillna(0)
+    # Kalender libur beda: benchmark flat HANYA kolom IHSG, bukan indikator.
+    if 'IHSG_Return' in df.columns:
+        df['IHSG_Return'] = df['IHSG_Return'].fillna(0)
+    else:
+        df['IHSG_Return'] = 0.0
     
     # 5. Ticker identitas
     df['Ticker'] = ticker
@@ -52,7 +57,35 @@ def get_latest_data(ticker: str, ihsg_returns: pd.DataFrame) -> pd.DataFrame:
     
     return latest_row
 
-from dashboard.backend.routes.features import generate_reason
+def build_serve_matrix(combined_df: pd.DataFrame, embed_df: pd.DataFrame,
+                      expected_cols) -> pd.DataFrame:
+    """Bangun matriks serve sesuai urutan skema train (AI-01).
+
+    - Kolom = expected_cols berurutan persis; tanpa kolom Tick_*.
+    - NaN indikator (warm-up) DITOLAK via ValueError, bukan fill-zero:
+      RSI=0/MACD=0 palsu lebih berbahaya daripada skip ticker.
+    """
+    expected_cols = list(expected_cols)
+    if any(c.startswith("Tick_") for c in expected_cols):
+        raise ValueError("Train schema must not contain Tick_* one-hot columns")
+    missing = [c for c in expected_cols
+               if c not in combined_df.columns and c not in embed_df.columns]
+    if missing:
+        raise ValueError(f"Serve data missing train columns: {missing}")
+    X = pd.DataFrame(np.nan, index=combined_df.index,
+                     columns=expected_cols, dtype=float)
+    for col in expected_cols:
+        if col in combined_df.columns:
+            X[col] = combined_df[col].astype(float).values
+        else:
+            X[col] = embed_df[col].astype(float).values
+    X.replace([np.inf, -np.inf], np.nan, inplace=True)
+    bad = X.columns[X.isna().any()].tolist()
+    if bad:
+        raise ValueError(
+            f"Warm-up/missing NaN in serve features {bad}: "
+            "skip ticker ini, jangan fill-zero")
+    return X
 
 def main():
     logging.info("=== 🚀 LIVE STOCK SCREENER INITIALIZED ===")
@@ -71,7 +104,7 @@ def main():
     
     # Fetch IHSG
     logging.info("Mengunduh data IHSG (^JKSE)...")
-    ihsg = yf.download('^JKSE', period='100d', progress=False)
+    ihsg = download_with_timeout('^JKSE', period='100d', progress=False)
     if isinstance(ihsg.columns, pd.MultiIndex):
         close_col = ('Close', '^JKSE') if ('Close', '^JKSE') in ihsg.columns else ihsg.columns[0]
         ihsg_close = ihsg[close_col]
@@ -95,30 +128,42 @@ def main():
         logging.error("Gagal mendapatkan data terkini.")
         return
         
+    from dashboard.backend.routes.features import generate_reason
+    from src.features.embedding import extract_chart_feature_embeddings
+
     combined_df = pd.concat(all_latest)
-    
-    # === PREPROCESSING (Pencocokan Kolom dengan X_train) ===
-    # Daftar kolom fitur numerik (sesuai urutan persis saat training)
-    numeric_cols = ['Close', 'High', 'Low', 'Open', 'Volume', 'OBV', 'ADI', 'VWAP', 'RSI_14', 'MACD', 'MACD_Signal', 'MACD_Diff', 'BB_High', 'BB_Low', 'BB_Mid', 'ATR_14', 'SMA_20', 'SMA_50', 'Return_1d', 'Return_2d', 'Return_3d', 'Return_5d', 'Day_of_Week', 'IHSG_Return']
-    
-    # Siapkan DataFrame akhir dengan urutan kolom numerik + One Hot Ticker
-    final_cols = numeric_cols + [f"Tick_{t}" for t in sorted(TICKERS)]
-    X = pd.DataFrame(0.0, index=combined_df.index, columns=final_cols)
-    
-    # Isi nilai numerik
-    for col in numeric_cols:
-        if col in combined_df.columns:
-            X[col] = combined_df[col].astype(float)
-            
-    # Isi nilai One-Hot Ticker (1 untuk saham yang bersangkutan, 0 untuk yang lain)
-    for i, row in combined_df.iterrows():
-        tick_col = f"Tick_{row['Ticker']}"
-        if tick_col in X.columns:
-            X.loc[i, tick_col] = 1.0
-            
-    # Menghindari error apabila ada nilai kosong (inf/NaN) karena delay data Yahoo Finance
-    X.replace([np.inf, -np.inf], np.nan, inplace=True)
-    X.fillna(0, inplace=True) # Paksa isi 0 jika ada indikator gagal kalkulasi
+
+    # === PREPROCESSING (AI-01: parity ke skema train, embedding bukan Tick_) ===
+    if hasattr(scaler, 'feature_names_in_'):
+        expected_cols = list(scaler.feature_names_in_)
+    else:
+        raise RuntimeError(
+            "Scaler tanpa feature_names_in_: retrain via notebook + "
+            "build_features.write_model_card sebelum serve")
+    if any(c.startswith("Tick_") for c in expected_cols):
+        raise RuntimeError(
+            "Artefak scaler masih skema Tick_* basi: retrain ke skema "
+            "embedding lalu serve ulang")
+    embed_df = extract_chart_feature_embeddings(combined_df)
+    # Tolak warm-up NaN (AI-06): skip ticker, bukan fill-zero.
+    ok_mask = []
+    for idx in combined_df.index:
+        row = combined_df.loc[[idx]]
+        emb = embed_df.loc[[idx]] if idx in embed_df.index else embed_df.iloc[0:0]
+        try:
+            build_serve_matrix(row, emb, expected_cols)
+            ok_mask.append(True)
+        except ValueError as ve:
+            logging.warning("Skip warm-up/missing %s: %s", idx, ve)
+            ok_mask.append(False)
+    combined_df = combined_df.loc[ok_mask]
+    embed_df = embed_df.loc[combined_df.index]
+    if combined_df.empty:
+        logging.error("Semua ticker warm-up/missing: tidak ada prediksi.")
+        return
+    X = build_serve_matrix(combined_df, embed_df, expected_cols)
+    assert list(X.columns) == list(expected_cols), \
+        f"Serve/train schema mismatch: serve={list(X.columns)} vs train={list(expected_cols)}"
     
     # Scaling
     X_scaled = scaler.transform(X)
@@ -154,7 +199,7 @@ def main():
     print(" PENGINGAT (RISK MANAGEMENT):")
     print(" 1. Beli di harga Open besok pagi.")
     print(" 2. Pasang Stop Loss (Jual Rugi) otomatis di -1.0% / -1.5%.")
-    print(" 3. Take Profit jika sudah mencapai target +1.5% intraday.")
+    print(" 3. Take Profit jika sudah mencapai target +3.0% intraday (horizon model).")
     print("="*55 + "\n")
 
 if __name__ == "__main__":

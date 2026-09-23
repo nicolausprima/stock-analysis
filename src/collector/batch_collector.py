@@ -1,16 +1,19 @@
-import time
-import pandas as pd
-import yfinance as yf
-from pathlib import Path
 import sys
+import time
+from pathlib import Path
+
+import pandas as pd
+
+from dashboard.backend.yf_client import download_with_timeout
 
 # Absolute import resolution
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.config import TICKERS, BATCH_SIZE, BATCH_DELAY_SECONDS
-from src.database.market_db import save_daily_prices, init_market_db
+from src.config import BATCH_DELAY_SECONDS, BATCH_SIZE, TICKERS
+from src.database.market_db import init_market_db, save_daily_prices
+
 
 def download_universe_in_batches(tickers_list=None, batch_size=BATCH_SIZE, delay_seconds=BATCH_DELAY_SECONDS):
     """
@@ -32,7 +35,7 @@ def download_universe_in_batches(tickers_list=None, batch_size=BATCH_SIZE, delay
     for idx, chunk in enumerate(chunks):
         ticker_str = " ".join(chunk)
         try:
-            df_batch = yf.download(ticker_str, period="100d", progress=False, group_by="ticker", threads=True)
+            df_batch = download_with_timeout(ticker_str, period="100d", group_by="ticker", threads=False)
             
             records_to_save = []
             
@@ -50,10 +53,9 @@ def download_universe_in_batches(tickers_list=None, batch_size=BATCH_SIZE, delay
                             break
                         if t in df_batch.columns.levels[0]:
                             df_single = df_batch[t].dropna(how="all").copy()
-                            if not df_single.empty and df_single['Close'].notna().any():
-                                if 'Volume' in df_single.columns and df_single['Volume'].iloc[-5:].sum() > 0:
-                                    df_single["Ticker"] = t
-                                    records_to_save.append(df_single)
+                            if not df_single.empty and df_single['Close'].notna().any() and 'Volume' in df_single.columns and df_single['Volume'].iloc[-5:].sum() > 0:
+                                df_single["Ticker"] = t
+                                records_to_save.append(df_single)
                     except Exception:
                         continue
                         
@@ -65,7 +67,7 @@ def download_universe_in_batches(tickers_list=None, batch_size=BATCH_SIZE, delay
             print(f"  [OK] Batch {idx + 1}/{len(chunks)} ({len(chunk)} saham) tersimpan di SQLite DB.")
             
         except Exception as e:
-            print(f"  [ERROR] Gagal pada Batch {idx + 1}: {str(e)}")
+            print(f"  [ERROR] Gagal pada Batch {idx + 1}: {e!s}")
             
         # Sleep delay di antara batch requests
         if idx < len(chunks) - 1:

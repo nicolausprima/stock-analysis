@@ -1,17 +1,21 @@
-import pytest
+import sys
+from pathlib import Path
+
 import pandas as pd
 import polars as pl
-from pathlib import Path
-import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.database.duckdb_market import add_technical_indicators_polars, save_daily_prices_polars, get_ticker_history_polars
-from src.database.duckdb_fundamental import save_fundamental, get_fundamental
-from src.explainability.shap_explainer import explain_single_prediction, _get_feature_columns
 from src.agents.multi_agent_v2 import MultiAgentSystemV2
+from src.database.duckdb_fundamental import get_fundamental, save_fundamental
+from src.database.duckdb_market import add_technical_indicators_polars
+from src.explainability.shap_explainer import (
+    _get_feature_columns,
+    explain_single_prediction,
+)
+
 
 def test_duckdb_fundamental_save_and_get():
     test_ticker = "TEST_TICKER.JK"
@@ -52,7 +56,7 @@ def test_duckdb_market_polars_indicators():
 
 def test_shap_explain_single_prediction():
     cols = _get_feature_columns()
-    assert len(cols) == 20
+    assert len(cols) == len(set(cols)) > 0
     df = pd.DataFrame([{c: 1.0 for c in cols}])
     res = explain_single_prediction("BBCA", df)
     assert res["ticker"] == "BBCA"

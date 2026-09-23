@@ -1,14 +1,16 @@
 import sys
-import pandas as pd
-import yfinance as yf
 from pathlib import Path
+
+import pandas as pd
 
 # Absolute import resolution
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
+from dashboard.backend.yf_client import download_with_timeout
 from src.config import TICKER_LIST_FILE, get_tickers
+
 
 def clean_and_sync_ticker_universe():
     """
@@ -31,7 +33,7 @@ def clean_and_sync_ticker_universe():
         chunk = tickers[i:i + batch_size]
         chunk_str = " ".join(chunk)
         try:
-            df = yf.download(chunk_str, period="5d", progress=False, group_by="ticker", threads=True)
+            df = download_with_timeout(chunk_str, period="5d", progress=False, group_by="ticker", threads=False)
             for t in chunk:
                 try:
                     if len(chunk) == 1:
@@ -48,9 +50,9 @@ def clean_and_sync_ticker_universe():
                 except Exception:
                     delisted_or_suspended.append((t, "Download Error"))
         except Exception as e:
-            print(f"⚠️ Error batch {i}: {str(e)}")
+            print(f"⚠️ Error batch {i}: {e!s}")
 
-    print(f"\n[HASIL CLEANUP]")
+    print("\n[HASIL CLEANUP]")
     print(f"✅ Saham Aktif Ditahankan: {len(active_tickers)}")
     print(f"🚫 Saham Suspended / Delisted Dieliminasi: {len(delisted_or_suspended)}")
 

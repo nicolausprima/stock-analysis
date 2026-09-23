@@ -3,11 +3,56 @@ services:
     build: .
     container_name: stock-ai-dashboard
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     env_file:
       - .env
-    volumes:
-      - .:/app
     environment:
       - PYTHONUNBUFFERED=1
-    command: uvicorn dashboard.backend.main:app --host 0.0.0.0 --port 8000
+      - APP_ENV=${APP_ENV:-production}
+      # Scheduler & Telegram listener MATI di web process secara default.
+      # Jalankan worker terpisah (lihat service scheduler/worker di bawah) agar
+      # multi-replica tidak mengeksekusi job/polling berkali-kali.
+      - ENABLE_SCHEDULER=false
+      - ENABLE_TELEGRAM_LISTENER=false
+    # Jangan mount seluruh source ke /app (menimpa image & melebar surface).
+    # Hanya persist data & logs.
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    command: uvicorn dashboard.backend.main:app --host 0.0.0.0 --port 8000 --workers 2 --timeout-keep-alive 30 --limit-concurrency 100
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/telegram/status', timeout=4).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # Contoh worker terpisah (jalankan manual: docker compose --profile worker up scheduler):
+  # scheduler:
+  #   build: .
+  #   profiles: ["worker"]
+  #   env_file: [.env]
+  #   environment:
+  #     - ENABLE_SCHEDULER=true
+  #     - ENABLE_TELEGRAM_LISTENER=false
+  #   volumes: [./data:/app/data, ./logs:/app/logs]
+  #   command: python -m src.scheduler.daily_scheduler
+  #   user: "10001:10001"
+  #   restart: unless-stopped

@@ -1,16 +1,30 @@
-import os
 import json
+import os
+import re
+
 import requests
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
 from dotenv import load_dotenv
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, field_validator
 
 from dashboard.backend.security import (
-    validate_ticker,
-    sanitize_text,
-    sanitize_mapping,
     require_api_key,
+    sanitize_mapping,
+    sanitize_text,
+    validate_ticker,
 )
+
+DISCLAIMER_F4 = (
+    "Konten ini riset kuantitatif untuk edukasi — BUKAN nasihat/rekomendasi investasi. "
+    "Saham berisiko rugi. Kinerja masa lalu tidak menjamin hasil. "
+    "Keputusan & risiko milik Anda (DYOR)."
+)
+RISK_SENTENCE = (
+    "Ingat: setiap keputusan beli/jual mengandung risiko rugi dan "
+    "kinerja masa lalu tidak menjamin hasil di masa depan."
+)
+
+_SAFE_STR_RE = re.compile(r"^[A-Za-z0-9 .+()%/-]{1,60}$")
 
 load_dotenv()
 
@@ -22,7 +36,7 @@ def format_idr(value: float) -> str:
     Menggantikan format spec ':,.0f' gaya US (koma) yang salah konteks untuk
     narasi BEI berbahasa Indonesia (Rp 10,250 -> Rp 10.250).
     """
-    return f"{int(round(value)):,}".replace(",", ".")
+    return f"{round(value):,}".replace(",", ".")
 
 # Konfigurasi Omniroute
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "http://127.0.0.1:20128/v1")
@@ -44,22 +58,50 @@ class NarasiRequest(BaseModel):
     sentiment_status: str = "NETRAL"
     sentiment_impact: str = "NETRAL"
 
-def build_fallback_narrative(req: NarasiRequest) -> str:
-    """Rangkuman analisis kuantitatif saat LLM proxy tidak tersedia.
+    @field_validator("ticker")
+    @classmethod
+    def _valid_ticker(cls, v: str) -> str:
+        return validate_ticker(v)
 
-    Sumber tunggal untuk semua jalur fallback di /narasi (sebelumnya blok ini
-    diduplikasi dua kali). Output di-escape karena dirender frontend via innerHTML.
-    """
-    rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
-    tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
-    sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
-    ticker_clean = validate_ticker(req.ticker).replace(".JK", "")
-    narrative = (
-        f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
-        f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
-        f"Target profit ditetapkan pada Rp {format_idr(req.target_price)} (+{tp_pct:.1f}%) dan Stop Loss pada Rp {format_idr(req.stop_loss)} ({sl_pct:.1f}%)."
-    )
-    return sanitize_text(narrative)
+    @field_validator("rsi")
+    @classmethod
+    def _clamp_rsi(cls, v: float) -> float:
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            raise ValueError("RSI harus angka 0-100")
+        if not 0 <= f <= 100:
+            raise ValueError("RSI harus 0-100")
+        return f
+
+    @field_validator("probability")
+    @classmethod
+    def _clamp_prob(cls, v: float) -> float:
+        try:
+            f = float(v)
+        except (TypeError, ValueError):
+            raise ValueError("probability harus angka 0-1 atau 0-100")
+        # Terima 0-1 (fraksi) atau 0-100 (persen), normalisasi ke persen.
+        if 0 <= f <= 1:
+            return f * 100
+        if 0 <= f <= 100:
+            return f
+        raise ValueError("probability harus 0-1 atau 0-100")
+
+    @field_validator("close_price", "target_price", "stop_loss")
+    @classmethod
+    def _positive_price(cls, v: float) -> float:
+        if float(v) <= 0:
+            raise ValueError("harga harus > 0")
+        return float(v)
+
+    @field_validator("macd_signal", "trend", "sentiment_status", "sentiment_impact")
+    @classmethod
+    def _safe_free_string(cls, v: str) -> str:
+        s = (v or "")[:60]
+        if not _SAFE_STR_RE.match(s):
+            raise ValueError("field string mengandung karakter tidak diizinkan")
+        return s
 
 def parse_and_clean_response(text: str) -> str:
     """Parse SSE streaming response dari Omniroute (data: {...} chunks)."""
@@ -81,8 +123,13 @@ def generate_narrative(request: Request, req: NarasiRequest):
     """Menghasilkan ulasan opini analisis teknikal & sentimen berita terpadu menggunakan model AI.
 
     [AUTH] Endpoint ini memanggil proxy LLM (berbiaya) -> wajib API key jika diset.
+    Response selalu transparan: {"source": "llm"|"fallback-quantitative", ...}
     """
     require_api_key(request)
+    from dashboard.backend.rate_limit import LLM_SEMAPHORE
+    if not LLM_SEMAPHORE.acquire(blocking=False):
+        from fastapi import HTTPException as _H
+        raise _H(status_code=429, detail="LLM sibuk (2 concurrent max). Coba lagi nanti.")
     url = f"{OPENAI_API_BASE}/chat/completions"
     headers = {
         "Authorization": f"Bearer {OPENAI_API_KEY}",
@@ -103,7 +150,8 @@ Berikan analisis terpadu (teknikal & sentimen berita) mengapa saham {ticker_clea
 - Sentimen Berita: {req.sentiment_status} ({req.sentiment_impact})
 - Skor Probabilitas AI Final: {req.probability:.1f}%
 
-Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat padat, profesional, dan meyakinkan. Sorot gabungan indikator teknikal dan dampak sentimen beritanya. Jangan tambahkan kata pembuka atau penutup.
+Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat padat dan profesional. Sorot gabungan indikator teknikal dan dampak sentimen beritanya. {RISK_SENTENCE}
+Jangan tambahkan kata pembuka atau penutup.
 """
 
     payload = {
@@ -116,19 +164,32 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
         response = requests.post(url, json=payload, headers=headers, timeout=120)
         if response.status_code == 200:
             narrative = sanitize_text(parse_and_clean_response(response.text))
-            return {"status": "success", "narasi": narrative}
-            
+            narrative = f"{narrative}\n\n{DISCLAIMER_F4}"
+            return {"status": "success", "narasi": narrative, "source": "llm", "is_sample": False, "stale": False, "disclaimer": DISCLAIMER_F4}
+
         # Jika gagal (misal docker network mapping mismatch), coba fallback ke localhost url
         if "host.docker.internal" in OPENAI_API_BASE:
             fallback_url = url.replace("host.docker.internal", "127.0.0.1")
             response = requests.post(fallback_url, json=payload, headers=headers, timeout=120)
             if response.status_code == 200:
                 narrative = sanitize_text(parse_and_clean_response(response.text))
-                return {"status": "success", "narasi": narrative}
-                
-        return {"status": "success", "narasi": build_fallback_narrative(req)}
-        
-    except Exception as e:
+                narrative = f"{narrative}\n\n{DISCLAIMER_F4}"
+                return {"status": "success", "narasi": narrative, "source": "llm", "is_sample": False, "stale": False, "disclaimer": DISCLAIMER_F4}
+
+        rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
+        tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
+        sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
+        ticker_clean = validate_ticker(req.ticker).replace(".JK", "")
+        fallback_narrative = (
+            f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
+            f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
+            f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+{tp_pct:.1f}%) dan Stop Loss pada Rp {req.stop_loss:,.0f} ({sl_pct:.1f}%)."
+            f"\n\n{DISCLAIMER_F4}"
+        )
+        return {"status": "success", "narasi": fallback_narrative, "source": "fallback-quantitative",
+                "is_sample": False, "stale": False, "fallback_reason": "llm-proxy-unreachable", "disclaimer": DISCLAIMER_F4}
+
+    except Exception:
         # Cobalah fallback ke localhost jika terjadi error koneksi
         if "host.docker.internal" in OPENAI_API_BASE:
             try:
@@ -136,13 +197,30 @@ Berikan ulasan terpadu dalam 2-3 kalimat singkat berbahasa Indonesia yang sangat
                 response = requests.post(fallback_url, json=payload, headers=headers, timeout=120)
                 if response.status_code == 200:
                     narrative = sanitize_text(parse_and_clean_response(response.text))
-                    return {"status": "success", "narasi": narrative}
-            except:
+                    return {"status": "success", "narasi": narrative, "source": "llm", "is_sample": False, "stale": False}
+            except Exception:  # network/proxy down -> fallback narasi kuantitatif
                 pass
 
         # Graceful fallback: Jika LLM proxy tidak dapat dijangkau (misal pada cloud deployment Render),
         # kembalikan narasi analisis kuantitatif terstruktur yang bersih tanpa error.
-        return {"status": "success", "narasi": build_fallback_narrative(req)}
+        rsi_label = "Oversold" if req.rsi < 40 else ("Overbought" if req.rsi > 70 else "Netral")
+        tp_pct = ((req.target_price - req.close_price) / req.close_price * 100) if req.close_price > 0 else 3.0
+        sl_pct = ((req.stop_loss - req.close_price) / req.close_price * 100) if req.close_price > 0 else -1.5
+        ticker_clean = validate_ticker(req.ticker).replace(".JK", "")
+        fallback_narrative = (
+            f"Saham {ticker_clean} menunjukkan momentum positif dengan RSI {req.rsi:.1f} ({rsi_label}) "
+            f"dan indikator MACD {req.macd_signal} pada tren {req.trend}. "
+            f"Target profit ditetapkan pada Rp {req.target_price:,.0f} (+{tp_pct:.1f}%) dan Stop Loss pada Rp {req.stop_loss:,.0f} ({sl_pct:.1f}%)."
+            f"\n\n{DISCLAIMER_F4}"
+        )
+        return {"status": "success", "narasi": fallback_narrative, "source": "fallback-quantitative",
+                "is_sample": False, "stale": False, "fallback_reason": "llm-error", "disclaimer": DISCLAIMER_F4}
+    finally:
+        try:
+            from dashboard.backend.rate_limit import LLM_SEMAPHORE as _sem
+            _sem.release()
+        except Exception:
+            pass
 
 @router.post("/narasi/multi-agent")
 def generate_multi_agent_consensus(request: Request, req: NarasiRequest):
@@ -167,12 +245,13 @@ def generate_multi_agent_consensus(request: Request, req: NarasiRequest):
         agent_system = MultiAgentSystemV2()
         consensus = agent_system.generate_consensus(req_dict, macro_info=macro_info)
         # Output agent mengandung teks turunan headline berita (konten eksternal)
-        # -> escape sebelum dirender frontend via innerHTML.
+        # -> escape SEMUA field string sebelum dirender frontend.
         if isinstance(consensus, dict):
-            consensus = sanitize_mapping(consensus, ["bull_case", "bear_case", "risk_verdict"])
-        return {"status": "success", "data": consensus}
+            str_fields = [k for k, v in consensus.items() if isinstance(v, str)]
+            consensus = sanitize_mapping(consensus, str_fields)
+        return {"status": "success", "data": consensus, "source": "multi-agent-v2"}
     except Exception as e:
-        print(f"[NARASI] Gagal menjalankan sistem Multi-Agent: {str(e)}")
+        print(f"[NARASI] Gagal menjalankan sistem Multi-Agent: {e!s}")
         raise HTTPException(
             status_code=500,
             detail="Gagal menjalankan sistem Multi-Agent. Silakan coba lagi nanti."

@@ -2,11 +2,14 @@
 DuckDB-backed market data store replacing SQLite for high-performance OLAP.
 Optimized for 700+ ticker IDX universe with vectorized operations.
 """
-import duckdb
-import pandas as pd
-import polars as pl
-from pathlib import Path
+import atexit
+import os
 import sys
+import threading
+from pathlib import Path
+
+import duckdb
+import polars as pl
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -17,21 +20,81 @@ from src.utils.paths import DATA_DIR
 DUCKDB_PATH = DATA_DIR / "stock_market.duckdb"
 
 _connection = None
+_connection_path = None
+_connection_lock = threading.Lock()
+# Serialisasi semua akses DuckDB: satu koneksi global tidak aman lintas thread
+# (register temp view + write bisa race scheduler vs API). Semua op publik
+# wajib lewat _db_lock. Nanti bisa diganti koneksi-per-thread bila perlu.
+_db_lock = threading.RLock()
+_db_path_override = None
+
+
+def set_market_db_path(path) -> None:
+    """Override lokasi file DuckDB market (dipakai test isolation)."""
+    global _db_path_override
+    _db_path_override = str(path) if path else None
+    close_connection()
+
+
+def _resolve_market_path() -> str:
+    _env = os.getenv("DUCKDB_MARKET_PATH", "").strip()
+    if _db_path_override:
+        return _db_path_override
+    if _env:
+        return _env
+    return str(DUCKDB_PATH)
+
 
 def get_duckdb_connection() -> duckdb.DuckDBPyConnection:
     """Get or create persistent DuckDB connection with optimized settings."""
-    global _connection
-    if _connection is None:
-        _connection = duckdb.connect(str(DUCKDB_PATH))
-        _connection.execute("PRAGMA enable_progress_bar=false")
-        _connection.execute("SET threads TO 4")
-        _connection.execute("SET memory_limit = '2GB'")
-        _init_schema()
-    return _connection
+    global _connection, _connection_path
+    with _connection_lock:
+        resolved = _resolve_market_path()
+        if _connection is None or _connection_path != resolved:
+            if _connection is not None:
+                try:
+                    _connection.close()
+                except Exception:
+                    pass
+                _connection = None
+            Path(resolved).parent.mkdir(parents=True, exist_ok=True)
+            _connection = duckdb.connect(resolved)
+            _connection_path = resolved
+            _connection.execute("PRAGMA enable_progress_bar=false")
+            _threads = os.getenv("DUCKDB_THREADS", "4")
+            _mem = os.getenv("DUCKDB_MEMORY_LIMIT", "2GB")
+            _connection.execute(f"SET threads TO {int(_threads)}")
+            _connection.execute(f"SET memory_limit = '{_mem}'")
+            # Timeout lock agar write berebut tidak gantung selamanya.
+            try:
+                _lock_timeout = float(os.getenv("DUCKDB_LOCK_TIMEOUT_SEC", "30") or 30)
+                _connection.execute(f"SET lock_timeout = '{max(_lock_timeout, 1):.0f}s'")
+            except Exception:
+                pass
+            # init schema inline untuk hindari rekursi lock
+            _connection.execute("""
+                CREATE TABLE IF NOT EXISTS daily_prices (
+                    ticker VARCHAR,
+                    date DATE,
+                    open DOUBLE,
+                    high DOUBLE,
+                    low DOUBLE,
+                    close DOUBLE,
+                    volume DOUBLE,
+                    PRIMARY KEY (ticker, date)
+                )
+            """)
+            _connection.execute("""
+                CREATE INDEX IF NOT EXISTS idx_daily_prices_date ON daily_prices(date)
+            """)
+            _connection.execute("""
+                CREATE INDEX IF NOT EXISTS idx_daily_prices_ticker ON daily_prices(ticker)
+            """)
+        return _connection
 
-def _init_schema():
+def _init_schema(_conn=None):
     """Initialize DuckDB schema for daily prices and features."""
-    conn = get_duckdb_connection()
+    conn = _conn or get_duckdb_connection()
     conn.execute("""
         CREATE TABLE IF NOT EXISTS daily_prices (
             ticker VARCHAR,
@@ -52,29 +115,51 @@ def _init_schema():
     """)
 
 def save_daily_prices_polars(df: pl.DataFrame):
-    """Save daily prices from Polars DataFrame to DuckDB (vectorized bulk insert)."""
+    """Save daily prices from Polars DataFrame to DuckDB (vectorized bulk insert).
+
+    Serialisasi penuh via _db_lock + transaksi eksplisit agar write scheduler
+    vs API tidak race. Nama temp view unik per-thread agar register tidak tabrakan.
+    """
     if df.is_empty():
         return
-    
+
     conn = get_duckdb_connection()
-    
+
     df_write = df.with_columns([
         pl.col("date").cast(pl.Date),
         pl.col("ticker").cast(pl.Utf8).str.strip_chars()
     ]).filter(pl.col("close") > 0)
-    
+
     if df_write.is_empty():
         return
-    
-    conn.register("temp_prices", df_write)
-    conn.execute("""
-        INSERT OR REPLACE INTO daily_prices (ticker, date, open, high, low, close, volume)
-        SELECT ticker, date, open, high, low, close, volume FROM temp_prices
-    """)
-    conn.unregister("temp_prices")
+
+    view = f"temp_prices_{threading.get_ident()}_{os.getpid()}"
+    with _db_lock:
+        conn.register(view, df_write)
+        try:
+            conn.execute("BEGIN TRANSACTION")
+            try:
+                conn.execute(f"""
+                    INSERT OR REPLACE INTO daily_prices (ticker, date, open, high, low, close, volume)
+                    SELECT ticker, date, open, high, low, close, volume FROM {view}
+                """)
+                conn.execute("COMMIT")
+            except Exception:
+                try:
+                    conn.execute("ROLLBACK")
+                except Exception:
+                    pass
+                raise
+        finally:
+            try:
+                conn.unregister(view)
+            except Exception:
+                pass
 
 def get_ticker_history_polars(ticker: str, limit_days: int = 100) -> pl.DataFrame:
     """Get ticker history from DuckDB as Polars DataFrame (vectorized)."""
+    if limit_days is not None and (limit_days < 1 or limit_days > 365):
+        raise ValueError("limit_days harus 1-365")
     conn = get_duckdb_connection()
     query = """
         SELECT date, open, high, low, close, volume
@@ -84,20 +169,29 @@ def get_ticker_history_polars(ticker: str, limit_days: int = 100) -> pl.DataFram
         LIMIT ?
     """
     result = conn.execute(query, [ticker.upper(), limit_days]).pl()
-    
+
     if not result.is_empty():
         result = result.sort("date")
     return result
 
+def _locked_execute(query, params=None):
+    """Execute read di bawah _db_lock agar aman lintas thread."""
+    conn = get_duckdb_connection()
+    with _db_lock:
+        return conn.execute(query, params) if params is not None else conn.execute(query)
+
 def get_all_histories_polars(limit_days: int = 100) -> dict[str, pl.DataFrame]:
     """Get all ticker histories in one bulk query, return as dict of Polars DataFrames."""
+    if limit_days is not None and (limit_days < 1 or limit_days > 365):
+        raise ValueError("limit_days harus 1-365")
     conn = get_duckdb_connection()
     query = """
         SELECT ticker, date, open, high, low, close, volume
         FROM daily_prices
         ORDER BY ticker, date ASC
     """
-    full_df = conn.execute(query).pl()
+    with _db_lock:
+        full_df = conn.execute(query).pl()
     
     if full_df.is_empty():
         return {}
@@ -123,11 +217,19 @@ def get_ticker_count() -> int:
     return result[0] if result else 0
 
 def close_connection():
-    """Close persistent connection."""
-    global _connection
-    if _connection:
-        _connection.close()
-        _connection = None
+    """Close persistent connection (thread-safe, aman dipanggil antar-test)."""
+    global _connection, _connection_path
+    with _connection_lock:
+        if _connection is not None:
+            try:
+                _connection.close()
+            except Exception:
+                pass
+            _connection = None
+            _connection_path = None
+
+
+atexit.register(close_connection)
 
 
 # --- Polars Feature Pipeline ---

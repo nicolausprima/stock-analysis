@@ -7,7 +7,8 @@
     <title>AKSA | Quantitative Stock Intelligence — Autonomous IDX Screener</title>
     <meta name="description"
         content="AKSA (Quantitative Stock Intelligence) — Autonomous screener engineered for the Indonesia Stock Exchange (IDX / BEI). Evaluates 700+ equities daily using quantitative decision trees, 20+ technical indicators, and multi-agent risk consensus.">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M15.2 3.5L3 28H13V20.5L10.5 20.5L15.2 11.5V3.5Z' fill='%23111111'/><path d='M16.8 3.5V11.5L21.5 20.5L19 20.5V28H29L16.8 3.5Z' fill='%230051C3'/></svg>">
+    <link rel="icon" type="image/svg+xml"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M15.2 3.5L3 28H13V20.5L10.5 20.5L15.2 11.5V3.5Z' fill='%23111111'/><path d='M16.8 3.5V11.5L21.5 20.5L19 20.5V28H29L16.8 3.5Z' fill='%230051C3'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -22,8 +23,13 @@
            ============================================================ */
 
         :root {
+            /* KANONIK: --c-page #FFFFFF (page), --c-card #FFFFFF (kartu),
+               --c-bg band inset #FAFAFA. Selaras dengan css/style.css
+               (di sana band inset bernama --c-bg, kartu --c-surface). */
+            --c-page: #FFFFFF;
             --c-bg: #FFFFFF;
             --c-surface: #FAFAFA;
+            /* band inset (alias --c-bg di style.css) */
             --c-card: #FFFFFF;
             --c-terminal: #0A0A0A;
             --c-ink: #404040;
@@ -34,7 +40,7 @@
             --c-border-dark: #404040;
             --c-border-terminal: #2A2A2A;
             --c-line-connect: rgba(0, 81, 195, 0.15);
-            
+
             /* Primary Accent (Cobalt Blue) & Status */
             --c-blue: #0051C3;
             --c-blue-hover: #004099;
@@ -73,15 +79,13 @@
             box-sizing: border-box;
         }
 
-        /* Hide scrollbar completely across all browsers */
+        /* Scrollbar tetap visible (UX-01): indikator scroll jangan disembunyikan demi a11y. */
         html {
             scroll-padding-top: 80px;
             background: var(--c-bg);
             color: var(--c-ink);
-            -ms-overflow-style: none;
-            /* IE and Edge */
-            scrollbar-width: none;
-            /* Firefox */
+            scrollbar-width: thin;
+            scrollbar-color: #C9C9C9 transparent;
         }
 
         .section,
@@ -91,12 +95,7 @@
             scroll-margin-top: 80px;
         }
 
-        html::-webkit-scrollbar,
-        body::-webkit-scrollbar {
-            display: none;
-            width: 0;
-            height: 0;
-        }
+        /* Scrollbar WebKit: biarkan default terlihat (UX-01). Tanpa display:none. */
 
         body {
             font-family: var(--font-sans);
@@ -244,23 +243,59 @@
             background: #E0E0E0;
         }
 
-        /* Waypoint Pips */
+        /* Waypoint Pips — tombol 44px (area sentuh), titik visual via ::before */
         .spine-pip {
             position: absolute;
             left: 50%;
+            transform: translate(-50%, -50%);
+            width: 44px;
+            height: 44px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .spine-pip[data-target="hero"] {
+            top: 5%;
+        }
+
+        .spine-pip[data-target="live-intelligence"] {
+            top: 24%;
+        }
+
+        .spine-pip[data-target="features"] {
+            top: 45%;
+        }
+
+        .spine-pip[data-target="pipeline"] {
+            top: 65%;
+        }
+
+        .spine-pip[data-target="performance"] {
+            top: 82%;
+        }
+
+        .spine-pip[data-target="cta-section"] {
+            top: 95%;
+        }
+
+        .spine-pip::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
             transform: translate(-50%, -50%);
             width: 8px;
             height: 8px;
             border-radius: 50%;
             background: #FFFFFF;
             border: 2px solid #8C8C8C;
-            cursor: pointer;
             transition: all 0.25s ease;
-            z-index: 2;
         }
 
-        .spine-pip:hover,
-        .spine-pip.active {
+        .spine-pip:hover::before,
+        .spine-pip.active::before {
             width: 12px;
             height: 12px;
             border-color: var(--c-blue);
@@ -823,10 +858,12 @@
                 transform: scale(0.95);
                 box-shadow: 0 0 0 0 rgba(0, 81, 195, 0.7);
             }
+
             70% {
                 transform: scale(1);
                 box-shadow: 0 0 0 7px rgba(0, 81, 195, 0);
             }
+
             100% {
                 transform: scale(0.95);
                 box-shadow: 0 0 0 0 rgba(0, 81, 195, 0);
@@ -1185,9 +1222,17 @@
             display: inline-block;
         }
 
-        .terminal-dots span:first-child { background: #FF5F56; }
-        .terminal-dots span:nth-child(2) { background: #FFBD2E; }
-        .terminal-dots span:last-child { background: #27C93F; }
+        .terminal-dots span:first-child {
+            background: #FF5F56;
+        }
+
+        .terminal-dots span:nth-child(2) {
+            background: #FFBD2E;
+        }
+
+        .terminal-dots span:last-child {
+            background: #27C93F;
+        }
 
         .terminal-title {
             color: var(--c-ink);
@@ -1661,10 +1706,25 @@
             width: fit-content;
         }
 
-        .m-badge.audit { background: var(--c-blue); color: #FFFFFF; }
-        .m-badge.alpha { background: var(--c-blue); color: #FFFFFF; }
-        .m-badge.tests { background: #404040; color: #FFFFFF; }
-        .m-badge.cache { background: #595959; color: #FFFFFF; }
+        .m-badge.audit {
+            background: var(--c-blue);
+            color: #FFFFFF;
+        }
+
+        .m-badge.alpha {
+            background: var(--c-blue);
+            color: #FFFFFF;
+        }
+
+        .m-badge.tests {
+            background: #404040;
+            color: #FFFFFF;
+        }
+
+        .m-badge.cache {
+            background: #595959;
+            color: #FFFFFF;
+        }
 
         .m-val {
             font-family: var(--font-sans);
@@ -1785,6 +1845,117 @@
                 flex-direction: column;
                 gap: 8px;
             }
+
+            .cta-proof-strip {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* ── A11Y CORE (UX-01/02/04, selaras dashboard css/style.css) ── */
+        :focus-visible {
+            outline: 2px solid var(--c-blue);
+            outline-offset: 2px;
+        }
+
+        /* Target sentuh >=44px: CTA hero, CTA nav, launch button */
+        .hero-btn-pill-primary,
+        .hero-btn-pill-secondary,
+        .btn-launch-primary,
+        .nav-cta {
+            min-height: 44px;
+            min-width: 44px;
+        }
+
+        .nav-link {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+            padding: 0 4px;
+        }
+
+        .footer-links a {
+            display: inline-flex;
+            align-items: center;
+            min-height: 44px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Legend statis chart + watermark SIMULASI (F3) + microcopy legal */
+        .chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px 16px;
+            font-size: 12px;
+            color: var(--c-muted);
+            margin: 8px 0;
+        }
+
+        .chart-legend .lg-swatch {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            margin-right: 6px;
+            vertical-align: baseline;
+        }
+
+        .sim-watermark {
+            position: relative;
+        }
+
+        .sim-watermark::after {
+            content: "SIMULASI BACKTEST \2014 bukan hasil nyata";
+            position: absolute;
+            inset: auto 12px 12px auto;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(64, 64, 64, 0.75);
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid var(--c-border);
+            border-radius: 6px;
+            padding: 4px 8px;
+            pointer-events: none;
+        }
+
+        .legal-microcopy {
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--c-muted);
+        }
+
+        /* Hormati prefers-reduced-motion: matikan reveal/pulse/spine/reveal */
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+
+            .reveal {
+                opacity: 1 !important;
+                transform: none !important;
+            }
         }
     </style>
 </head>
@@ -1803,7 +1974,8 @@
         <!-- TOP NAVIGATION -->
         <nav class="top-nav" role="navigation" aria-label="Main navigation">
             <a href="#hero" class="nav-brand" id="nav-brand" title="AKSA — Quantitative Stock Intelligence">
-                <svg class="aksa-logo-mark" viewBox="0 0 32 32" width="26" height="26" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="AKSA Apex Alpha Mark">
+                <svg class="aksa-logo-mark" viewBox="0 0 32 32" width="26" height="26" fill="none"
+                    xmlns="http://www.w3.org/2000/svg" aria-label="AKSA Apex Alpha Mark">
                     <defs>
                         <linearGradient id="aksaCobaltGradNav" x1="0%" y1="0%" x2="100%" y2="100%">
                             <stop offset="0%" stop-color="#0066FF" />
@@ -1843,19 +2015,25 @@
                         <svg viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet">
                             <!-- Geometric Construction Circles -->
                             <circle cx="300" cy="300" r="250" stroke="#EDEDED" stroke-width="1" />
-                            <circle cx="300" cy="300" r="160" stroke="#EDEDED" stroke-width="0.8" stroke-dasharray="4 6" opacity="0.6" />
+                            <circle cx="300" cy="300" r="160" stroke="#EDEDED" stroke-width="0.8" stroke-dasharray="4 6"
+                                opacity="0.6" />
 
                             <!-- Apex Alpha Blueprint Geometry -->
-                            <path d="M 288 80 L 80 490 H 240 V 370 L 200 370 L 288 210 V 80 Z" stroke="#1C1C1C" stroke-width="1.8" fill="none" opacity="0.35" />
-                            <path d="M 312 80 V 210 L 400 370 L 360 370 V 490 H 520 L 312 80 Z" stroke="#0051C3" stroke-width="2" fill="none" opacity="0.5" />
+                            <path d="M 288 80 L 80 490 H 240 V 370 L 200 370 L 288 210 V 80 Z" stroke="#1C1C1C"
+                                stroke-width="1.8" fill="none" opacity="0.35" />
+                            <path d="M 312 80 V 210 L 400 370 L 360 370 V 490 H 520 L 312 80 Z" stroke="#0051C3"
+                                stroke-width="2" fill="none" opacity="0.5" />
 
                             <!-- Ascending Alpha Vector -->
-                            <line x1="300" y1="490" x2="300" y2="40" stroke="#0051C3" stroke-width="1.4" stroke-dasharray="6 4" opacity="0.4" />
+                            <line x1="300" y1="490" x2="300" y2="40" stroke="#0051C3" stroke-width="1.4"
+                                stroke-dasharray="6 4" opacity="0.4" />
                             <polygon points="300,30 293,48 307,48" fill="#0051C3" opacity="0.6" />
 
                             <!-- Telemetry Coordinates -->
-                            <text x="60" y="310" font-family="ui-monospace, monospace" font-size="9" fill="#737373" letter-spacing="1">AKSA · VECTOR MATRIX</text>
-                            <text x="440" y="310" font-family="ui-monospace, monospace" font-size="9" fill="#0051C3" letter-spacing="1">ALPHA +820.5%</text>
+                            <text x="60" y="310" font-family="ui-monospace, monospace" font-size="9" fill="#737373"
+                                letter-spacing="1">AKSA · VECTOR MATRIX</text>
+                            <text x="440" y="310" font-family="ui-monospace, monospace" font-size="9" fill="#0051C3"
+                                letter-spacing="1">TARGET MODEL +3.0%</text>
                         </svg>
                     </div>
 
@@ -1868,7 +2046,8 @@
 
                 <!-- Punchy, High-Converting Hero Description -->
                 <p class="hero-desc hero-editorial-body">
-                    Find high-probability breakout stocks before market open. AKSA evaluates 700+ IDX tickers daily using 20+ technical indicators, real-time news risk filtering, and 5-agent consensus — delivering disciplined +3.0% targets with strict capital protection.
+                    AKSA evaluates 700+ IDX tickers daily using 20+ technical indicators, news risk filtering, and
+                    5-agent consensus. Target Model +3.0% / SL -1.5%. Bukan jaminan profit — saham berisiko rugi.
                 </p>
 
                 <!-- Fully Rounded Pill CTA Actions (Centered) -->
@@ -1897,8 +2076,10 @@
         <section class="section section-live-intel" id="live-intelligence">
             <div class="section-hdr reveal">
                 <h2>Market Intelligence &amp; Signals</h2>
-                <span>00 · High-Conviction Setups</span>
+                <span>00 · Quant-Screened Setups</span>
             </div>
+            <p class="legal-microcopy reveal" style="margin:0 0 16px">Contoh tampilan hasil skrining kuantitatif —
+                sinyal riset, bukan perintah beli/jual. Saham berisiko rugi. DYOR.</p>
 
             <div class="intel-grid reveal">
                 <!-- Card 1: Momentum Topology -->
@@ -1908,15 +2089,18 @@
                         <span style="color: var(--c-blue); font-weight: 600;">Active Alpha Vector</span>
                     </div>
                     <div class="intel-card-body">
-                        <svg viewBox="0 0 460 110" preserveAspectRatio="xMidYMid meet" style="width: 100%; height: 110px; display: block;">
+                        <svg viewBox="0 0 460 110" preserveAspectRatio="xMidYMid meet"
+                            style="width: 100%; height: 110px; display: block;">
                             <!-- Background Fine Coordinate Grid -->
                             <line x1="0" y1="25" x2="460" y2="25" stroke="#EBEBEB" stroke-width="1" />
                             <line x1="0" y1="55" x2="460" y2="55" stroke="#EBEBEB" stroke-width="1" />
                             <line x1="0" y1="85" x2="460" y2="85" stroke="#EBEBEB" stroke-width="1" />
-                            
+
                             <!-- Dashed Upward Trend Corridor -->
-                            <path d="M 20 90 L 110 75 L 190 82 L 270 50 L 350 42 L 430 18" fill="none" stroke="#EBEBEB" stroke-width="1.2" stroke-dasharray="3 3" />
-                            <path d="M 20 98 L 110 83 L 190 90 L 270 58 L 350 50 L 430 26" fill="none" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="2 4" />
+                            <path d="M 20 90 L 110 75 L 190 82 L 270 50 L 350 42 L 430 18" fill="none" stroke="#EBEBEB"
+                                stroke-width="1.2" stroke-dasharray="3 3" />
+                            <path d="M 20 98 L 110 83 L 190 90 L 270 58 L 350 50 L 430 26" fill="none" stroke="#EBEBEB"
+                                stroke-width="0.8" stroke-dasharray="2 4" />
 
                             <!-- Interconnected Network Vectors -->
                             <line x1="25" y1="88" x2="95" y2="70" stroke="#404040" stroke-width="1.4" />
@@ -1927,10 +2111,14 @@
                             <line x1="370" y1="28" x2="435" y2="15" stroke="#0051C3" stroke-width="2" />
 
                             <!-- Branching Line Vectors -->
-                            <line x1="95" y1="70" x2="150" y2="34" stroke="#8C8C8C" stroke-width="0.9" stroke-dasharray="2 2" />
-                            <line x1="150" y1="34" x2="230" y2="44" stroke="#8C8C8C" stroke-width="0.9" stroke-dasharray="2 2" />
-                            <line x1="230" y1="44" x2="290" y2="22" stroke="#8C8C8C" stroke-width="0.9" stroke-dasharray="2 2" />
-                            <line x1="290" y1="22" x2="370" y2="28" stroke="#8C8C8C" stroke-width="0.9" stroke-dasharray="2 2" />
+                            <line x1="95" y1="70" x2="150" y2="34" stroke="#8C8C8C" stroke-width="0.9"
+                                stroke-dasharray="2 2" />
+                            <line x1="150" y1="34" x2="230" y2="44" stroke="#8C8C8C" stroke-width="0.9"
+                                stroke-dasharray="2 2" />
+                            <line x1="230" y1="44" x2="290" y2="22" stroke="#8C8C8C" stroke-width="0.9"
+                                stroke-dasharray="2 2" />
+                            <line x1="290" y1="22" x2="370" y2="28" stroke="#8C8C8C" stroke-width="0.9"
+                                stroke-dasharray="2 2" />
 
                             <!-- Nodes -->
                             <circle cx="25" cy="88" r="3.5" fill="#404040" />
@@ -1941,11 +2129,13 @@
                             <circle cx="290" cy="22" r="2.5" fill="#8C8C8C" />
                             <circle cx="300" cy="52" r="3.5" fill="#404040" />
                             <circle cx="370" cy="28" r="4.5" fill="#404040" />
-                            
+
                             <!-- Glowing Alpha Node -->
                             <circle cx="435" cy="15" r="6" fill="#0051C3" stroke="#FFFFFF" stroke-width="1.5" />
-                            <circle cx="435" cy="15" r="10" fill="none" stroke="#0051C3" stroke-width="0.8" opacity="0.6" />
-                            <text x="360" y="98" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">TARGET: ALPHA +3.0%</text>
+                            <circle cx="435" cy="15" r="10" fill="none" stroke="#0051C3" stroke-width="0.8"
+                                opacity="0.6" />
+                            <text x="360" y="98" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600"
+                                fill="#0051C3">TARGET: ALPHA +3.0%</text>
                         </svg>
                     </div>
                     <div class="intel-card-footer">
@@ -1997,6 +2187,8 @@
                     </div>
 
                     <div class="terminal-signal-list">
+                        <p class="legal-microcopy" style="padding:8px 4px 4px">Contoh ilustrasi — sinyal riset, bukan
+                            perintah beli/jual. Harga contoh, bukan rekomendasi harga.</p>
                         <!-- Signal 1 -->
                         <div class="terminal-signal-row">
                             <div class="sig-col-ticker">
@@ -2086,10 +2278,13 @@
                         </div>
                         <h3 class="feat-h3">Macroeconomic Radar &amp; News Risk Shield</h3>
                         <p class="feat-p">
-                            <strong>Continuous real-time scanning</strong> of IHSG macro trajectory, currency dynamics, and corporate news streams. Automatically applies an asymmetric -25% veto on negative catalysts to keep capital safe.
+                            <strong>Continuous real-time scanning</strong> of IHSG macro trajectory, currency dynamics,
+                            and corporate news streams. Automatically applies an asymmetric -25% veto on negative
+                            catalysts to keep capital safe.
                         </p>
                         <span class="feat-glossary-tag">
-                            <strong>Capital Protection:</strong> Automatically filters out trap setups before market open, shielding portfolio capital from sudden flash drops.
+                            <strong>Risk filter:</strong> Model statistik memangkas skor kandidat berkatalis negatif;
+                            bukan proteksi modal atau jaminan hasil.
                         </span>
                     </div>
                     <div class="feat-visual reveal reveal-right delay-1">
@@ -2149,8 +2344,8 @@
                                 <rect x="0" y="0" width="288" height="238" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.5" rx="8" />
                                 <line x1="0" y1="30" x2="288" y2="30" stroke="#EBEBEB" stroke-width="1" />
-                                <text x="12" y="20" font-family="Montserrat, sans-serif" font-size="11" font-weight="600"
-                                    fill="#404040">JAKARTA COMPOSITE INDEX</text>
+                                <text x="12" y="20" font-family="Montserrat, sans-serif" font-size="11"
+                                    font-weight="600" fill="#404040">JAKARTA COMPOSITE INDEX</text>
 
                                 <!-- Grid Lines -->
                                 <line x1="0" y1="85" x2="288" y2="85" stroke="#FAFAFA" stroke-width="1" />
@@ -2172,16 +2367,16 @@
                                 <circle cx="244" cy="46" r="3" fill="#404040" />
                                 <circle cx="272" cy="36" r="5" fill="#0051C3" />
 
-                                <text x="182" y="32" font-family="ui-monospace, monospace" font-size="10.5" font-weight="600"
-                                    fill="#0051C3">PEAK: 7,340</text>
+                                <text x="182" y="32" font-family="ui-monospace, monospace" font-size="10.5"
+                                    font-weight="600" fill="#0051C3">PEAK: 7,340</text>
                             </g>
 
                             <!-- Bottom Metrics Strip -->
                             <g transform="translate(32, 318)">
                                 <rect x="0" y="0" width="180" height="68" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.3" rx="8" />
-                                <text x="12" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
-                                    fill="#595959">USD/IDR EXCHANGE RATE</text>
+                                <text x="12" y="18" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#595959">USD/IDR EXCHANGE RATE</text>
                                 <text x="12" y="40" font-family="Montserrat, sans-serif" font-size="13"
                                     font-weight="700" fill="#404040">15,820</text>
                                 <text x="12" y="58" font-family="ui-monospace, monospace" font-size="9"
@@ -2189,8 +2384,8 @@
 
                                 <rect x="195" y="0" width="180" height="68" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.3" rx="8" />
-                                <text x="207" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
-                                    fill="#595959">IHSG TREND REGIME</text>
+                                <text x="207" y="18" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#595959">IHSG TREND REGIME</text>
                                 <text x="207" y="40" font-family="Montserrat, sans-serif" font-size="13"
                                     font-weight="700" fill="#404040">UPTREND</text>
                                 <text x="207" y="58" font-family="ui-monospace, monospace" font-size="9"
@@ -2198,8 +2393,8 @@
 
                                 <rect x="390" y="0" width="186" height="68" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.3" rx="8" />
-                                <text x="402" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
-                                    fill="#595959">NEGATIVE NEWS VETO</text>
+                                <text x="402" y="18" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#595959">NEGATIVE NEWS VETO</text>
                                 <text x="402" y="40" font-family="Montserrat, sans-serif" font-size="13"
                                     font-weight="700" fill="#0051C3">-25% PENALTY</text>
                                 <text x="402" y="58" font-family="ui-monospace, monospace" font-size="9"
@@ -2218,10 +2413,13 @@
                         </div>
                         <h3 class="feat-h3">Quantitative Matrix &amp; Multi-Factor Scoring</h3>
                         <p class="feat-p">
-                            <strong>Calibrated decision matrix</strong> trained across 5 years of historical BEI trading data. Evaluates 20+ technical indicators (RSI, MACD, Stochastic %K, Money Flow, RVOL) to calculate objective breakout probabilities.
+                            <strong>Calibrated decision matrix</strong> trained across 5 years of historical BEI trading
+                            data. Evaluates 20+ technical indicators (RSI, MACD, Stochastic %K, Money Flow, RVOL) to
+                            calculate objective breakout probabilities.
                         </p>
                         <span class="feat-glossary-tag">
-                            <strong>Systematic Edge:</strong> Replaces emotional guessing with disciplined mathematical probability computed across 700+ stocks in milliseconds.
+                            <strong>Systematic Edge:</strong> Replaces emotional guessing with disciplined mathematical
+                            probability computed across 700+ stocks in milliseconds.
                         </span>
                     </div>
                     <div class="feat-visual reveal reveal-left delay-1">
@@ -2261,8 +2459,8 @@
                                 <!-- Depth 2 Nodes -->
                                 <rect x="12" y="96" width="90" height="32" fill="#FAFAFA" stroke="#EBEBEB"
                                     stroke-width="1.2" rx="4" />
-                                <text x="20" y="111" font-family="ui-monospace, monospace" font-size="9" font-weight="600"
-                                    fill="#404040">MFI &lt;= 42</text>
+                                <text x="20" y="111" font-family="ui-monospace, monospace" font-size="9"
+                                    font-weight="600" fill="#404040">MFI &lt;= 42</text>
                                 <text x="20" y="123" font-family="ui-monospace, monospace" font-size="8"
                                     fill="#595959">GAIN: 1.80</text>
 
@@ -2280,20 +2478,24 @@
                                 <polyline points="230,128 230,146" fill="none" stroke="#404040" stroke-width="1.2" />
 
                                 <rect x="25" y="146" width="34" height="22" fill="#404040" rx="3" />
-                                <text x="42" y="157" font-family="ui-monospace, monospace" font-size="9" font-weight="600"
-                                    fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">+0.8</text>
+                                <text x="42" y="157" font-family="ui-monospace, monospace" font-size="9"
+                                    font-weight="600" fill="#FFFFFF" text-anchor="middle"
+                                    dominant-baseline="central">+0.8</text>
 
                                 <rect x="60" y="146" width="34" height="22" fill="#404040" rx="3" />
-                                <text x="77" y="157" font-family="ui-monospace, monospace" font-size="9" font-weight="600"
-                                    fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">-0.3</text>
+                                <text x="77" y="157" font-family="ui-monospace, monospace" font-size="9"
+                                    font-weight="600" fill="#FFFFFF" text-anchor="middle"
+                                    dominant-baseline="central">-0.3</text>
 
                                 <rect x="178" y="146" width="34" height="22" fill="#404040" rx="3" />
                                 <text x="195" y="157" font-family="ui-monospace, monospace" font-size="9"
-                                    font-weight="600" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">+1.4</text>
+                                    font-weight="600" fill="#FFFFFF" text-anchor="middle"
+                                    dominant-baseline="central">+1.4</text>
 
                                 <rect x="214" y="146" width="34" height="22" fill="#0051C3" rx="3" />
                                 <text x="231" y="157" font-family="ui-monospace, monospace" font-size="9"
-                                    font-weight="600" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">+3.2</text>
+                                    font-weight="600" fill="#FFFFFF" text-anchor="middle"
+                                    dominant-baseline="central">+3.2</text>
                             </g>
 
                             <!-- Right: Indicator Sparklines -->
@@ -2305,8 +2507,8 @@
                                 <line x1="0" y1="28" x2="288" y2="28" stroke="#EBEBEB" stroke-width="1" />
 
                                 <!-- RSI 14 -->
-                                <text x="12" y="48" font-family="Montserrat, sans-serif" font-size="9.5" font-weight="600"
-                                    fill="#404040">RSI (14)</text>
+                                <text x="12" y="48" font-family="Montserrat, sans-serif" font-size="9.5"
+                                    font-weight="600" fill="#404040">RSI (14)</text>
                                 <line x1="65" y1="42" x2="270" y2="42" stroke="#EBEBEB" stroke-dasharray="2 2" />
                                 <line x1="65" y1="68" x2="270" y2="68" stroke="#EBEBEB" stroke-dasharray="2 2" />
                                 <polyline points="65,70 95,74 125,61 155,64 185,44 215,49 245,39 275,35" fill="none"
@@ -2315,8 +2517,8 @@
                                 <line x1="12" y1="82" x2="276" y2="82" stroke="#FAFAFA" stroke-width="1" />
 
                                 <!-- MACD Cross -->
-                                <text x="12" y="102" font-family="Montserrat, sans-serif" font-size="9.5" font-weight="600"
-                                    fill="#404040">MACD (12,26,9)</text>
+                                <text x="12" y="102" font-family="Montserrat, sans-serif" font-size="9.5"
+                                    font-weight="600" fill="#404040">MACD (12,26,9)</text>
                                 <line x1="120" y1="112" x2="270" y2="112" stroke="#404040" stroke-width="0.8" />
                                 <polyline points="120,122 150,117 180,109 210,102 240,92 275,82" fill="none"
                                     stroke="#0051C3" stroke-width="2.2" />
@@ -2326,8 +2528,8 @@
                                 <line x1="12" y1="140" x2="276" y2="140" stroke="#FAFAFA" stroke-width="1" />
 
                                 <!-- Volume Bars -->
-                                <text x="12" y="160" font-family="Montserrat, sans-serif" font-size="9.5" font-weight="600"
-                                    fill="#404040">VOLUME 20MA</text>
+                                <text x="12" y="160" font-family="Montserrat, sans-serif" font-size="9.5"
+                                    font-weight="600" fill="#404040">VOLUME 20MA</text>
                                 <rect x="110" y="210" width="10" height="22" fill="#404040" />
                                 <rect x="126" y="202" width="10" height="30" fill="#404040" />
                                 <rect x="142" y="217" width="10" height="15" fill="#404040" />
@@ -2344,8 +2546,8 @@
                             <g transform="translate(32, 318)">
                                 <rect x="0" y="0" width="180" height="68" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.3" rx="8" />
-                                <text x="12" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
-                                    fill="#595959">TRAINING DATA</text>
+                                <text x="12" y="18" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#595959">TRAINING DATA</text>
                                 <text x="12" y="40" font-family="Montserrat, sans-serif" font-size="13"
                                     font-weight="700" fill="#404040">5 YEARS HISTORY</text>
                                 <text x="12" y="58" font-family="ui-monospace, monospace" font-size="9"
@@ -2353,8 +2555,8 @@
 
                                 <rect x="195" y="0" width="180" height="68" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.3" rx="8" />
-                                <text x="207" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
-                                    fill="#595959">FEATURE INPUTS</text>
+                                <text x="207" y="18" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#595959">FEATURE INPUTS</text>
                                 <text x="207" y="40" font-family="Montserrat, sans-serif" font-size="13"
                                     font-weight="700" fill="#404040">20+ SIGNALS</text>
                                 <text x="207" y="58" font-family="ui-monospace, monospace" font-size="9"
@@ -2362,8 +2564,8 @@
 
                                 <rect x="390" y="0" width="186" height="68" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.3" rx="8" />
-                                <text x="402" y="18" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
-                                    fill="#595959">OPTIMIZATION</text>
+                                <text x="402" y="18" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#595959">OPTIMIZATION</text>
                                 <text x="402" y="40" font-family="Montserrat, sans-serif" font-size="13"
                                     font-weight="700" fill="#0051C3">OPTUNA TUNING</text>
                                 <text x="402" y="58" font-family="ui-monospace, monospace" font-size="9"
@@ -2382,10 +2584,13 @@
                         </div>
                         <h3 class="feat-h3">Multi-Agent Consensus &amp; Half-Kelly Sizing</h3>
                         <p class="feat-p">
-                            <strong>Five specialized autonomous quantitative agents</strong> debate every candidate stock (Technical, Sentiment, Macro, Bull/Bear, Risk Manager) to establish strict +3.0% targets, -1.5% stop losses, and optimal Half-Kelly allocations.
+                            <strong>Five specialized autonomous quantitative agents</strong> debate every candidate
+                            stock (Technical, Sentiment, Macro, Bull/Bear, Risk Manager) to establish strict +3.0%
+                            targets, -1.5% stop losses, and optimal Half-Kelly allocations.
                         </p>
                         <span class="feat-glossary-tag">
-                            <strong>Downside Control:</strong> Asymmetric 2:1 reward-to-risk ratio engineered to protect capital and compound growth.
+                            <strong>Downside Control:</strong> Asymmetric 2:1 reward-to-risk model target. Bukan jaminan
+                            hasil.
                         </span>
                     </div>
                     <div class="feat-visual reveal reveal-right delay-1">
@@ -2437,8 +2642,8 @@
                             <g transform="translate(32, 280)">
                                 <rect x="0" y="0" width="180" height="80" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.3" rx="8" />
-                                <text x="12" y="20" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
-                                    fill="#595959">CAPITAL SIZING</text>
+                                <text x="12" y="20" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#595959">CAPITAL SIZING</text>
                                 <text x="12" y="44" font-family="Montserrat, sans-serif" font-size="13"
                                     font-weight="700" fill="#404040">HALF-KELLY (0.5×)</text>
                                 <text x="12" y="64" font-family="ui-monospace, monospace" font-size="9"
@@ -2446,16 +2651,16 @@
 
                                 <rect x="195" y="0" width="180" height="80" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.3" rx="8" />
-                                <text x="207" y="20" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
-                                    fill="#595959">RISK PARAMETERS</text>
+                                <text x="207" y="20" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#595959">RISK PARAMETERS</text>
                                 <text x="207" y="44" font-family="Montserrat, sans-serif" font-size="13"
                                     font-weight="700" fill="#404040">+3.0% TP / -1.5% SL</text>
                                 <text x="207" y="64" font-family="ui-monospace, monospace" font-size="9"
                                     fill="#595959">ASYMMETRIC RISK RATIO 2:1</text>
                                 <rect x="390" y="0" width="186" height="80" fill="#FFFFFF" stroke="#EBEBEB"
                                     stroke-width="1.3" rx="8" />
-                                <text x="402" y="20" font-family="ui-monospace, monospace" font-size="9.5" font-weight="600"
-                                    fill="#595959">AGENT ALIGNMENT</text>
+                                <text x="402" y="20" font-family="ui-monospace, monospace" font-size="9.5"
+                                    font-weight="600" fill="#595959">AGENT ALIGNMENT</text>
                                 <text x="402" y="44" font-family="Montserrat, sans-serif" font-size="13"
                                     font-weight="700" fill="#0051C3">5/5 CONSENSUS VOTE</text>
                                 <text x="402" y="64" font-family="ui-monospace, monospace" font-size="9"
@@ -2481,8 +2686,9 @@
                     <span class="pipe-num">
                         <span>01 · Data Ingestion</span>
                     </span>
-                    <h4 class="pipe-h4">Data Ingestion</h4>
-                    <p class="pipe-p">Batch streaming 700+ BEI tickers in organized 50-stock chunks with automated suspension &amp; delisting filters.</p>
+                    <h3 class="pipe-h4">Data Ingestion</h3>
+                    <p class="pipe-p">Batch streaming 700+ BEI tickers in organized 50-stock chunks with automated
+                        suspension &amp; delisting filters.</p>
                     <div class="pipe-visual">
                         <svg viewBox="0 0 380 230" preserveAspectRatio="xMidYMid meet">
                             <rect width="380" height="230" fill="#FFFFFF" />
@@ -2493,41 +2699,65 @@
                             <g transform="translate(16, 38)">
                                 <!-- Row 1: BEI Ticker Streams -->
                                 <g transform="translate(0, 0)">
-                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB"
+                                        stroke-width="1.2" rx="6" />
                                     <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
-                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">FEED</text>
-                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">BEI TICKERS</text>
-                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">700+ Equities</text>
-                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">50-Chunk Batch</text>
-                                    <text x="300" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">100%</text>
+                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7.5"
+                                        font-weight="700" fill="#FFFFFF" text-anchor="middle"
+                                        dominant-baseline="central">FEED</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11"
+                                        font-weight="700" fill="#404040">BEI TICKERS</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="500" fill="#595959">700+ Equities</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#0051C3">50-Chunk Batch</text>
+                                    <text x="300" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#404040">100%</text>
                                     <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
-                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">OHLCV Price &amp; Volume · Auto-Sanitized Data Lake</text>
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8"
+                                        fill="#595959">OHLCV Price &amp; Volume · Auto-Sanitized Data Lake</text>
                                 </g>
 
                                 <!-- Row 2: Macro & Exchange Rates -->
                                 <g transform="translate(0, 56)">
-                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB"
+                                        stroke-width="1.2" rx="6" />
                                     <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
-                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">MACRO</text>
-                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">IHSG &amp; USD</text>
-                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">IHSG: 7,340</text>
-                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">USD: 15,820</text>
-                                    <text x="288" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">SYNCED</text>
+                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7"
+                                        font-weight="700" fill="#FFFFFF" text-anchor="middle"
+                                        dominant-baseline="central">MACRO</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11"
+                                        font-weight="700" fill="#404040">IHSG &amp; USD</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="500" fill="#595959">IHSG: 7,340</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#0051C3">USD: 15,820</text>
+                                    <text x="288" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#404040">SYNCED</text>
                                     <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
-                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Macroeconomic Regime · Sector Rotation Tracking</text>
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8"
+                                        fill="#595959">Macroeconomic Regime · Sector Rotation Tracking</text>
                                 </g>
 
                                 <!-- Row 3: Financial News Sentiment -->
                                 <g transform="translate(0, 112)">
-                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB"
+                                        stroke-width="1.2" rx="6" />
                                     <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
-                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">NEWS</text>
-                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">SENTIMENT</text>
-                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">Indonesian Media</text>
-                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#DE5052">Veto: -25%</text>
-                                    <text x="290" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">ACTIVE</text>
+                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7.5"
+                                        font-weight="700" fill="#FFFFFF" text-anchor="middle"
+                                        dominant-baseline="central">NEWS</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11"
+                                        font-weight="700" fill="#404040">SENTIMENT</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="500" fill="#595959">Indonesian Media</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#DE5052">Veto: -25%</text>
+                                    <text x="290" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#404040">ACTIVE</text>
                                     <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
-                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Negative Catalyst Scan · Extreme Risk Auto-Veto</text>
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8"
+                                        fill="#595959">Negative Catalyst Scan · Extreme Risk Auto-Veto</text>
                                 </g>
                             </g>
                         </svg>
@@ -2539,8 +2769,9 @@
                     <span class="pipe-num">
                         <span>02 · Feature Extraction</span>
                     </span>
-                    <h4 class="pipe-h4">Feature Engine</h4>
-                    <p class="pipe-p">Precision calculation of 20+ technical indicators, sector relative strength rotations, and quantitative momentum vectors.</p>
+                    <h3 class="pipe-h4">Feature Engine</h3>
+                    <p class="pipe-p">Precision calculation of 20+ technical indicators, sector relative strength
+                        rotations, and quantitative momentum vectors.</p>
                     <div class="pipe-visual">
                         <svg viewBox="0 0 380 230" preserveAspectRatio="xMidYMid meet">
                             <rect width="380" height="230" fill="#FFFFFF" />
@@ -2551,41 +2782,65 @@
                             <g transform="translate(16, 38)">
                                 <!-- Row 1: Technical Indicators -->
                                 <g transform="translate(0, 0)">
-                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB"
+                                        stroke-width="1.2" rx="6" />
                                     <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
-                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7.5" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">TECH</text>
-                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">20+ SIGNALS</text>
-                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">RSI: 38.5</text>
-                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">MACD Cross</text>
-                                    <text x="290" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">CALC</text>
+                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7.5"
+                                        font-weight="700" fill="#FFFFFF" text-anchor="middle"
+                                        dominant-baseline="central">TECH</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11"
+                                        font-weight="700" fill="#404040">20+ SIGNALS</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="500" fill="#595959">RSI: 38.5</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#0051C3">MACD Cross</text>
+                                    <text x="290" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#404040">CALC</text>
                                     <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
-                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Momentum &amp; Exhaustion · Parameter Weight Tuning</text>
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8"
+                                        fill="#595959">Momentum &amp; Exhaustion · Parameter Weight Tuning</text>
                                 </g>
 
                                 <!-- Row 2: Sector Rotations & Neural Tensors -->
                                 <g transform="translate(0, 56)">
-                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB"
+                                        stroke-width="1.2" rx="6" />
                                     <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
-                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">VECTOR</text>
-                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">EMBEDDINGS</text>
-                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">14D Vector</text>
-                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">RVOL: 2.4x</text>
-                                    <text x="286" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">EMBED</text>
+                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7"
+                                        font-weight="700" fill="#FFFFFF" text-anchor="middle"
+                                        dominant-baseline="central">VECTOR</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11"
+                                        font-weight="700" fill="#404040">EMBEDDINGS</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="500" fill="#595959">14D Vector</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#0051C3">RVOL: 2.4x</text>
+                                    <text x="286" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#404040">EMBED</text>
                                     <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
-                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Cross-Sector Relative Strength · Cluster Vectors</text>
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8"
+                                        fill="#595959">Cross-Sector Relative Strength · Cluster Vectors</text>
                                 </g>
 
                                 <!-- Row 3: Quantitative Model Scorer -->
                                 <g transform="translate(0, 112)">
-                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB"
+                                        stroke-width="1.2" rx="6" />
                                     <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
-                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">MODEL</text>
-                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">XGBOOST ENGINE</text>
-                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">5-Yr History</text>
-                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">Tree Depth 14</text>
-                                    <text x="288" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">SCORED</text>
+                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="7"
+                                        font-weight="700" fill="#FFFFFF" text-anchor="middle"
+                                        dominant-baseline="central">MODEL</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11"
+                                        font-weight="700" fill="#404040">XGBOOST ENGINE</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="500" fill="#595959">5-Yr History</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#0051C3">Tree Depth 14</text>
+                                    <text x="288" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#404040">SCORED</text>
                                     <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
-                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Gradient Boosted Trees · Alpha Probability Score</text>
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8"
+                                        fill="#595959">Gradient Boosted Trees · Alpha Probability Score</text>
                                 </g>
                             </g>
                         </svg>
@@ -2597,8 +2852,10 @@
                     <span class="pipe-num">
                         <span>03 · Output Signals</span>
                     </span>
-                    <h4 class="pipe-h4">Execution Output</h4>
-                    <p class="pipe-p">Top 10 high-probability stock candidates with dynamic ATR profit targets (+3.0%), disciplined stop losses (-1.5%), and Half-Kelly sizing.</p>
+                    <h3 class="pipe-h4">Execution Output</h3>
+                    <p class="pipe-p">Top 10 kandidat saham hasil skrining kuantitatif dengan target model statistik
+                        (+3.0%), stop loss disiplin (-1.5%), dan alokasi Half-Kelly generik. Sinyal riset, bukan order
+                        jual/beli. Saham berisiko rugi.</p>
                     <div class="pipe-visual">
                         <svg viewBox="0 0 380 230" preserveAspectRatio="xMidYMid meet">
                             <rect width="380" height="230" fill="#FFFFFF" />
@@ -2609,41 +2866,65 @@
                             <g transform="translate(16, 38)">
                                 <!-- Row 1: BBCA.JK -->
                                 <g transform="translate(0, 0)">
-                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB"
+                                        stroke-width="1.2" rx="6" />
                                     <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
-                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">BUY</text>
-                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">BBCA.JK</text>
-                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">IDR 10,250</text>
-                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">TP +3.0%</text>
-                                    <text x="295" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">92%</text>
+                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="8"
+                                        font-weight="700" fill="#FFFFFF" text-anchor="middle"
+                                        dominant-baseline="central">BUY</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11"
+                                        font-weight="700" fill="#404040">BBCA.JK</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="500" fill="#595959">IDR 10,250</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#0051C3">TP +3.0%</text>
+                                    <text x="295" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#404040">92%</text>
                                     <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
-                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Kelly: 14.2% · Stop Loss: -1.5% · 5/5 Consensus</text>
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8"
+                                        fill="#595959">Kelly: 14.2% · Stop Loss: -1.5% · 5/5 Consensus</text>
                                 </g>
 
                                 <!-- Row 2: BBRI.JK -->
                                 <g transform="translate(0, 56)">
-                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB"
+                                        stroke-width="1.2" rx="6" />
                                     <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
-                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">BUY</text>
-                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">BBRI.JK</text>
-                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">IDR 4,850</text>
-                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">TP +3.0%</text>
-                                    <text x="295" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">88%</text>
+                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="8"
+                                        font-weight="700" fill="#FFFFFF" text-anchor="middle"
+                                        dominant-baseline="central">BUY</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11"
+                                        font-weight="700" fill="#404040">BBRI.JK</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="500" fill="#595959">IDR 4,850</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#0051C3">TP +3.0%</text>
+                                    <text x="295" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#404040">88%</text>
                                     <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
-                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Kelly: 12.0% · Stop Loss: -1.5% · 5/5 Consensus</text>
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8"
+                                        fill="#595959">Kelly: 12.0% · Stop Loss: -1.5% · 5/5 Consensus</text>
                                 </g>
 
                                 <!-- Row 3: TLKM.JK -->
                                 <g transform="translate(0, 112)">
-                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB" stroke-width="1.2" rx="6" />
+                                    <rect x="0" y="0" width="348" height="50" fill="#FFFFFF" stroke="#EBEBEB"
+                                        stroke-width="1.2" rx="6" />
                                     <rect x="8" y="8" width="42" height="16" fill="#0051C3" rx="8" />
-                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central">BUY</text>
-                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11" font-weight="700" fill="#404040">TLKM.JK</text>
-                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="500" fill="#595959">IDR 2,940</text>
-                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#0051C3">TP +3.0%</text>
-                                    <text x="295" y="20" font-family="ui-monospace, monospace" font-size="8.5" font-weight="600" fill="#404040">85%</text>
+                                    <text x="29" y="16" font-family="Montserrat, sans-serif" font-size="8"
+                                        font-weight="700" fill="#FFFFFF" text-anchor="middle"
+                                        dominant-baseline="central">BUY</text>
+                                    <text x="56" y="21" font-family="Montserrat, sans-serif" font-size="11"
+                                        font-weight="700" fill="#404040">TLKM.JK</text>
+                                    <text x="140" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="500" fill="#595959">IDR 2,940</text>
+                                    <text x="218" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#0051C3">TP +3.0%</text>
+                                    <text x="295" y="20" font-family="ui-monospace, monospace" font-size="8.5"
+                                        font-weight="600" fill="#404040">85%</text>
                                     <line x1="8" y1="30" x2="340" y2="30" stroke="#FAFAFA" stroke-width="1" />
-                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8" fill="#595959">Kelly: 10.5% · Stop Loss: -1.5% · 5/5 Consensus</text>
+                                    <text x="8" y="42" font-family="Montserrat, sans-serif" font-size="8"
+                                        fill="#595959">Kelly: 10.5% · Stop Loss: -1.5% · 5/5 Consensus</text>
                                 </g>
                             </g>
                         </svg>
@@ -2652,30 +2933,35 @@
             </div>
         </section>
 
-        <!-- SECTION 03: VERIFIED PERFORMANCE -->
+        <!-- SECTION 03: SIMULASI BACKTEST (BUKAN TRACK RECORD NYATA) -->
         <section class="section" id="performance">
             <div class="section-hdr reveal">
-                <h2>System Telemetry &amp; Track Record</h2>
+                <h2>Simulasi Backtest &amp; Metodologi</h2>
                 <span>03 · Performance Recap</span>
             </div>
+            <p class="legal-microcopy reveal" style="margin:0 0 16px"><span class="sample-badge"
+                    style="margin-left:0;margin-right:8px">Simulasi backtest</span>Angka historis di bawah berasal dari
+                simulasi backtest internal (gross-of-cost, tanpa penyesuaian penuh biaya/slippage/dampak pasar) — bukan
+                hasil nyata dan bukan jaminan. Metodologi teraudit belum dipublikasikan; angka dapat berubah setelah
+                pipeline tunggal + audit independen.</p>
 
-            <div class="metrics-bar reveal">
+            <div class="metrics-bar reveal sim-watermark">
                 <!-- Metric 1: Win Rate -->
                 <div class="metric-item">
-                    <span class="m-badge audit">AUDITED TRACK RECORD</span>
-                    <div class="m-val">85.9%</div>
+                    <span class="m-badge audit">SIMULASI INTERNAL</span>
+                    <div class="m-val">85.9%*</div>
                     <div class="m-accent-line green"></div>
-                    <div class="m-lbl">Audited Model Win Rate</div>
-                    <div class="m-sub">298 Wins / 49 Losses (Audited Live Cycle)</div>
+                    <div class="m-lbl">Win Rate Simulasi (belum teraudit)</div>
+                    <div class="m-sub">298 SIM-WIN / 49 SIM-LOSS (siklus simulasi)</div>
                 </div>
 
                 <!-- Metric 2: Cumulative Return -->
                 <div class="metric-item">
-                    <span class="m-badge alpha">REALIZED ALPHA</span>
-                    <div class="m-val highlight-red">+820.5%</div>
+                    <span class="m-badge alpha">SIMULASI HIPOTETIS</span>
+                    <div class="m-val highlight-red">+820.5%*</div>
                     <div class="m-accent-line"></div>
-                    <div class="m-lbl">Cumulative Model Alpha</div>
-                    <div class="m-sub">Multi-Year Compound Alpha vs. IHSG</div>
+                    <div class="m-lbl">Alpha Kumulatif Simulasi (hipotetis)</div>
+                    <div class="m-sub">Kompon multi-tahun vs IHSG, gross-of-cost</div>
                 </div>
 
                 <!-- Metric 3: Universe Coverage -->
@@ -2704,19 +2990,23 @@
             <div class="cta-trajectory-bg" aria-hidden="true">
                 <svg viewBox="0 0 1000 480" preserveAspectRatio="xMidYMid meet">
                     <!-- Concentric Target Coordinates Behind Button -->
-                    <circle cx="500" cy="220" r="180" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="4 6" opacity="0.6" />
-                    <circle cx="500" cy="220" r="110" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="3 5" opacity="0.4" />
-                    
+                    <circle cx="500" cy="220" r="180" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="4 6"
+                        opacity="0.6" />
+                    <circle cx="500" cy="220" r="110" stroke="#EBEBEB" stroke-width="0.8" stroke-dasharray="3 5"
+                        opacity="0.4" />
+
                     <!-- Ascending Compound Growth Trajectory -->
-                    <path d="M 40 440 C 280 440, 360 320, 500 220 C 640 120, 780 80, 960 30" fill="none" stroke="#EBEBEB" stroke-width="1.5" stroke-dasharray="5 5" />
+                    <path d="M 40 440 C 280 440, 360 320, 500 220 C 640 120, 780 80, 960 30" fill="none"
+                        stroke="#EBEBEB" stroke-width="1.5" stroke-dasharray="5 5" />
 
                     <!-- Key Data Nodes Along Trajectory -->
                     <circle cx="180" cy="380" r="4" fill="#404040" />
                     <circle cx="340" cy="320" r="4.5" fill="#404040" />
-                    
+
                     <!-- Central Glowing Cobalt Blue Highlight Dot Aligned Directly with the CTA Button -->
                     <circle cx="500" cy="220" r="7" fill="#0051C3" stroke="#FFFFFF" stroke-width="2" />
-                    <circle cx="500" cy="220" r="14" fill="none" stroke="#0051C3" stroke-width="1" stroke-dasharray="2 2" />
+                    <circle cx="500" cy="220" r="14" fill="none" stroke="#0051C3" stroke-width="1"
+                        stroke-dasharray="2 2" />
                     <circle cx="500" cy="220" r="22" fill="none" stroke="#0051C3" stroke-width="0.7" opacity="0.5" />
 
                     <circle cx="680" cy="130" r="5" fill="#404040" />
@@ -2724,14 +3014,15 @@
                 </svg>
             </div>
 
-            <div class="cta-bracket-top">Ready for Execution · 16:05 WIB Daily</div>
-            <h2>Get Tomorrow's Breakout Signals Before Market Open</h2>
-            <p>Top 10 high-conviction picks. 5-agent consensus. Disciplined +3.0% targets. Half-Kelly downside protection. Free open access.</p>
-            
+            <div class="cta-bracket-top">Riset Kuantitatif Harian · 16:05 WIB</div>
+            <h2>Lihat Kandidat Hasil Skrining Sebelum Market Open</h2>
+            <p>Top 10 kandidat skrining kuantitatif. Konsensus 5 agen. Target model +3.0%. Alokasi generik Half-Kelly
+                (bukan saran personal). Sinyal riset — bukan perintah beli/jual. Saham berisiko rugi.</p>
+
             <!-- Closing Proof Strip -->
             <div class="cta-proof-strip">
                 <div class="cta-proof-item">
-                    <span class="cta-proof-k">WIN RATE</span>
+                    <span class="cta-proof-k">SIM WIN RATE*</span>
                     <span class="cta-proof-v">85.9%</span>
                 </div>
                 <div class="cta-proof-item">
@@ -2764,7 +3055,9 @@
                 <div class="footer-col">
                     <div class="footer-title">AKSA<span class="accent">.</span></div>
                     <p class="footer-desc">
-                        Quantitative Stock Intelligence — autonomous screener engineered for the Indonesia Stock Exchange (IDX / BEI). Evaluates 700+ equities daily using quantitative decision trees, 20+ technical indicators, and multi-agent risk consensus.
+                        Quantitative Stock Intelligence — autonomous screener engineered for the Indonesia Stock
+                        Exchange (IDX / BEI). Evaluates 700+ equities daily using quantitative decision trees, 20+
+                        technical indicators, and multi-agent risk consensus.
                     </p>
                     <div class="footer-status-pill">
                         <span class="footer-status-dot"></span>
@@ -2787,7 +3080,8 @@
                 <div class="footer-col">
                     <div class="footer-title">COMMUNITY &amp; FEEDS</div>
                     <div class="footer-links">
-                        <a href="https://t.me/aksascreenerbot" target="_blank" rel="noopener noreferrer">Telegram Alert Feed</a>
+                        <a href="https://t.me/aksascreenerbot" target="_blank" rel="noopener noreferrer">Telegram Alert
+                            Feed</a>
                         <a href="dashboard.html">Live Market Signals</a>
                         <a href="#performance">Historical Track Record</a>
                         <a href="#features">Risk Methodology</a>
@@ -2798,7 +3092,11 @@
             <!-- Footer Bottom Bar & Disclaimer -->
             <div class="footer-bottom">
                 <div class="footer-disclaimer">
-                    <strong>Disclaimer:</strong> All signals, probabilities, price targets, and capital sizing outputs are for quantitative research and educational purposes only — not financial advice. Trading equities carries capital risk. Past performance (+820.5% alpha) does not guarantee future results. Manage risk independently.
+                    <strong>Disclaimer:</strong> Konten ini riset kuantitatif untuk edukasi — BUKAN nasihat/rekomendasi
+                    investasi. Saham berisiko rugi. Angka bertanda * adalah hasil simulasi backtest hipotetis
+                    (gross-of-cost), bukan hasil nyata, dan kinerja masa lalu tidak menjamin hasil. Keputusan &amp;
+                    risiko milik Anda (DYOR). AKSA tidak terafiliasi sekuritas mana pun; skor = output statistik, bukan
+                    jaminan.
                 </div>
                 <div class="footer-copyright">
                     <span>© 2026 AKSA · Quantitative Stock Intelligence · All Rights Reserved</span>
@@ -2809,36 +3107,37 @@
 
     </div> <!-- End .page-content -->
 
-    <!-- RIGHT ARCHITECTURAL SPINE / INTERACTIVE SLIDER RAIL -->
-    <aside class="page-spine" id="page-spine" aria-label="Page Navigation Rail">
-        <span class="spine-label" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Back to top">BEI · IDX</span>
-        
+    <!-- RIGHT ARCHITECTURAL SPINE / INTERACTIVE SLIDER RAIL (hiasan; sembunyi dari SR) -->
+    <aside class="page-spine" id="page-spine" aria-hidden="true">
+        <span class="spine-label" onclick="window.scrollTo({top: 0, behavior: 'smooth'})" title="Back to top">BEI ·
+            IDX</span>
+
         <!-- Interactive Track Area -->
         <div class="spine-track-container" id="spine-track-container" title="Click or drag to navigate">
             <div class="spine-track-line" id="spine-track-line">
                 <!-- Section Pips with Tooltips -->
-                <div class="spine-pip active" data-target="hero" style="top: 5%;">
+                <div class="spine-pip active" data-target="hero">
                     <span class="pip-tooltip">Hero Section</span>
                 </div>
-                <div class="spine-pip" data-target="live-intelligence" style="top: 24%;">
+                <div class="spine-pip" data-target="live-intelligence">
                     <span class="pip-tooltip">00 · Market Signals</span>
                 </div>
-                <div class="spine-pip" data-target="features" style="top: 45%;">
+                <div class="spine-pip" data-target="features">
                     <span class="pip-tooltip">01 · Architecture</span>
                 </div>
-                <div class="spine-pip" data-target="pipeline" style="top: 65%;">
+                <div class="spine-pip" data-target="pipeline">
                     <span class="pip-tooltip">02 · Pipeline</span>
                 </div>
-                <div class="spine-pip" data-target="performance" style="top: 82%;">
-                    <span class="pip-tooltip">03 · Telemetry</span>
+                <div class="spine-pip" data-target="performance">
+                    <span class="pip-tooltip">03 · Backtest Simulasi</span>
                 </div>
-                <div class="spine-pip" data-target="cta-section" style="top: 95%;">
-                    <span class="pip-tooltip">Deploy Alpha</span>
+                <div class="spine-pip" data-target="cta-section">
+                    <span class="pip-tooltip">Lihat Kandidat Skrining</span>
                 </div>
             </div>
 
-            <!-- Tactile Draggable Slider Thumb -->
-            <div class="spine-thumb" id="spine-thumb" role="slider" aria-label="Page Scroll Position" aria-valuemin="0" aria-valuemax="100" tabindex="0" title="Drag to scroll">
+            <!-- Tactile Draggable Slider Thumb (hiasan; fokus keyboard nonaktif karena aside aria-hidden) -->
+            <div class="spine-thumb" id="spine-thumb" title="Drag to scroll" aria-hidden="true">
                 <span class="thumb-grip"></span>
                 <span class="thumb-grip"></span>
             </div>
@@ -2894,7 +3193,7 @@
                 const scrollY = window.scrollY || window.pageYOffset;
                 const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
                 const percent = maxScroll > 0 ? Math.min(Math.max(scrollY / maxScroll, 0), 1) : 0;
-                
+
                 const { halfThumb, playableHeight } = getThumbMetrics();
                 const topPx = halfThumb + percent * playableHeight;
                 spineThumb.style.top = `${topPx}px`;
@@ -2933,19 +3232,19 @@
                 if (!trackContainer) return;
                 const rect = trackContainer.getBoundingClientRect();
                 const { halfThumb, playableHeight } = getThumbMetrics();
-                
+
                 const relativeY = clientY - rect.top - halfThumb;
                 const clampedY = Math.min(Math.max(relativeY, 0), playableHeight);
                 const percent = playableHeight > 0 ? clampedY / playableHeight : 0;
                 const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
                 const targetScrollY = percent * maxScroll;
-                
+
                 if (spineThumb) {
                     const topPx = halfThumb + clampedY;
                     spineThumb.style.top = `${topPx}px`;
                     spineThumb.setAttribute('aria-valuenow', Math.round(percent * 100));
                 }
-                
+
                 if (instant) {
                     window.scrollTo(0, targetScrollY);
                 } else {

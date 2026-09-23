@@ -1,13 +1,14 @@
-import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
-import pandas as pd
-import yfinance as yf
 from pathlib import Path
 
+import pandas as pd
+from fastapi import APIRouter, Request
+from pydantic import BaseModel
+
 from dashboard.backend.security import require_api_key
+from dashboard.backend.yf_client import download_with_timeout
+
 
 def get_wib_now() -> datetime:
     """Mengembalikan datetime saat ini dalam WIB (Asia/Jakarta, UTC+7) yang akurat di mana pun server di-deploy."""
@@ -163,17 +164,12 @@ def get_track_record():
     
     result = []
     for r in rows:
-        entry_p = r["entry_price"]
-        target_p = r["target_price"]
-        stop_p = r["stop_loss"]
         st = r["status"]
         real_ret = r["realized_return"]
 
         if st == "LOSS":
             real_ret = -1.5
-        elif st == "PENDING":
-            real_ret = 0.0
-        elif real_ret is None:
+        elif st == "PENDING" or real_ret is None:
             real_ret = 0.0
 
         c_at = r["created_at"] or ""
@@ -233,8 +229,8 @@ def audit_run_endpoint(request: Request):
 
 def run_audit():
     """Memeriksa status semua sinyal PENDING menggunakan data lokal stock_market.db & yfinance terbaru."""
-    import io
     import contextlib
+    import io
 
     init_db()
     with get_db_connection() as conn:
@@ -293,7 +289,7 @@ def run_audit():
             try:
                 end_dt_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
                 with contextlib.redirect_stderr(io.StringIO()), contextlib.redirect_stdout(io.StringIO()):
-                    df_yf = yf.download(yf_ticker, start=start_date, end=end_dt_str, progress=False)
+                    df_yf = download_with_timeout(yf_ticker, start=start_date, end=end_dt_str)
                     if not df_yf.empty:
                         if isinstance(df_yf.columns, pd.MultiIndex):
                             df_yf.columns = df_yf.columns.droplevel('Ticker') if 'Ticker' in df_yf.columns.names else df_yf.columns.get_level_values(0)
@@ -566,9 +562,7 @@ def get_today_audit_summary():
 
         if st == "LOSS":
             real_ret = -1.5
-        elif st == "PENDING":
-            real_ret = 0.0
-        elif real_ret is None:
+        elif st == "PENDING" or real_ret is None:
             real_ret = 0.0
 
         if st == "WIN":
@@ -640,7 +634,7 @@ def seed_simulation_audit():
 
     print("[BACKTEST] Memulai pengunduhan data historis asli dari Yahoo Finance...")
     try:
-        ihsg_df = yf.download("^JKSE", period="6mo", interval="1d", progress=False)
+        ihsg_df = download_with_timeout("^JKSE", period="6mo", interval="1d")
         if isinstance(ihsg_df.columns, pd.MultiIndex):
             ihsg_close = ihsg_df["Close"].iloc[:, 0]
         else:
@@ -654,7 +648,7 @@ def seed_simulation_audit():
         for ticker in tickers_to_backtest:
             clean_ticker = ticker.replace(".JK", "")
             try:
-                df_stock = yf.download(ticker, period="6mo", interval="1d", progress=False)
+                df_stock = download_with_timeout(ticker, period="6mo", interval="1d")
                 if isinstance(df_stock.columns, pd.MultiIndex):
                     df_stock.columns = df_stock.columns.get_level_values(0)
                 df_stock = df_stock.dropna().copy()
@@ -679,9 +673,7 @@ def seed_simulation_audit():
                     date_dt = df_stock.index[i]
                     date_str = date_dt.strftime("%Y-%m-%d")
 
-                    if not market_closed and date_str >= today_date_str:
-                        continue
-                    elif date_str > today_date_str:
+                    if not market_closed and date_str >= today_date_str or date_str > today_date_str:
                         continue
 
                     if date_str == today_date_str:
@@ -736,8 +728,7 @@ def seed_simulation_audit():
                             if max_h >= target_price or last_c >= entry_price:
                                 status = "WIN"
                                 real_ret = round(((max_h - entry_price) / entry_price) * 100, 1) if max_h >= target_price else round(((last_c - entry_price) / entry_price) * 100, 1)
-                                if real_ret < 3.0:
-                                    real_ret = 3.0
+                                real_ret = max(real_ret, 3.0)
                             elif len(fw) < 5:
                                 min_l = float(fw['Low'].min())
                                 if min_l <= stop_loss:
@@ -757,10 +748,10 @@ def seed_simulation_audit():
                         ))
 
             except Exception as se:
-                print(f"[BACKTEST] Error processing {ticker}: {str(se)}")
+                print(f"[BACKTEST] Error processing {ticker}: {se!s}")
 
     except Exception as e:
-        print(f"[BACKTEST] Error downloading historical data: {str(e)}")
+        print(f"[BACKTEST] Error downloading historical data: {e!s}")
 
     if real_records:
         with _db_lock, get_db_connection() as conn:

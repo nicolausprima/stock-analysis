@@ -1,7 +1,7 @@
 import os
-import json
+from typing import Any
+
 import requests
-from typing import Dict, Any
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -14,7 +14,7 @@ if "host.docker.internal" in OPENAI_API_BASE and not os.path.exists('/.dockerenv
 
 class TechnicalAnalystAgent:
     """Agent specialized in price action, RSI, MACD, and trend analysis."""
-    def analyze(self, data: Dict[str, Any]) -> str:
+    def analyze(self, data: dict[str, Any]) -> str:
         rsi = data.get("rsi", 50.0)
         macd = data.get("macd_signal", "BULLISH")
         trend = data.get("trend", "UPTREND")
@@ -29,7 +29,7 @@ class TechnicalAnalystAgent:
 
 class SentimentAnalystAgent:
     """Agent specialized in news sentiment and catalyst impact."""
-    def analyze(self, data: Dict[str, Any]) -> str:
+    def analyze(self, data: dict[str, Any]) -> str:
         status = data.get("sentiment_status", "NETRAL")
         impact = data.get("sentiment_impact", "NETRAL")
         highlights = data.get("sentiment_highlights", [])
@@ -43,7 +43,7 @@ class SentimentAnalystAgent:
 
 class MacroContextAgent:
     """Agent specialized in evaluating domestic, global macroeconomic regime, and IDX sector rotation."""
-    def analyze(self, macro_data: Dict[str, Any], ticker: str = "") -> str:
+    def analyze(self, macro_data: dict[str, Any], ticker: str = "") -> str:
         mode = macro_data.get("mode", "NORMAL")
         score = macro_data.get("macro_score", 0.0)
         badge = macro_data.get("mode_badge", "MODE NORMAL")
@@ -65,7 +65,7 @@ class MacroContextAgent:
 
 class BullBearDebateAgent:
     """Simulates a debate between Bull (upside factors) and Bear (risk factors)."""
-    def debate(self, tech_summary: str, sent_summary: str, macro_summary: str, data: Dict[str, Any]) -> Dict[str, str]:
+    def debate(self, tech_summary: str, sent_summary: str, macro_summary: str, data: dict[str, Any]) -> dict[str, str]:
         prob = data.get("probability", 50.0)
         ticker = data.get("ticker", "SAHAM").replace(".JK", "")
         
@@ -83,7 +83,7 @@ class BullBearDebateAgent:
 
 class RiskManagerAgent:
     """Evaluates risk/reward ratio and synthesizes final trading consensus."""
-    def evaluate(self, debate: Dict[str, str], data: Dict[str, Any], macro_mode: str = "NORMAL") -> Dict[str, Any]:
+    def evaluate(self, debate: dict[str, str], data: dict[str, Any], macro_mode: str = "NORMAL") -> dict[str, Any]:
         close = data.get("close_price", 1)
         target = data.get("target_price", 1)
         stop = data.get("stop_loss", 1)
@@ -121,7 +121,7 @@ class MultiAgentSystem:
         self.debate_agent = BullBearDebateAgent()
         self.risk_manager = RiskManagerAgent()
 
-    def generate_consensus(self, data: Dict[str, Any], macro_info: Dict[str, Any] = None) -> Dict[str, Any]:
+    def generate_consensus(self, data: dict[str, Any], macro_info: dict[str, Any] | None = None) -> dict[str, Any]:
         """Runs the multi-agent consensus workflow."""
         macro_info = macro_info or {}
         macro_mode = macro_info.get("mode", "NORMAL")
@@ -159,7 +159,7 @@ class MultiAgentSystem:
             "consensus_summary": synthesis
         }
 
-    def _call_llm_synthesis(self, ticker: str, data: Dict[str, Any], debate: Dict[str, str], risk: Dict[str, Any], macro_view: str) -> str:
+    def _call_llm_synthesis(self, ticker: str, data: dict[str, Any], debate: dict[str, str], risk: dict[str, Any], macro_view: str) -> str:
         """Helper to invoke LLM proxy for polished natural language synthesis."""
         url = f"{OPENAI_API_BASE}/chat/completions"
         headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}

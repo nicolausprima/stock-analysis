@@ -25,19 +25,21 @@ AKSA (*Analisis Kuantitatif Saham*) is a production-grade algorithmic day tradin
 
 ---
 
-## 📊 Performance & Track Record
+## 📊 Performance & Track Record (hasil simulasi backtest — bukan hasil nyata)
+
+> **Catatan metodologi:** angka di bawah berasal dari **simulasi backtest internal (gross-of-cost**, tanpa penyesuaian penuh biaya/slippage/dampak pasar) — **bukan hasil nyata dan bukan jaminan**. Metodologi teraudit belum dipublikasikan; angka dapat berubah setelah pipeline tunggal + audit independen.
 
 | Metric | Performance Value |
 | :--- | :--- |
-| **Overall Win Rate** | **85.9% (298 WIN / 49 LOSS)** 🚀 |
-| **Total Cumulative Return** | **+820.5% Realized Market Return** 💰 |
+| **Overall Win Rate** | **85.9% SIM-WIN (298 / 49 simulasi)** 🚀 |
+| **Total Cumulative Return** | **+820.5%* alpha kumulatif simulasi (hipotetis, gross-of-cost)** 💰 |
 | **Full BEI Universe Scanned** | **700+ BEI Tickers (Active & Liquid)** 🇮🇩 |
-| **Automated Test Suite** | **100% Pass (43/43 Automated Unit & Quant Tests)** 🧪 |
+| **Automated Test Suite** | **52 passed (uv run pytest tests/ -q)** 🧪 |
 | **Data Engine & Speed** | **DuckDB + Polars (Vectorized OLAP Pipeline)** ⚡ |
 | **Explainability Engine** | **SHAP TreeExplainer (Local & Global Feature Attribution)** 🧠 |
 | **UI Response Time** | **Sub-5ms (Pre-computed JSON Cache & SQLite)** ⚡ |
 | **Interactive API Documentation** | **`http://127.0.0.1:8000/docs` (Swagger UI)** 📖 |
-| **Audit Verification** | **100% Time-Aware Realized Return Engine (WIB UTC+7 Locked)** ✅ |
+| **Audit Verification** | **Time-aware backtest engine, WIB UTC+7 (asumsi simulasi)** ✅ |
 
 ---
 
@@ -72,7 +74,7 @@ AKSA (*Analisis Kuantitatif Saham*) is a production-grade algorithmic day tradin
 | 📊 **OpenBB & Akshare Integration** | OpenBB Platform SDK wrapper (`openbb_provider.py`) with seamless yfinance & Akshare fallback for robust financial data retrieval. |
 | 🤖 **Feature Embedding + XGBoost Model** | Dense feature embeddings (volatility, momentum, curve shape, return velocity) trained on 5 years of BEI historical price data. |
 | 🚫 **Automated Suspend & Delisting Guard** | Multi-layer filter excluding suspended stocks (zero volume over 5 days, frozen price over 10 days) and delisted tickers. |
-| 📈 **Realized Market Return Audit Engine** | Tracks exact maximum high gain for WIN and low drawdown for LOSS with full time-awareness (WIB UTC+7). |
+| 📈 **Market Return Audit Engine** | Tracks exact maximum high gain for WIN and low drawdown for LOSS with full time-awareness (WIB UTC+7). |
 | ⚡ **Async Non-Blocking Telegram Bot** | Responds instantly (<1s) to `/today`, `/midday`, `/bsjp`, `/audittoday`, and `/auditall` commands using background worker threads. |
 | 🌇 **BSJP (Beli Sore Jual Pagi) Engine** | Dedicated 15:30 WIB real-time scanner capturing late-afternoon volume accumulation without overwriting main recommendation caches. |
 | ⚡ **Sub-5ms UI Response & JSON Cache** | Pre-computes recommendations after market close into `data/latest_recommendations.json` for instant UI loading. |
@@ -178,10 +180,10 @@ python cli.py
 
 | Command | Action & Description | Example |
 |---|---|---|
-| **`/scan`** or **`/top`** | Scans all BEI stocks and displays Top 10 High-Conviction recommendations with Sector, RVOL, ADX, Dynamic TP/SL, and Kelly Sizing. | `(idx-quant) > /scan` |
+| **`/scan`** or **`/top`** | Scans all BEI stocks and displays Top 10 simulasi screening with Sector, RVOL, ADX, Dynamic TP/SL, and Kelly Sizing. | `(idx-quant) > /scan` |
 | **`/analyze <TICKER>`** | Deep-dive multi-agent quantitative analysis (Technical, Sentiment, Macro, Risk Manager, and 30-day ASCII trend chart). | `(idx-quant) > /analyze BBCA` |
 | **`/macro`** | Real-time global & domestic macro regime check (IHSG level, USD/IDR, Asian markets, 11-sector momentum ranking). | `(idx-quant) > /macro` |
-| **`/audit`** | Audit track record recap (Win Rate %, total realized gain %, and monthly breakdown table). | `(idx-quant) > /audit` |
+| **`/audit`** | Audit track record recap (SIM-WIN %, total simulasi gain %, and monthly breakdown table). | `(idx-quant) > /audit` |
 | **`/sizing <TICKER> [CAPITAL]`** | Half-Kelly optimal position sizing and lot allocation calculator based on total capital. | `(idx-quant) > /sizing BBRI 50000000` |
 | **`/chart <TICKER>`** | Mini terminal ASCII price chart with 52-week High/Low and current price position. | `(idx-quant) > /chart ASII` |
 | **`/help`** | Displays command cheat sheet and usage instructions. | `(idx-quant) > /help` |
@@ -207,7 +209,7 @@ You can interact directly with the bot (`@StockAnalysisLocalBot`) on Telegram at
 | `/midday` | Midday Market Recap | Displays real-time Sesi 1 market recap & signal progress (12:00 WIB). |
 | `/bsjp` | BSJP Radar | Displays Beli Sore Jual Pagi momentum stock picks 30 mins before close (15:30 WIB). |
 | `/audittoday` | Today's Audit | Displays WIN / LOSS / PENDING breakdown & daily win rate for today's trading. |
-| `/auditall` / `/audit` | 6-Month Track Record | Displays 6-month accumulative performance audit (Win Rate %, WIN/LOSS counts, Realized Profit %). |
+| `/auditall` / `/audit` | 6-Month Track Record | Displays 6-month accumulative performance audit (SIM-WIN %, WIN/LOSS counts, simulasi Profit %). |
 | `/start` / `/help` | Bot Menu | Displays interactive welcome menu with all available bot commands. |
 
 ---

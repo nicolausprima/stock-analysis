@@ -1,8 +1,36 @@
 import os
+
 from src.utils.paths import (
-    PROJECT_ROOT, DATA_DIR, RAW_DATA_DIR, PROCESSED_DATA_DIR,
-    PRICE_DATA_DIR, TICKER_LIST_FILE, DB_PATH, CACHE_FILE
+    CACHE_FILE,
+    DATA_DIR,
+    DB_PATH,
+    PRICE_DATA_DIR,
+    PROCESSED_DATA_DIR,
+    PROJECT_ROOT,
+    RAW_DATA_DIR,
+    TICKER_LIST_FILE,
 )
+
+__all__ = [
+    "BATCH_DELAY_SECONDS",
+    "BATCH_SIZE",
+    "CACHE_FILE",
+    "DATA_DIR",
+    "DB_PATH",
+    "PRICE_DATA_DIR",
+    "PROCESSED_DATA_DIR",
+    "PROFIT_THRESHOLD",
+    "PROJECT_ROOT",
+    "RAW_DATA_DIR",
+    "TELEGRAM_BOT_TOKEN",
+    "TELEGRAM_CHAT_ID",
+    "TICKERS",
+    "TICKER_LIST_FILE",
+    "get_allowed_chat_ids",
+    "get_telegram_bot_token",
+    "get_tickers",
+    "reload_tickers",
+]
 
 # Ensure directories exist
 PRICE_DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -24,6 +52,26 @@ except ImportError:
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+
+def get_telegram_bot_token() -> str:
+    """Baca token per-call agar rotasi env tanpa restart ikut berlaku.
+
+    Token TIDAK boleh di-log/di-print. Import modul ini hanya untuk
+    backward-compat; kode baru wajib pakai helper ini.
+    """
+    return os.getenv("TELEGRAM_BOT_TOKEN", TELEGRAM_BOT_TOKEN or "").strip()
+
+
+def get_allowed_chat_ids() -> set[str]:
+    """Allowlist chat Telegram: TELEGRAM_CHAT_ID + TELEGRAM_ALLOWED_CHAT_IDS (koma)."""
+    ids: set[str] = set()
+    for raw in (os.getenv("TELEGRAM_CHAT_ID", TELEGRAM_CHAT_ID or ""), os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "")):
+        for part in str(raw or "").split(","):
+            part = part.strip()
+            if part:
+                ids.add(part)
+    return ids
 
 @lru_cache(maxsize=1)
 def get_tickers():

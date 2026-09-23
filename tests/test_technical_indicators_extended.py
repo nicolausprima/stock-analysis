@@ -1,15 +1,15 @@
-import pytest
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.features.technical_indicators import add_technical_indicators
 from src.features.embedding import extract_chart_feature_embeddings
+from src.features.technical_indicators import add_technical_indicators
 
 
 def test_extended_technical_indicators_presence_and_bounds():
@@ -30,10 +30,10 @@ def test_extended_technical_indicators_presence_and_bounds():
     for col in expected_new:
         assert col in df.columns, f"Indikator {col} tidak ditemukan pada dataframe"
 
-    # Check value bounds
-    assert (df["Stoch_K"] >= 0).all() and (df["Stoch_K"] <= 100).all()
-    assert (df["MFI_14"] >= 0).all() and (df["MFI_14"] <= 100).all()
-    assert (df["Williams_R"] >= -100).all() and (df["Williams_R"] <= 0).all()
+    # Check value bounds (warm-up NaN dibiarkan per AI-06 -> cek non-NaN)
+    assert (df["Stoch_K"].dropna() >= 0).all() and (df["Stoch_K"].dropna() <= 100).all()
+    assert (df["MFI_14"].dropna() >= 0).all() and (df["MFI_14"].dropna() <= 100).all()
+    assert (df["Williams_R"].dropna() >= -100).all() and (df["Williams_R"].dropna() <= 0).all()
 
 
 def test_extended_feature_embeddings_no_nan():
@@ -62,5 +62,11 @@ def test_extended_feature_embeddings_no_nan():
     assert "Embed_Williams_Norm" in embeds.columns
     assert "Embed_CCI_Norm" in embeds.columns
 
-    assert not embeds.isna().any().any(), "Terdapat NaN di feature embeddings"
-    assert not np.isinf(embeds.values).any(), "Terdapat Inf di feature embeddings"
+    # Kontrak S-5: NaN warm-up merambat ke Embed_* (bukan 0). Caller wajib drop.
+    # Mentah boleh NaN di bar awal; bersih setelah drop warm-up + dropna.
+    assert embeds.isna().any().any(), "Embed_* harus propagasi NaN warm-up (kontrak S-5)"
+    from src.features.technical_indicators import drop_warmup_rows
+    clean = drop_warmup_rows(df).dropna()
+    embeds_clean = extract_chart_feature_embeddings(clean)
+    assert not embeds_clean.isna().any().any(), "Terdapat NaN pasca-drop warm-up"
+    assert not np.isinf(embeds_clean.values).any(), "Terdapat Inf di feature embeddings"

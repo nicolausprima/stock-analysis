@@ -1,10 +1,11 @@
-import pandas as pd
-import numpy as np
-import joblib
-from xgboost import XGBClassifier
-from sklearn.preprocessing import StandardScaler
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
 
 # Path Resolution
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -12,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 from src.features.embedding import extract_chart_feature_embeddings
-from src.features.technical_indicators import add_technical_indicators
+
 
 def train_and_save_embedding_model():
     """

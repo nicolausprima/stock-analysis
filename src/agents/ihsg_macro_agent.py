@@ -1,7 +1,9 @@
 import logging
+from typing import Any
+
 import pandas as pd
-import yfinance as yf
-from typing import Dict, Any
+
+from dashboard.backend.yf_client import download_with_timeout
 from src.agents.news_macro_agent import NewsMacroAgent
 
 logger = logging.getLogger(__name__)
@@ -39,7 +41,7 @@ class IHSGMacroAgent:
     def __init__(self):
         self.news_agent = NewsMacroAgent()
 
-    def evaluate_sector_rotation(self) -> Dict[str, Any]:
+    def evaluate_sector_rotation(self) -> dict[str, Any]:
         """Menghitung momentum rotasi 11 sektor BEI untuk menemukan Leading Sectors."""
         sector_scores = {}
         try:
@@ -47,7 +49,7 @@ class IHSGMacroAgent:
             for sector, tickers in IDX_SECTOR_MAP.items():
                 anchor = f"{tickers[0]}.JK"
                 try:
-                    df = yf.download(anchor, period="5d", progress=False)
+                    df = download_with_timeout(anchor, period="5d", progress=False)
                     if not df.empty and len(df) >= 2:
                         close_col = df['Close'].iloc[:, 0] if isinstance(df.columns, pd.MultiIndex) else df['Close']
                         p_now = float(close_col.iloc[-1])
@@ -70,7 +72,7 @@ class IHSGMacroAgent:
             "sector_rankings": dict(sorted_sectors)
         }
 
-    def evaluate(self, skip_news: bool = False, skip_sectors: bool = False) -> Dict[str, Any]:
+    def evaluate(self, skip_news: bool = False, skip_sectors: bool = False) -> dict[str, Any]:
         """Perform comprehensive macro regime evaluation.
         
         Args:
@@ -84,7 +86,7 @@ class IHSGMacroAgent:
 
         # 1. USD/IDR Currency Check
         try:
-            usd_idr = yf.download('USDIDR=X', period='5d', progress=False)
+            usd_idr = download_with_timeout('USDIDR=X', period='5d', progress=False)
             if not usd_idr.empty and len(usd_idr) >= 2:
                 close_col = usd_idr['Close'].iloc[:, 0] if isinstance(usd_idr.columns, pd.MultiIndex) else usd_idr['Close']
                 last_rate = float(close_col.iloc[-1])
@@ -104,7 +106,7 @@ class IHSGMacroAgent:
 
         # 2. DXY Dollar Index
         try:
-            dxy = yf.download('DX-Y.NYB', period='5d', progress=False)
+            dxy = download_with_timeout('DX-Y.NYB', period='5d', progress=False)
             if not dxy.empty and len(dxy) >= 2:
                 close_col = dxy['Close'].iloc[:, 0] if isinstance(dxy.columns, pd.MultiIndex) else dxy['Close']
                 last_dxy = float(close_col.iloc[-1])
@@ -123,7 +125,7 @@ class IHSGMacroAgent:
         # 3. Asian Markets (Nikkei, Hang Seng, STI)
         try:
             asia_tickers = ['^N225', '^HSI', '^STI']
-            asia_data = yf.download(asia_tickers, period='5d', progress=False)
+            asia_data = download_with_timeout(asia_tickers, period='5d', progress=False)
             if not asia_data.empty:
                 asia_returns = []
                 for tk in asia_tickers:
@@ -150,7 +152,7 @@ class IHSGMacroAgent:
         # 4. US Markets (S&P 500 & NASDAQ)
         try:
             us_tickers = ['^GSPC', '^IXIC']
-            us_data = yf.download(us_tickers, period='5d', progress=False)
+            us_data = download_with_timeout(us_tickers, period='5d', progress=False)
             if not us_data.empty:
                 us_returns = []
                 for tk in us_tickers:
@@ -174,7 +176,7 @@ class IHSGMacroAgent:
 
         # 5. IHSG Technical Index Guard (^JKSE)
         try:
-            ihsg = yf.download('^JKSE', period='50d', progress=False)
+            ihsg = download_with_timeout('^JKSE', period='50d', progress=False)
             if not ihsg.empty and len(ihsg) >= 20:
                 close_col = ihsg['Close'].iloc[:, 0] if isinstance(ihsg.columns, pd.MultiIndex) else ihsg['Close']
                 last_price = float(close_col.iloc[-1])
@@ -205,7 +207,7 @@ class IHSGMacroAgent:
                     score -= 1.0
                     details.append(f"• Sentimen Berita Makro: {news_eval.get('label', 'NEGATIF')} ({news_score:.2f}) ⚠️")
                 else:
-                    details.append(f"• Sentimen Berita Makro: NETRAL (0.0) ➖")
+                    details.append("• Sentimen Berita Makro: NETRAL (0.0) ➖")
             except Exception as e:
                 logger.warning(f"Failed to evaluate news sentiment: {e}")
 

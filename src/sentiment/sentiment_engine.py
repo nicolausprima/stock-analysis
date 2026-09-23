@@ -1,12 +1,11 @@
+import hashlib
+import json
+import logging
 import os
 import re
-import time
-import json
-import hashlib
-import logging
 import sqlite3
-from typing import List, Dict, Any, Optional
-from pathlib import Path
+import time
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +59,7 @@ class FinancialSentimentAnalyzer:
     - Tier 3: SQLite cache for lightning-fast sub-millisecond repeated lookups.
     """
 
-    def __init__(self, db_path: Optional[str] = None):
+    def __init__(self, db_path: str | None = None):
         self.db_path = db_path
         self._hf_pipeline = None
         self._hf_checked = False
@@ -114,7 +113,6 @@ class FinancialSentimentAnalyzer:
             return None
 
         try:
-            import transformers
             from transformers import pipeline
             self._hf_pipeline = pipeline(
                 "sentiment-analysis",
@@ -129,7 +127,7 @@ class FinancialSentimentAnalyzer:
             logger.debug("Transformers FinBERT not cached locally; using native Financial Lexicon engine.")
         return self._hf_pipeline
 
-    def score_text(self, text: str) -> Dict[str, Any]:
+    def score_text(self, text: str) -> dict[str, Any]:
         """
         Analyze a single headline or paragraph.
         Returns:
@@ -181,7 +179,7 @@ class FinancialSentimentAnalyzer:
         self._save_cached_sentiment(headline_hash, clean_text, result)
         return result
 
-    def _score_with_financial_lexicon(self, text: str) -> Dict[str, Any]:
+    def _score_with_financial_lexicon(self, text: str) -> dict[str, Any]:
         """Context-aware financial phrase and keyword analyzer."""
         lower = text.lower()
         words = re.findall(r'\b[\w-]+\b', lower)
@@ -219,9 +217,7 @@ class FinancialSentimentAnalyzer:
 
                 # Check preceding negation
                 negated = False
-                if i > 0 and words[i-1] in NEGATIONS:
-                    negated = True
-                elif i > 1 and words[i-2] in NEGATIONS:
+                if i > 0 and words[i-1] in NEGATIONS or i > 1 and words[i-2] in NEGATIONS:
                     negated = True
 
                 final_weight = (-weight * 0.7 if negated else weight) * multiplier
@@ -257,7 +253,7 @@ class FinancialSentimentAnalyzer:
         else:
             return "NETRAL"
 
-    def analyze_ticker_headlines(self, ticker: str, headlines: List[str]) -> Dict[str, Any]:
+    def analyze_ticker_headlines(self, ticker: str, headlines: list[str]) -> dict[str, Any]:
         """
         Evaluate collective news sentiment for an equity ticker.
         Applies asymmetric risk weighting (negative news penalizes more severely than positive boosts).
@@ -317,7 +313,7 @@ class FinancialSentimentAnalyzer:
             "news_count": len(headlines)
         }
 
-    def _get_cached_sentiment(self, headline_hash: str) -> Optional[Dict[str, Any]]:
+    def _get_cached_sentiment(self, headline_hash: str) -> dict[str, Any] | None:
         conn = self._get_db_connection()
         if not conn:
             return None
@@ -325,22 +321,21 @@ class FinancialSentimentAnalyzer:
             cursor = conn.cursor()
             cursor.execute("SELECT score, label, highlights, created_at FROM news_sentiment_cache WHERE headline_hash = ?", (headline_hash,))
             row = cursor.fetchone()
-            if row:
-                if time.time() - row[3] < 86400:
-                    highlights = json.loads(row[2]) if row[2] else []
-                    return {
-                        "score": float(row[0]),
-                        "label": str(row[1]),
-                        "confidence": 0.85,
-                        "highlights": highlights
-                    }
+            if row and time.time() - row[3] < 86400:
+                highlights = json.loads(row[2]) if row[2] else []
+                return {
+                    "score": float(row[0]),
+                    "label": str(row[1]),
+                    "confidence": 0.85,
+                    "highlights": highlights
+                }
         except Exception:
             pass
         finally:
             conn.close()
         return None
 
-    def _save_cached_sentiment(self, headline_hash: str, headline: str, result: Dict[str, Any]):
+    def _save_cached_sentiment(self, headline_hash: str, headline: str, result: dict[str, Any]):
         conn = self._get_db_connection()
         if not conn:
             return

@@ -9,6 +9,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: ci-${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - name: Checkout Code Repository
         uses: actions/checkout@v4
@@ -25,6 +29,16 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install ruff pip-audit
+
+      - name: Compile check
+        run: python -m compileall -q .
+
+      - name: Lint (ruff)
+        run: ruff check .
+
+      - name: Dependency vulnerability scan
+        run: pip-audit -r requirements.txt
 
       - name: Run Pytest TDD Suite
         env:
@@ -32,4 +46,30 @@ jobs:
         run: |
           pytest --verbose --tb=short
 
+      - name: API smoke test
+        env:
+          TESTING: "true"
+          API_AUTH_TOKEN: "ci-smoke-token"
+        run: |
+          python - <<'PY'
+          import os
+          os.environ["TESTING"] = "true"
+          from fastapi.testclient import TestClient
+          from dashboard.backend.main import app
+          c = TestClient(app)
+          assert c.get("/api/recommendations").status_code == 200
+          assert c.get("/api/telegram/status").status_code == 200
+          # fail-closed: tanpa key harus 401 saat token diset
+          import dashboard.backend.security as sec
+          sec.API_AUTH_TOKEN = "ci-smoke-token"
+          assert c.get("/api/sync").status_code == 401
+          print("smoke OK")
+          PY
 
+  docker:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker build
+        run: docker build -t stockai:ci .

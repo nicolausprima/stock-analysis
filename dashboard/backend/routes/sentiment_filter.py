@@ -1,6 +1,7 @@
 import re
 import time
-import yfinance as yf
+
+from dashboard.backend.yf_client import get_ticker_news
 from src.sentiment.sentiment_engine import get_sentiment_analyzer
 
 # Cache headline per ticker (30 menit TTL) agar scan 700+ saham tidak
@@ -44,8 +45,7 @@ def fetch_recent_headlines(ticker: str) -> list[str]:
     yf_ticker_str = f"{clean_ticker}.JK" if not clean_ticker.endswith(".JK") else clean_ticker
     headlines = []
     try:
-        yf_ticker = yf.Ticker(yf_ticker_str)
-        news_data = getattr(yf_ticker, 'news', []) or []
+        news_data = get_ticker_news(yf_ticker_str)
         for item in news_data[:4]:
             title = item.get("title", "")
             summary = item.get("summary", "")

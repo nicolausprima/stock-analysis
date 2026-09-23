@@ -1,17 +1,20 @@
 import os
 import sys
-import time
 import threading
+import time
 import warnings
 from contextlib import asynccontextmanager
 from pathlib import Path
+
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
-# Filter warning noise in logs
-warnings.filterwarnings("ignore")
+# Hanya redam warning noisy pihak ketiga; jangan sembunyikan warning data/model sendiri.
+warnings.filterwarnings("ignore", category=FutureWarning, module=r"yfinance.*")
+warnings.filterwarnings("ignore", category=UserWarning, module=r"urllib3.*")
+warnings.filterwarnings("ignore", message=r".*XGBoost.*")
 
 # Konfigurasi path untuk absolute import
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -19,13 +22,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 # Import routers
-from dashboard.backend.routes.predict import router as predict_router
-from dashboard.backend.routes.chart import router as chart_router
-from dashboard.backend.routes.news_agent import router as news_router
 from dashboard.backend.routes.audit import router as audit_router
+from dashboard.backend.routes.chart import router as chart_router
 from dashboard.backend.routes.narasi import router as narasi_router
+from dashboard.backend.routes.news_agent import router as news_router
+from dashboard.backend.routes.predict import router as predict_router
 from dashboard.backend.routes.telegram import router as telegram_router
-
 
 # --- Rate limiting sederhana per-IP untuk semua endpoint /api (anti DoS) ---
 RATE_LIMIT_PER_MINUTE = 120
@@ -52,6 +54,19 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     oldest_ips = sorted(_rate_buckets, key=lambda k: _rate_buckets[k][-1])[:len(_rate_buckets) // 2]
                     for old_ip in oldest_ips:
                         _rate_buckets.pop(old_ip, None)
+            # Lapisan kedua: batas ketat untuk endpoint mahal (LLM/scan/broadcast).
+            try:
+                from dashboard.backend.rate_limit import check_expensive_limit
+                query = str(request.url.query or "")
+                allowed, retry = check_expensive_limit(ip, request.url.path, query)
+                if not allowed:
+                    return JSONResponse(
+                        {"status": "error", "detail": f"Rate limit endpoint mahal. Coba lagi dalam {retry}s."},
+                        status_code=429,
+                        headers={"Retry-After": str(retry)},
+                    )
+            except Exception:
+                pass
         return await call_next(request)
 
 
@@ -82,26 +97,52 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Jalankan scheduler harian & telegram interactive command listener di background thread."""
+    """Lifespan web API saja. Scheduler/Telegram worker dipisah via ENV opt-in.
+
+    - Fail-fast auth: production tanpa API_AUTH_TOKEN -> RuntimeError (fail-closed).
+    - Scheduler & Telegram listener TIDAK jalan otomatis di web process.
+      Aktifkan eksplisit hanya di worker khusus:
+        ENABLE_SCHEDULER=true  -> start_background_scheduler()
+        ENABLE_TELEGRAM_LISTENER=true -> start_telegram_bot_listener()
+      Ini mencegah multi-replica menjalankan job/polling berkali-kali.
+    """
+    from dashboard.backend.security import ensure_auth_configured
+
+    try:
+        ensure_auth_configured()
+    except RuntimeError as e:
+        print(f"[FATAL] {e}")
+        raise
+
     req_env = ["TELEGRAM_BOT_TOKEN", "OPENAI_API_BASE"]
     missing = [v for v in req_env if not os.getenv(v)]
     if missing:
         print(f"[WARNING] Environment variables belum diset: {missing}")
 
     if not os.getenv("API_AUTH_TOKEN"):
-        print("[WARNING] API_AUTH_TOKEN belum diset. Endpoint sensitif (sync, narasi LLM, telegram, audit write) TERBUKA tanpa autentikasi!")
+        print("[WARNING] API_AUTH_TOKEN belum diset. Mode lokal/dev: endpoint sensitif TERBUKA. Jangan deploy publik tanpa token.")
 
     if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
         print("[INFO] Mode testing terdeteksi. Background thread dilewati.")
     else:
-        try:
-            from src.scheduler.daily_scheduler import start_background_scheduler
-            from src.notifications.telegram_bot import start_telegram_bot_listener
-            start_background_scheduler()
-            start_telegram_bot_listener()
-            print("[SUCCESS] Scheduler harian & Telegram Interactive Listener berhasil diaktifkan.")
-        except Exception as e:
-            print(f"[ERROR] Gagal memulai background services: {str(e)}")
+        enable_sched = os.getenv("ENABLE_SCHEDULER", "false").strip().lower() == "true"
+        enable_tg = os.getenv("ENABLE_TELEGRAM_LISTENER", "false").strip().lower() == "true"
+        if enable_sched or enable_tg:
+            try:
+                if enable_sched:
+                    from src.scheduler.daily_scheduler import start_background_scheduler
+                    start_background_scheduler()
+                    print("[SUCCESS] Scheduler harian diaktifkan (dedicated worker).")
+                if enable_tg:
+                    from src.notifications.telegram_bot import (
+                        start_telegram_bot_listener,
+                    )
+                    start_telegram_bot_listener()
+                    print("[SUCCESS] Telegram Interactive Listener diaktifkan (dedicated worker).")
+            except Exception as e:
+                print(f"[ERROR] Gagal memulai background services: {e!s}")
+        else:
+            print("[INFO] Background scheduler/telegram nonaktif di web process. Jalankan worker terpisah bila perlu.")
     yield
 
 

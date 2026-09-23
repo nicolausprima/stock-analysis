@@ -43,12 +43,12 @@ def generate_reason(row: pd.Series) -> str:
 
     close = float(row.get('Close', 0))
     sma50 = float(row.get('SMA_50', 100_000))
-    if close > sma50 and sma50 > 0:
+    if close > sma50 > 0:
         reasons.append("Harga di atas MA-50")
 
     ema12 = float(row.get('EMA_12', 0))
     ema26 = float(row.get('EMA_26', 0))
-    if ema12 > ema26 and ema26 > 0:
+    if ema12 > ema26 > 0:
         reasons.append("EMA-12 Golden Cross EMA-26")
 
     if float(row.get('IHSG_Return', 0)) > 0:

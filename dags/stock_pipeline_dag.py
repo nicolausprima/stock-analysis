@@ -1,4 +1,3 @@
-from datetime import datetime, timedelta
 # Placeholder untuk Apache Airflow DAG (Directed Acyclic Graph)
 # Jika nanti Anda menginstal Airflow, DAG ini bisa digunakan untuk 
 # menjadwalkan training model secara otomatis setiap minggu.
