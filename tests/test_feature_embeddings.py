@@ -1,15 +1,16 @@
-import pytest
-import pandas as pd
-import numpy as np
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.features.technical_indicators import add_technical_indicators
 from src.features.embedding import extract_chart_feature_embeddings
+from src.features.technical_indicators import add_technical_indicators
+
 
 def create_sample_indicator_df(num_rows=60):
     np.random.seed(42)
@@ -51,9 +52,21 @@ def test_feature_embeddings_shape_and_columns():
     for col in expected_embed_cols:
         assert col in embeds.columns, f"Kolom embedding {col} hilang"
 
-def test_no_inf_or_nan_in_embeddings():
+def test_no_inf_or_nan_in_embeddings_after_warmup_drop():
+    from src.features.technical_indicators import drop_warmup_rows
     df = create_sample_indicator_df(60)
     embeds = extract_chart_feature_embeddings(df)
-    
-    assert not embeds.isna().any().any(), "Terdapat nilai NaN pada matriks Feature Embedding"
-    assert not np.isinf(embeds.values).any(), "Terdapat nilai Inf pada matriks Feature Embedding"
+    # S-5: warm-up NaN MERAMBAT ke Embed_* (bukan fill-zero); caller drop.
+    assert embeds["Embed_RSI_Norm"].iloc[:13].isna().all(), "warm-up NaN must propagate"
+    kept = drop_warmup_rows(df)
+    emb_kept = embeds.loc[kept.index]
+    assert not emb_kept.isna().any().any(), "post-warmup embeddings must be NaN-free"
+    assert not np.isinf(emb_kept.values).any(), "Terdapat nilai Inf pada matriks Feature Embedding"
+
+
+def test_embedding_strict_warmup_guard():
+    import pytest
+
+    df = create_sample_indicator_df(60)
+    with pytest.raises(ValueError):
+        extract_chart_feature_embeddings(df, strict_warmup=True)
