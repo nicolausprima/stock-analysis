@@ -1,9 +1,11 @@
+import logging
 import os
 import sys
 from pathlib import Path
+
 import pandas as pd
-import yfinance as yf
-import logging
+
+from dashboard.backend.yf_client import download_with_timeout
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -43,7 +45,7 @@ class OpenBBProvider:
         # Fallback to direct yfinance
         if df.empty:
             try:
-                df = yf.download(ticker, period=period, progress=False)
+                df = download_with_timeout(ticker, period=period, progress=False)
             except Exception:
                 df = pd.DataFrame()
 

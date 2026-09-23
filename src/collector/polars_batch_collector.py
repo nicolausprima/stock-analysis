@@ -1,19 +1,22 @@
 """
 Polars + DuckDB batch downloader with rate-limit safety and vectorized operations.
 """
-import time
-import yfinance as yf
-from pathlib import Path
 import sys
+import time
+from pathlib import Path
+
 import pandas as pd
 import polars as pl
+
+from dashboard.backend.yf_client import download_with_timeout
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.config import TICKERS, BATCH_SIZE, BATCH_DELAY_SECONDS
+from src.config import BATCH_DELAY_SECONDS, BATCH_SIZE, TICKERS
 from src.database.duckdb_market import save_daily_prices_polars
+
 
 def download_universe_in_batches_polars(tickers_list=None, batch_size=BATCH_SIZE, delay_seconds=BATCH_DELAY_SECONDS):
     """
@@ -37,7 +40,7 @@ def download_universe_in_batches_polars(tickers_list=None, batch_size=BATCH_SIZE
         
         try:
             # 1. Download via yfinance as Pandas, convert to Polars
-            df_batch = yf.download(ticker_str, period="100d", progress=False, group_by="ticker", threads=True)
+            df_batch = download_with_timeout(ticker_str, period="100d", group_by="ticker", threads=False)
             
             if df_batch.empty:
                 print(f"  [SKIP] Batch {idx + 1}/{len(chunks)} ({len(chunk)} saham) - data kosong")
@@ -90,7 +93,7 @@ def download_universe_in_batches_polars(tickers_list=None, batch_size=BATCH_SIZE
             print(f"  [OK] Batch {idx + 1}/{len(chunks)} ({len(chunk)} saham) -> {elapsed:.2f}s -> {total_rows:,} DB rows total")
             
         except Exception as e:
-            print(f"  [ERROR] Batch {idx + 1}: {str(e)}")
+            print(f"  [ERROR] Batch {idx + 1}: {e!s}")
         
         # Rate limiting delay
         if idx < len(chunks) - 1:

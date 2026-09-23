@@ -1,19 +1,25 @@
-from fastapi import APIRouter, HTTPException, Request
+import asyncio
 import json
 import os
-import asyncio
-from pathlib import Path
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
+from fastapi import APIRouter, HTTPException, Request
 
 # Konfigurasi path untuk absolute import
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.config import CACHE_FILE
 from dashboard.backend.security import require_api_key
+from src.config import CACHE_FILE
+
+DISCLAIMER_F4 = (
+    "Konten ini riset kuantitatif untuk edukasi — BUKAN nasihat/rekomendasi investasi. "
+    "Saham berisiko rugi. Kinerja masa lalu tidak menjamin hasil. "
+    "Keputusan & risiko milik Anda (DYOR)."
+)
 
 router = APIRouter()
 _executor = ThreadPoolExecutor(max_workers=2)
@@ -23,7 +29,9 @@ async def get_recommendations(request: Request, force: bool = False):
     """
     Mengembalikan rekomendasi Top 10.
     - Default (force=false): baca dari cache JSON untuk load instan.
-    - ?force=true: jalankan ulang scheduler untuk scan fresh (wajib API key jika diset).
+    - ?force=true: jalankan ulang scheduler untuk scan fresh (wajib API key).
+    - Cache miss anonim: JANGAN jalankan scan berat tanpa auth (anti-DoS);
+      kembalikan fallback transparan murah.
     """
     # Mode fresh scan: bypass cache (operasi berat -> butuh otorisasi)
     if force:
@@ -35,7 +43,12 @@ async def get_recommendations(request: Request, force: bool = False):
     if cache is not None:
         return cache
 
-    # Cache tidak tersedia: coba scan langsung
+    # Cache tidak tersedia: fail-closed untuk anonim, scan hanya bila authorized.
+    from dashboard.backend.security import is_authorized
+    if not is_authorized(request):
+        resp = _fallback_response()
+        resp["fallback_reason"] = "cache-miss-unauthorized"
+        return resp
     return await asyncio.get_event_loop().run_in_executor(_executor, _run_fresh_scan)
 
 
@@ -49,7 +62,7 @@ def _read_cache():
         if isinstance(data, dict) and data.get("status") == "success" and (len(data.get("data", [])) >= 1 or data.get("macro_mode") == "BLOCK"):
             return data
     except Exception as e:
-        print(f"Gagal membaca cache JSON: {str(e)}")
+        print(f"Gagal membaca cache JSON: {e!s}")
     return None
 
 
@@ -69,16 +82,24 @@ def _run_fresh_scan():
         if isinstance(res, dict) and res.get("status") == "success" and (len(res.get("data", [])) > 0 or res.get("macro_mode") == "BLOCK"):
             return res
     except Exception as err:
-        print(f"Scheduler execution warning: {str(err)}")
+        print(f"Scheduler execution warning: {err!s}")
 
     return _fallback_response()
 
 
 def _fallback_response():
-    """Graceful fallback untuk CI / environment tanpa model."""
+    """Graceful fallback untuk CI / environment tanpa model.
+
+    Selalu transparan: is_sample=True + source + fallback_reason agar tidak
+    disangka hasil analisis nyata.
+    """
     return {
         "status": "success",
         "is_sample": True,
+        "source": "fallback-sample",
+        "stale": True,
+        "fallback_reason": "model-unavailable",
+        "disclaimer": DISCLAIMER_F4,
         "timestamp": "Sample Data (Model Unavailable)",
         "total_scanned": 732,
         "data": [
@@ -308,7 +329,7 @@ async def sync_market_data(request: Request):
         return {"status": "success", "message": "Sinkronisasi data 700+ saham selesai.", "data": res}
 
     except Exception as err:
-        print(f"[SYNC] Gagal melakukan sinkronisasi data pasar: {str(err)}")
+        print(f"[SYNC] Gagal melakukan sinkronisasi data pasar: {err!s}")
         raise HTTPException(
             status_code=500,
             detail="Gagal melakukan sinkronisasi data pasar. Silakan coba lagi nanti."

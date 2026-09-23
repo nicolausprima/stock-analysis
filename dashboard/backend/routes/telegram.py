@@ -1,23 +1,26 @@
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+import html
 import sys
 from pathlib import Path
+
+from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel, field_validator
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from src.notifications.telegram_bot import (
-    send_telegram_message, 
-    get_active_chat_id, 
-    send_daily_recommendations_broadcast
-)
 from dashboard.backend.security import require_api_key
+from src.notifications.telegram_bot import get_active_chat_id, send_telegram_message
 
 router = APIRouter()
 
 class TestMessage(BaseModel):
     message: str = "Test notifikasi dari StockAI Screener!"
+
+    @field_validator("message")
+    @classmethod
+    def _limit_message(cls, v: str) -> str:
+        return (v or "")[:1000]
 
 @router.get("/telegram/status")
 def get_telegram_status():
@@ -33,7 +36,8 @@ def get_telegram_status():
 def send_test_telegram_notification(request: Request, payload: TestMessage):
     """Mengirim pesan notifikasi pengujian ke Telegram Bot."""
     require_api_key(request)
-    msg = f"<b>🤖 StockAI Test Notification</b>\n\n{payload.message}"
+    safe_msg = html.escape(payload.message[:1000])
+    msg = f"<b>🤖 StockAI Test Notification</b>\n\n{safe_msg}"
     result = send_telegram_message(msg)
     if result.get("status") == "error":
         raise HTTPException(status_code=400, detail=result.get("message"))

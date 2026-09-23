@@ -1,11 +1,12 @@
+import calendar
 import os
 import time
-import calendar
+
 import pandas as pd
-import yfinance as yf
 from fastapi import APIRouter, HTTPException
 
 from dashboard.backend.security import validate_ticker
+from dashboard.backend.yf_client import download_with_timeout
 
 router = APIRouter()
 
@@ -24,6 +25,8 @@ def get_chart_data(ticker: str, days: int = 60):
     Format sesuai TradingView Lightweight Charts.
     """
     clean_ticker = validate_ticker(ticker, allow_chart_specials=True)
+    if not 1 <= days <= 365:
+        raise HTTPException(status_code=400, detail="Parameter days harus 1-365.")
     cache_key = f"{clean_ticker}_{days}"
     now = time.time()
     ttl = CACHE_TTL_INTRADAY if days == 1 else CACHE_TTL_DAILY
@@ -44,14 +47,14 @@ def get_chart_data(ticker: str, days: int = 60):
 
         if days == 1:
             # Intraday: data per 5 menit hari ini (fallback ke 5d jika bursa tutup/weekend)
-            df = yf.download(yf_ticker, period="1d", interval="5m", progress=False)
+            df = download_with_timeout(yf_ticker, period="1d", interval="5m")
             if df.empty:
-                df = yf.download(yf_ticker, period="5d", interval="5m", progress=False)
+                df = download_with_timeout(yf_ticker, period="5d", interval="5m")
             if df.empty:
-                df = yf.download(yf_ticker, period="5d", progress=False)
+                df = download_with_timeout(yf_ticker, period="5d")
         else:
             period_str = f"{days}d"
-            df = yf.download(yf_ticker, period=period_str, progress=False)
+            df = download_with_timeout(yf_ticker, period=period_str)
 
         if df.empty:
             if os.getenv("TESTING") == "true":
@@ -89,5 +92,5 @@ def get_chart_data(ticker: str, days: int = 60):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"[CHART] Error mengambil data {clean_ticker}: {str(e)}")
+        print(f"[CHART] Error mengambil data {clean_ticker}: {e!s}")
         raise HTTPException(status_code=500, detail="Gagal mengambil data chart. Silakan coba lagi nanti.")

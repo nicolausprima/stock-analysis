@@ -1,20 +1,22 @@
-import pandas as pd
-import numpy as np
-import yfinance as yf
-import joblib
-from xgboost import XGBClassifier
-from sklearn.preprocessing import StandardScaler
-from pathlib import Path
 import sys
+from pathlib import Path
+
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
 
 # Path Resolution
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
+from dashboard.backend.yf_client import download_with_timeout
 from src.config import TICKERS
-from src.features.technical_indicators import add_technical_indicators
 from src.features.embedding import extract_chart_feature_embeddings
+from src.features.technical_indicators import add_technical_indicators
+
 
 def train_on_real_historical_data():
     """
@@ -25,7 +27,7 @@ def train_on_real_historical_data():
 
     # Ambil data IHSG
     try:
-        ihsg = yf.download('^JKSE', start='2020-01-01', progress=False)
+        ihsg = download_with_timeout('^JKSE', start='2020-01-01', progress=False)
         if isinstance(ihsg.columns, pd.MultiIndex):
             ihsg_close = ihsg['Close'].iloc[:, 0]
         else:
@@ -43,7 +45,7 @@ def train_on_real_historical_data():
 
     for ticker in top_sample_tickers:
         try:
-            df = yf.download(ticker, start='2020-01-01', progress=False)
+            df = download_with_timeout(ticker, start='2020-01-01', progress=False)
             if df.empty or len(df) < 100:
                 continue
 

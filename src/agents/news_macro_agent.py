@@ -1,14 +1,20 @@
-import os
 import json
 import logging
-import requests
+import os
+from typing import Any
+
 import feedparser
-from typing import Dict, Any, List
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
+
+# Timeout + UA eksplisit untuk feedparser/RSS (AI-10): tanpa ini request
+# bisa gantung & diblokir server.
+RSS_TIMEOUT_SEC = float(os.getenv("RSS_TIMEOUT_SEC", "15") or 15)
+RSS_USER_AGENT = os.getenv("RSS_USER_AGENT", "StockAI/1.0 (+research; contact: admin@localhost)")
 
 OPENAI_API_BASE = os.getenv("OPENAI_API_BASE", "http://127.0.0.1:20128/v1")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
@@ -41,14 +47,15 @@ class NewsMacroAgent:
             "https://news.google.com/rss/search?q=Federal+Reserve+OR+US+Dollar+OR+global+market&hl=en-US&gl=US&ceid=US:en"
         ]
 
-    def fetch_news_headlines(self, limit: int = 10) -> List[Dict[str, str]]:
+    def fetch_news_headlines(self, limit: int = 10) -> list[dict[str, str]]:
         """Fetch news headlines from RSS feeds and yfinance."""
         headlines = []
         
-        # 1. Fetch RSS Feeds
+        # 1. Fetch RSS Feeds (requests timeout + UA eksplisit, lalu parse konten)
         for url in self.rss_urls:
             try:
-                feed = feedparser.parse(url)
+                resp = requests.get(url, headers={"User-Agent": RSS_USER_AGENT}, timeout=RSS_TIMEOUT_SEC)
+                feed = feedparser.parse(resp.content)
                 for entry in feed.entries[:limit]:
                     title = getattr(entry, 'title', '').strip()
                     if title and not any(h['title'] == title for h in headlines):
@@ -60,11 +67,10 @@ class NewsMacroAgent:
             except Exception as e:
                 logger.warning(f"Failed to fetch RSS news from {url}: {e}")
 
-        # 2. Try yfinance news for IHSG ^JKSE
+        # 2. Try yfinance news for IHSG ^JKSE (timeout executor, anti-gantung)
         try:
-            import yfinance as yf
-            ticker = yf.Ticker("^JKSE")
-            yf_news = getattr(ticker, 'news', []) or []
+            from dashboard.backend.yf_client import get_ticker_news
+            yf_news = get_ticker_news("^JKSE")
             for item in yf_news[:5]:
                 title = item.get('title', '').strip()
                 if title and not any(h['title'] == title for h in headlines):
@@ -78,7 +84,7 @@ class NewsMacroAgent:
 
         return headlines[:limit]
 
-    def evaluate_sentiment(self, headlines: List[Dict[str, str]]) -> Dict[str, Any]:
+    def evaluate_sentiment(self, headlines: list[dict[str, str]]) -> dict[str, Any]:
         """Evaluate overall sentiment from headlines."""
         if not headlines:
             return {
@@ -96,7 +102,7 @@ class NewsMacroAgent:
         # Fallback to keyword matching
         return self._evaluate_with_keywords(headlines)
 
-    def _evaluate_with_keywords(self, headlines: List[Dict[str, str]]) -> Dict[str, Any]:
+    def _evaluate_with_keywords(self, headlines: list[dict[str, str]]) -> dict[str, Any]:
         """High-accuracy multi-tier financial sentiment evaluation."""
         from src.sentiment.sentiment_engine import get_sentiment_analyzer
         analyzer = get_sentiment_analyzer()
@@ -147,7 +153,7 @@ class NewsMacroAgent:
             "highlights": sorted(set(all_highlights))[:5]
         }
 
-    def _evaluate_with_llm(self, headlines: List[Dict[str, str]]) -> Dict[str, Any]:
+    def _evaluate_with_llm(self, headlines: list[dict[str, str]]) -> dict[str, Any]:
         """LLM-based macroeconomic news sentiment scoring."""
         url = f"{OPENAI_API_BASE}/chat/completions"
         headers = {"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"}

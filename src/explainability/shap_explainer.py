@@ -3,12 +3,13 @@ SHAP Explainability for XGBoost model.
 Generates global & local feature importance without modifying model file.
 """
 import json
+import sys
+from pathlib import Path
+
 import joblib
-import shap
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import sys
+import shap
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -60,11 +61,14 @@ def _get_feature_columns():
             _feature_cols = list(_scaler.feature_names_in_)
         else:
             _feature_cols = [
-                'RSI_14', 'MACD_Diff', 'SMA_20', 'SMA_50', 'ATR_14', 'Return_1d', 'Return_2d',
-                'Return_3d', 'Return_5d', 'Embed_RSI_Norm', 'Embed_MACD_Diff',
-                'Embed_SMA20_Ratio', 'Embed_SMA50_Ratio', 'Embed_Volatility_ATR',
-                'Embed_Return_1d', 'Embed_Return_2d', 'Embed_Return_3d', 'Embed_Return_5d',
-                'Embed_Log_Volume', 'Embed_IHSG_Return'
+                'RSI_14', 'MACD_Diff', 'SMA_20', 'SMA_50', 'ATR_14', 'ADX_14',
+                'RVOL', 'Volume_Z', 'Return_1d', 'Return_2d', 'Return_3d', 'Return_5d',
+                'Embed_RSI_Norm', 'Embed_MACD_Diff', 'Embed_SMA20_Ratio',
+                'Embed_SMA50_Ratio', 'Embed_Volatility_ATR', 'Embed_Return_1d',
+                'Embed_Return_2d', 'Embed_Return_3d', 'Embed_Return_5d',
+                'Embed_Log_Volume', 'Embed_IHSG_Return', 'Embed_ADX_Norm',
+                'Embed_RVOL', 'Embed_Volume_Z', 'Embed_MFI_Norm', 'Embed_Stoch_Norm',
+                'Embed_Williams_Norm', 'Embed_EMA_Cross', 'Embed_CCI_Norm'
             ]
     return _feature_cols
 
@@ -84,14 +88,23 @@ def explain_single_prediction(ticker: str, features_df: pd.DataFrame) -> dict:
     """
     explainer = get_explainer()
     feature_cols = _get_feature_columns()
-    
-    # Ensure column order matches training and missing columns default to 0.0
+
+    # AI-06: kolom hilang / NaN (warm-up) DITOLAK, bukan default 0.0.
+    # SHAP atas nilai palsu = eksplanasi menyesatkan.
     df_clean = pd.DataFrame(index=[0])
     for col in feature_cols:
         if isinstance(features_df, pd.DataFrame) and col in features_df.columns and not features_df[col].empty:
-            df_clean[col] = float(features_df[col].iloc[-1] or 0.0)
+            try:
+                df_clean[col] = float(features_df[col].iloc[-1])
+            except (ValueError, TypeError):
+                df_clean[col] = np.nan
         else:
-            df_clean[col] = 0.0
+            df_clean[col] = np.nan
+    df_clean.replace([np.inf, -np.inf], np.nan, inplace=True)
+    bad = df_clean.columns[df_clean.isna().any()].tolist()
+    if bad:
+        raise ValueError(
+            f"SHAP menolak fitur NaN/warm-up {bad}: lengkapi histori dulu")
             
     X_scaled = pd.DataFrame(_scaler.transform(df_clean[feature_cols]), columns=feature_cols)
     
@@ -127,16 +140,16 @@ def generate_global_shap_summary(sample_size: int = 500) -> dict:
     Generate global feature importance using SHAP on a sample of training data.
     Saves to data/shap_explanations.json for dashboard consumption.
     """
+    from dashboard.backend.yf_client import download_with_timeout
     from src.features.build_features import build_features_for_ticker
     from src.features.embedding import extract_chart_feature_embeddings
-    import yfinance as yf
     
     _load_model_and_scaler()
     explainer = get_explainer()
     
     # Get sample of data
     try:
-        ihsg = yf.download('^JKSE', period='6mo', progress=False)
+        ihsg = download_with_timeout('^JKSE', period='6mo', progress=False)
         if isinstance(ihsg.columns, pd.MultiIndex):
             ihsg_close = ihsg['Close'].iloc[:, 0]
         else:
@@ -144,7 +157,7 @@ def generate_global_shap_summary(sample_size: int = 500) -> dict:
         ihsg_returns = pd.DataFrame({'IHSG_Return': ihsg_close.pct_change()}, index=ihsg.index)
         if ihsg_returns.index.tz is not None:
             ihsg_returns.index = ihsg_returns.index.tz_localize(None)
-    except:
+    except Exception:  # IHSG benchmark opsional; kosong = guard AI-06 pakai flat
         ihsg_returns = pd.DataFrame()
     
     all_data = []
@@ -155,7 +168,7 @@ def generate_global_shap_summary(sample_size: int = 500) -> dict:
                 embed_df = extract_chart_feature_embeddings(df)
                 combined = pd.concat([df, embed_df], axis=1)
                 all_data.append(combined)
-        except:
+        except Exception:  # satu ticker gagal -> lanjut (batch best-effort)
             continue
     
     if not all_data:
