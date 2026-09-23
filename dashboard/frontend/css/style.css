@@ -1498,27 +1498,53 @@ strong {
         padding: 12px 0;
     }
 
-    /* Hero stacks vertically */
+    /* Hero stacks vertically and is centered cleanly on mobile */
     .hero {
         padding: var(--sp-8) 0;
     }
     .hero-inner {
         grid-template-columns: 1fr;
         gap: var(--sp-8);
+        text-align: center;
     }
-    .hero-right {
-        order: -1; /* Display charts/stats above description on mobile */
+    .hero-left {
+        order: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
+    }
+    .hero-eyebrow {
+        margin: 0 auto var(--sp-4);
     }
     .hero-title {
-        font-size: 36px;
-        line-height: 1.1;
+        font-size: 34px;
+        line-height: 1.15;
+        text-align: center;
     }
     .hero-desc {
-        font-size: 15px;
+        font-size: 14.5px;
         line-height: 1.6;
+        text-align: center;
+        margin: 0 auto var(--sp-4);
+    }
+    .hero-stats {
+        justify-content: center;
+        margin: 0 auto var(--sp-4);
     }
     .btn-scan {
         width: 100%;
+        max-width: 340px;
+        margin: var(--sp-2) auto 0;
+    }
+    .hero-right {
+        order: 2;
+        width: 100%;
+        max-width: 480px;
+        margin: 0 auto;
     }
     /* CTA/stack vertikal penuh di HP: hero CTA + error actions + ghost buttons */
     .hero-ihsg-preview {
@@ -2191,22 +2217,66 @@ canvas {
     .hero {
         padding: var(--sp-8) 0;
     }
-    /* Semua grid 2 kolom runtuh ke 1 kolom */
+    /* Semua grid 2 kolom runtuh ke 1 kolom atau 2x2 yang seimbang */
     .hero-inner {
         grid-template-columns: 1fr;
         gap: var(--sp-8);
+        text-align: center;
+    }
+    .hero-left {
+        order: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+        max-width: 580px;
+        margin: 0 auto;
+    }
+    .hero-eyebrow {
+        margin: 0 auto var(--sp-5);
+    }
+    .hero-title {
+        text-align: center;
+    }
+    .hero-desc {
+        text-align: center;
+        margin: 0 auto var(--sp-5);
+        max-width: 520px;
+    }
+    .hero-stats {
+        justify-content: center;
+        margin: 0 auto var(--sp-4);
+    }
+    .btn-scan {
+        width: 100%;
+        max-width: 360px;
+        margin: var(--sp-2) auto 0;
     }
     .hero-right {
-        order: -1;
+        order: 2;
+        width: 100%;
+        max-width: 580px;
+        margin: 0 auto;
     }
-    .feat-grid, .cards-grid {
-        grid-template-columns: 1fr;
+    .es-label {
+        text-align: center;
+    }
+    .feat-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
     .cards-grid {
+        grid-template-columns: 1fr;
         gap: var(--sp-4);
     }
+    .main-tabs-wrap {
+        justify-content: center;
+    }
+    .main-tabs-bar {
+        justify-content: center;
+    }
     .audit-stats-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, 1fr);
     }
     .section-hd {
         flex-direction: column;
