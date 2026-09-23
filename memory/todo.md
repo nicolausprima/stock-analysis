@@ -10,4 +10,5 @@ Kembali ke: [[project-overview]]. Prioritas dari atas. Centang + tanggal saat se
 - [x] 2026-09-23 — S-6 yf mentah 4 file → `download_with_timeout`
 - [x] 2026-09-23 — S-7 signals_audit.db revert, status data/ bersih
 - [x] 2026-09-23 — S-8 telegram_config sudah cover `.gitignore:26`
-- [ ] Putuskan commit bertahap worktree kotor
+- [x] 2026-09-23 — retrain ulang pasca S-5 (cutoff 2025-04-23, 111286/27426) + rebase a685f93 + push dff071f (5 commit)
+- [x] 2026-09-23 — commit+push selesai (dff071f, worktree bersih); vault belum di-push (langkah berikut)
