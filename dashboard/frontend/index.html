@@ -1777,106 +1777,8 @@
 
 
 
-        /* ── RESPONSIVE ───────────────────────────────────────── */
-        @media (max-width: 960px) {
-            .hero-layout {
-                grid-template-columns: 1fr;
-                gap: 40px;
-            }
-
-            .hero-watermark {
-                right: 5%;
-                width: 360px;
-            }
-
-            .feat-interconnect-wrap::before {
-                display: none;
-            }
-
-            .feat-row,
-            .feat-row.reverse {
-                grid-template-columns: 1fr;
-                gap: 36px;
-            }
-
-            .feat-row.reverse .feat-visual {
-                order: 0;
-            }
-
-            .pipeline-track {
-                grid-template-columns: 1fr;
-            }
-
-            .metrics-bar {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        @media (max-width: 640px) {
-            .page-spine {
-                display: none;
-            }
-
-            .top-nav {
-                padding: 16px 20px;
-            }
-
-            .nav-links {
-                display: none;
-            }
-
-            .hero {
-                padding: 50px 20px 60px;
-            }
-
-            /* Hero/CTA stack vertikal penuh di HP; sentuh >=44px */
-            .hero-cta-actions {
-                display: flex;
-                flex-direction: column;
-                align-items: stretch;
-                width: 100%;
-                max-width: 420px;
-                margin: 0 auto;
-            }
-
-            .hero-btn-pill-primary,
-            .hero-btn-pill-secondary {
-                width: 100%;
-                min-height: 44px;
-                padding: 14px 22px;
-            }
-
-            .hero-trust-row {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .hero-editorial-blocks {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-
-            .section {
-                padding: 60px 20px;
-            }
-
-            .metrics-bar {
-                grid-template-columns: 1fr;
-            }
-
-            .footer {
-                padding: 20px;
-                flex-direction: column;
-                gap: 8px;
-            }
-
-            .cta-proof-strip {
-                grid-template-columns: repeat(2, 1fr);
-            }
-        }
-
-        /* ── Agent-1 RESPONSIVE OVERHAUL: 360 / 768 / 1024 ── */
-        /* Base guards: page tak boleh horizontal scroll */
+        /* ── RESPONSIVE OVERHAUL (MOBILE & TABLET CENTERING & SCALING) ── */
+        /* Base guards: no horizontal overflow */
         html, body {
             overflow-x: clip;
             max-width: 100%;
@@ -1892,22 +1794,136 @@
             overflow-wrap: break-word;
         }
 
-        /* 1024px: laptop kecil / tablet landscape */
+        /* ── Breakpoint <= 1024px: Tablet Landscape & Small Laptops ── */
         @media (max-width: 1024px) {
-            .footer-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 40px;
+            /* Hide fixed page-spine so it never shifts page content off-center */
+            .page-spine {
+                display: none !important;
+            }
+            body {
+                display: block;
+                width: 100%;
+            }
+            .page-content {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
             }
             .intel-grid {
                 grid-template-columns: 1fr;
             }
-            .live-terminal-grid {
+            .footer-grid {
                 grid-template-columns: 1fr 1fr;
+                gap: 40px;
+            }
+            .feat-visual {
+                height: auto;
+                aspect-ratio: 16 / 10;
+                min-height: 260px;
+            }
+            .pipe-visual {
+                height: auto;
+                aspect-ratio: 16 / 10;
+                min-height: 200px;
             }
         }
 
-        /* 768px: tablet portrait — semua grid multi-kolom ke 1 kolom */
+        /* ── Breakpoint <= 960px: Medium Tablets ── */
+        @media (max-width: 960px) {
+            .feat-interconnect-wrap::before {
+                display: none;
+            }
+            .feat-row,
+            .feat-row.reverse {
+                grid-template-columns: 1fr;
+                gap: 32px;
+            }
+            .feat-row.reverse .feat-visual {
+                order: 0;
+            }
+            .feat-copy {
+                max-width: 100%;
+            }
+            .pipeline-track {
+                grid-template-columns: 1fr;
+            }
+            .metrics-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* ── Breakpoint <= 768px: Tablet Portrait ── */
         @media (max-width: 768px) {
+            /* Section header: stack heading and spec badge to prevent text collision */
+            .section-hdr {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+                margin-bottom: 32px;
+                padding-bottom: 12px;
+            }
+            .section-hdr h2 {
+                font-size: clamp(26px, 5vw, 36px);
+                line-height: 1.15;
+            }
+            .section-hdr span {
+                font-size: 11px;
+                color: var(--c-blue);
+                letter-spacing: 0.5px;
+            }
+
+            /* Sections balanced padding */
+            .section,
+            .section-live-intel {
+                padding: 60px 24px;
+            }
+
+            /* Hero centered container & actions */
+            .hero {
+                padding: 60px 24px 70px;
+            }
+            .hero-layout {
+                max-width: 620px;
+                margin: 0 auto;
+                align-items: center;
+                text-align: center;
+            }
+            .hero-cta-actions {
+                display: flex;
+                flex-direction: row;
+                justify-content: center;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 14px;
+                width: 100%;
+                max-width: 520px;
+                margin: 0 auto;
+            }
+            .hero-btn-pill-primary,
+            .hero-btn-pill-secondary {
+                width: auto;
+                min-width: 210px;
+                max-width: 250px;
+                min-height: 46px;
+                padding: 12px 22px;
+                text-align: center;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .btn-launch-primary {
+                width: auto;
+                max-width: 340px;
+                min-height: 46px;
+                margin: 0 auto;
+                text-align: center;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .cta-proof-strip {
+                grid-template-columns: repeat(2, 1fr);
+            }
             .footer-grid {
                 grid-template-columns: 1fr;
                 gap: 32px;
@@ -1915,59 +1931,136 @@
             .footer {
                 padding: 48px 24px 28px;
             }
-            .live-terminal-grid,
-            .features-grid-summary,
-            .pipeline-track,
-            .hero-editorial-blocks {
+        }
+
+        /* ── Breakpoint <= 640px: Mobile Phones ── */
+        @media (max-width: 640px) {
+            .top-nav {
+                padding: 14px 20px;
+            }
+            /* Hide text links, keep CTA button accessible and compact */
+            .nav-links a:not(.nav-cta) {
+                display: none;
+            }
+            .nav-links {
+                display: flex;
+                align-items: center;
+            }
+            .nav-cta {
+                padding: 8px 16px;
+                font-size: 12px;
+                min-height: 38px;
+                width: auto;
+                display: inline-flex;
+            }
+
+            .hero {
+                padding: 48px 18px 56px;
+            }
+            .hero-live-badge {
+                font-size: 11.5px;
+                padding: 6px 14px;
+                margin-bottom: 24px;
+                max-width: 100%;
+                text-align: center;
+            }
+            .hero-cta-actions {
+                flex-direction: column;
+                align-items: stretch;
+                width: 100%;
+                max-width: 380px;
+                margin: 0 auto;
+            }
+            .hero-btn-pill-primary,
+            .hero-btn-pill-secondary {
+                width: 100%;
+                max-width: 100%;
+                min-height: 46px;
+            }
+            .btn-launch-primary {
+                width: 100%;
+                max-width: 380px;
+            }
+            .hero-trust-row {
+                flex-wrap: wrap;
+                justify-content: center;
+                gap: 6px 10px;
+                font-size: 11.5px;
+            }
+
+            .section,
+            .section-live-intel {
+                padding: 48px 18px;
+            }
+
+            /* Card 3 Live Signals in Section 00: clean 2x2 layout instead of 4 crushed columns */
+            .terminal-signal-row {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px 12px;
+                padding: 12px 16px;
+            }
+            .sig-col-ticker {
+                grid-column: 1 / 2;
+            }
+            .sig-col-price {
+                grid-column: 2 / 3;
+                align-items: flex-end;
+                text-align: right;
+            }
+            .sig-col-target {
+                grid-column: 1 / 2;
+            }
+            .sig-col-sizing {
+                grid-column: 2 / 3;
+                align-items: flex-end;
+                text-align: right;
+            }
+
+            .metrics-bar {
                 grid-template-columns: 1fr;
+            }
+            .metric-item {
+                padding: 24px 20px;
+            }
+            .cta-wrap {
+                padding: 56px 18px;
             }
             .cta-proof-strip {
                 grid-template-columns: repeat(2, 1fr);
-            }
-            .hero-cta-actions {
-                display: flex;
-                flex-direction: column;
-                align-items: stretch;
                 gap: 12px;
-                width: 100%;
-            }
-            .hero-btn-pill-primary,
-            .hero-btn-pill-secondary,
-            .btn-launch-primary,
-            .nav-cta {
-                min-height: 44px;
-                min-width: 44px;
-                width: 100%;
-                text-align: center;
             }
         }
 
-        /* 360px: HP kecil — no horizontal scroll */
+        /* ── Breakpoint <= 360px: Small Mobile Phones ── */
         @media (max-width: 360px) {
             .top-nav {
-                padding: 12px 16px;
+                padding: 12px 14px;
+            }
+            .nav-brand-text {
+                font-size: 22px;
             }
             .nav-brand-tag {
                 display: none;
             }
             .hero {
-                padding: 40px 16px 48px;
+                padding: 36px 14px 44px;
             }
-            .section {
-                padding: 48px 16px;
+            .section,
+            .section-live-intel {
+                padding: 40px 14px;
             }
             .cta-wrap {
-                padding: 56px 16px;
+                padding: 44px 14px;
             }
             .cta-proof-strip {
                 grid-template-columns: 1fr;
             }
             .hero-trust-row {
-                flex-wrap: wrap;
-                gap: 4px 8px;
+                flex-direction: column;
+                gap: 4px;
             }
             .footer {
-                padding: 36px 16px 24px;
+                padding: 32px 14px 20px;
             }
         }
 
