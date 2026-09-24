@@ -126,7 +126,7 @@ def main() -> None:
 
     # Split validasi train-only DULU di atas data mentah (cutoff+embargo tetap),
     # lalu median dari X_tr saja (tanpa leakage val/test), baru tulis CSV.
-    tr_dates = X_train.index.sort_values()
+    tr_dates = pd.Series(X_train.index.sort_values())
     val_cut = tr_dates.quantile(0.85)
     tr_mask = np.asarray(X_train.index < val_cut)
     va_mask = np.asarray(X_train.index >= val_cut)
@@ -157,7 +157,7 @@ def main() -> None:
     # VALIDASI train-only (bukan test) lalu dicatat di model_card.
     ratio = float((y_train == 0).sum()) / max(int((y_train == 1).sum()), 1)
     # Split validasi train-only: 15% tanggal terbaru train (cutoff+embargo tetap).
-    tr_dates = X_train.index.sort_values()
+    tr_dates = pd.Series(X_train.index.sort_values())
     val_cut = tr_dates.quantile(0.85)
     tr_mask = np.asarray(X_train.index < val_cut)
     va_mask = np.asarray(X_train.index >= val_cut)
