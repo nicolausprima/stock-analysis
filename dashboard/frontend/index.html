@@ -1873,6 +1873,8 @@
             .intel-grid {
                 grid-template-columns: 1fr;
             }
+            /* Footer 3 kolom (2fr 1fr 1fr + gap 56px) terjepit di <=1024px:
+               runtuh ke 1 kolom rata tengah agar tidak jadi 3 lajur sempit. */
             .footer {
                 padding: 56px 24px 32px;
             }
@@ -1943,6 +1945,7 @@
             .metrics-bar {
                 grid-template-columns: repeat(2, 1fr);
             }
+            /* Sinyal 4 kolom kejepit di 641–768px: pakai 2x2 lebih awal */
             .terminal-signal-row {
                 grid-template-columns: 1fr 1fr;
                 gap: 8px 12px;
@@ -2424,20 +2427,7 @@
             }
             .cta-proof-strip {
                 grid-template-columns: repeat(2, 1fr);
-                margin-bottom: 24px;
-            }
-            .cta-proof-item {
-                padding: 10px 8px;
-            }
-            .cta-proof-k {
-                font-size: 9.5px;
-            }
-            .cta-proof-v {
-                font-size: 12px;
-            }
-            .cta-subnote {
-                font-size: 11.5px;
-                margin-top: 14px;
+                gap: 1px;
             }
         }
 
