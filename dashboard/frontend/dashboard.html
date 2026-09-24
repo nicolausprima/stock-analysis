@@ -356,6 +356,27 @@
                 View More ↓
             </button>
         </div>
+        <div class="audit-filters" role="group" aria-label="Filter tabel audit">
+            <label class="audit-filter">Sumber
+                <select id="audit-source-filter" aria-label="Filter sumber sinyal">
+                    <option value="all">Semua</option>
+                    <option value="scan" selected>Scan harian</option>
+                    <option value="seed">Seed backtest</option>
+                </select>
+            </label>
+            <label class="audit-filter">Rentang tanggal
+                <select id="audit-range-filter" aria-label="Filter rentang tanggal">
+                    <option value="30" selected>30 hari</option>
+                    <option value="90">3 bulan</option>
+                    <option value="180">6 bulan</option>
+                    <option value="all">Semua</option>
+                </select>
+            </label>
+            <label class="audit-filter audit-filter--ticker">Ticker
+                <input type="text" id="audit-ticker-filter" placeholder="cth: BBCA" aria-label="Filter teks ticker" autocomplete="off" spellcheck="false" maxlength="12">
+            </label>
+            <span id="audit-filter-count" class="audit-filter-count" aria-live="polite"></span>
+        </div>
         <div class="table-card glass-card">
             <div class="table-scroll" role="region" aria-label="Signal track record table" tabindex="0">
                 <table class="stock-table" id="audit-table">

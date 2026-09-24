@@ -68,7 +68,8 @@ def init_db():
                 status TEXT DEFAULT 'PENDING',
                 realized_return REAL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                source TEXT DEFAULT 'scan'
             )
         """)
         cursor.execute("PRAGMA table_info(signals)")
@@ -79,6 +80,8 @@ def init_db():
             cursor.execute("ALTER TABLE signals ADD COLUMN probability_raw REAL")
         if "is_high_conviction" not in cols:
             cursor.execute("ALTER TABLE signals ADD COLUMN is_high_conviction INTEGER DEFAULT 1")
+        if "source" not in cols:
+            cursor.execute("ALTER TABLE signals ADD COLUMN source TEXT DEFAULT 'scan'")
         conn.commit()
 
 # Database initialization is handled inside request handlers via init_db()
@@ -116,8 +119,8 @@ def save_signals_to_db(signals: list[dict]):
                 hc = s.get("is_high_conviction")
                 hc_int = 1 if hc is None else (1 if hc else 0)
                 cursor.execute("""
-                    INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, probability_raw, is_high_conviction, status, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', datetime('now', 'localtime'), datetime('now', 'localtime'))
+                    INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, probability_raw, is_high_conviction, source, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'scan', 'PENDING', datetime('now', 'localtime'), datetime('now', 'localtime'))
                 """, (clean_ticker, s["close_price"], s["target_price"], s["stop_loss"], s["probability"], raw_prob, hc_int))
         conn.commit()
 
@@ -205,6 +208,7 @@ def get_track_record():
             "probability": r["probability"],
             "probability_raw": r["probability_raw"] if r["probability_raw"] is not None else r["probability"],
             "is_high_conviction": r["is_high_conviction"] if r["is_high_conviction"] is not None else 1,
+            "source": dict(r).get("source") or "scan",
             "status": display_status,
             "return_pct": display_ret,
             "realized_return": display_ret,
@@ -624,7 +628,8 @@ def seed_simulation_audit():
     init_db()
     with _db_lock, get_db_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM signals")
+        # Hapus HANYA data seed agar sinyal scan user tidak pernah hilang.
+        cursor.execute("DELETE FROM signals WHERE source = 'seed'")
         conn.commit()
 
     tickers_to_backtest = [
@@ -771,7 +776,7 @@ def seed_simulation_audit():
 
                         real_records.append((
                             clean_ticker, entry_price, target_price, stop_loss,
-                            prob, prob, 1, status, real_ret, created_str, created_str
+                            prob, prob, 1, "seed", status, real_ret, created_str, created_str
                         ))
 
             except Exception as se:
@@ -784,8 +789,8 @@ def seed_simulation_audit():
         with _db_lock, get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.executemany("""
-                INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, probability_raw, is_high_conviction, status, realized_return, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, probability_raw, is_high_conviction, source, status, realized_return, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, real_records)
             conn.commit()
 

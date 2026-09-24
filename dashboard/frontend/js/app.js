@@ -173,6 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initial load: render IHSG chart
     renderIHSGChart(1);
+    wireAuditFilters();
     runAuditAndLoad();
 
     // Progressive Scan Loader & Elapsed Timer (UX-05: query class, bukan id —
@@ -261,7 +262,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     bA.classList.remove('is-active'); bA.setAttribute('aria-selected', 'false');
                 }
             }
-            if (lastScan) lastScan.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US');
+            if (lastScan) {
+                const tsRaw = data && data.timestamp;
+                let scanLabel = '';
+                if (tsRaw && /^\d{4}-\d{2}-\d{2}/.test(String(tsRaw))) {
+                    const parsed = new Date(String(tsRaw).replace(' ', 'T'));
+                    if (!isNaN(parsed)) {
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                        const dd = String(parsed.getDate()).padStart(2, '0');
+                        const mmm = months[parsed.getMonth()];
+                        const yyyy = parsed.getFullYear();
+                        const hh = String(parsed.getHours()).padStart(2, '0');
+                        const mm = String(parsed.getMinutes()).padStart(2, '0');
+                        scanLabel = `Data scan ${dd} ${mmm} ${yyyy} ${hh}:${mm}`;
+                    }
+                }
+                if (!scanLabel) {
+                    scanLabel = 'Data scan ' + new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (waktu buka)';
+                }
+                lastScan.textContent = scanLabel;
+            }
             loadTrackRecord();
 
             // Smooth scroll ke hasil (auto bila reduced-motion)
@@ -761,6 +781,65 @@ document.addEventListener('DOMContentLoaded', () => {
         let isMonthlyExpanded = false;
         let allAuditData = [];
         let isAuditExpanded = false;
+        // Filter tabel audit: default = scan 30 hari terakhir.
+        let auditSourceFilter = 'scan';
+        let auditRangeFilter = '30';
+        let auditTickerFilter = '';
+
+        function auditRowDate(s) {
+            return s.trading_date || (s.updated_at || s.created_at || '').split(' ')[0] || '';
+        }
+
+        function getFilteredAuditData() {
+            const q = auditTickerFilter.trim().toUpperCase();
+            let rows = allAuditData.filter(s => {
+                const src = String(s.source || 'scan').toLowerCase();
+                if (auditSourceFilter !== 'all' && src !== auditSourceFilter) return false;
+                if (q && !String(s.ticker || '').toUpperCase().includes(q)) return false;
+                return true;
+            });
+            if (auditRangeFilter !== 'all') {
+                const days = Number(auditRangeFilter);
+                if (Number.isFinite(days) && days > 0) {
+                    const now = new Date();
+                    now.setHours(0, 0, 0, 0);
+                    const cutoff = new Date(now.getTime() - (days - 1) * 86400000);
+                    const cutoffStr = cutoff.getFullYear() + '-' +
+                        String(cutoff.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(cutoff.getDate()).padStart(2, '0');
+                    rows = rows.filter(s => auditRowDate(s) >= cutoffStr);
+                }
+            }
+            // Grup tampilan per tanggal tetap sort DESC (allAuditData sudah sort DESC).
+            return rows;
+        }
+
+        function wireAuditFilters() {
+            const srcSel = document.getElementById('audit-source-filter');
+            const rangeSel = document.getElementById('audit-range-filter');
+            const tickerIn = document.getElementById('audit-ticker-filter');
+            if (srcSel) srcSel.addEventListener('change', () => {
+                auditSourceFilter = srcSel.value;
+                isAuditExpanded = false;
+                renderAuditTable();
+            });
+            if (rangeSel) rangeSel.addEventListener('change', () => {
+                auditRangeFilter = rangeSel.value;
+                isAuditExpanded = false;
+                renderAuditTable();
+            });
+            if (tickerIn) {
+                let t = null;
+                tickerIn.addEventListener('input', () => {
+                    clearTimeout(t);
+                    t = setTimeout(() => {
+                        auditTickerFilter = tickerIn.value;
+                        isAuditExpanded = false;
+                        renderAuditTable();
+                    }, 200);
+                });
+            }
+        }
                 async function runAuditAndLoad() {
             // Jangan panggil /api/audit/run anonim di setiap page-load:
             // endpoint butuh API key (401 percuma) + membebani server.
@@ -963,14 +1042,35 @@ document.addEventListener('DOMContentLoaded', () => {
         function renderAuditTable() {
             const body = document.getElementById('audit-table-body');
             const toggleBtn = document.getElementById('toggle-audit-btn');
+            const countEl = document.getElementById('audit-filter-count');
             if (!body) return;
 
             if (allAuditData.length === 0) {
                 if (toggleBtn) toggleBtn.classList.remove('shown');
+                if (countEl) countEl.textContent = '';
                 return;
             }
 
-            const visibleRows = isAuditExpanded ? allAuditData : allAuditData.slice(0, 5);
+            const filtered = getFilteredAuditData();
+            if (countEl) {
+                countEl.textContent = filtered.length === allAuditData.length
+                    ? `${filtered.length} sinyal`
+                    : `${filtered.length} dari ${allAuditData.length} sinyal`;
+            }
+
+            if (filtered.length === 0) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="table-empty">
+                            Tidak ada sinyal cocok dengan filter. Ubah sumber, rentang tanggal, atau ticker.
+                        </td>
+                    </tr>
+                `;
+                if (toggleBtn) toggleBtn.classList.remove('shown');
+                return;
+            }
+
+            const visibleRows = isAuditExpanded ? filtered : filtered.slice(0, 5);
             body.innerHTML = '';
 
             visibleRows.forEach(s => {
@@ -1008,11 +1108,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (toggleBtn) {
-                if (allAuditData.length > 5) {
+                if (filtered.length > 5) {
                     toggleBtn.classList.add('shown');
                     toggleBtn.textContent = isAuditExpanded 
                         ? 'Hide ↑' 
-                        : `View More (${allAuditData.length - 5} More Signals) ↓`;
+                        : `View More (${filtered.length - 5} More Signals) ↓`;
                 } else {
                     toggleBtn.classList.remove('shown');
                 }

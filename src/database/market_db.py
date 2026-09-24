@@ -111,9 +111,16 @@ def save_daily_prices(combined_df: pd.DataFrame):
             pass
 
 def get_ticker_history_from_db(ticker: str, limit_days: int = 100) -> pd.DataFrame:
-    """Mengambil riwayat data harga saham tertentu dari database SQLite."""
-    from dashboard.backend.security import validate_ticker
-    clean = validate_ticker(ticker)
+    """Mengambil riwayat data harga saham tertentu dari database SQLite.
+
+    Return DataFrame kosong bila ticker tak dikenal / format tak valid —
+    caller (loop scan) skip, bukan crash seluruh job.
+    """
+    try:
+        from dashboard.backend.security import validate_ticker
+        clean = validate_ticker(ticker)
+    except Exception:
+        return pd.DataFrame()
     limit = max(1, min(int(limit_days or 100), 365))
     init_market_db()
     conn = None

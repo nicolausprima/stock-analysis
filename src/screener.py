@@ -57,6 +57,31 @@ def get_latest_data(ticker: str, ihsg_returns: pd.DataFrame) -> pd.DataFrame:
     
     return latest_row
 
+def load_decision_threshold(model_path, default: float = 0.5) -> float:
+    """Ambil decision_threshold dari model_card.json sebelah artefak model.
+
+    Kontrak: retrain_pipeline_offline menulis decision_threshold (tune di
+    validasi train-only). Model lama tanpa field -> fallback 0.5 agar
+    backward-compatible. Tanpa Tick_*/Next_Day_* di sini; hanya baca angka.
+    """
+    import json
+    card_path = Path(model_path).parent / "model_card.json"
+    try:
+        card = json.loads(card_path.read_text(encoding="utf-8"))
+        thr = float(card.get("decision_threshold", default))
+        if 0.0 < thr < 1.0:
+            return thr
+    except (OSError, ValueError, TypeError):
+        pass
+    return default
+
+
+def apply_decision_threshold(proba, threshold: float = 0.5):
+    """Signal = proba_kelas1 >= threshold (ganti model.predict@0.5 baku)."""
+    import numpy as np
+    return (np.asarray(proba) >= float(threshold)).astype(int)
+
+
 def build_serve_matrix(combined_df: pd.DataFrame, embed_df: pd.DataFrame,
                       expected_cols) -> pd.DataFrame:
     """Bangun matriks serve sesuai urutan skema train (AI-01).
@@ -170,9 +195,13 @@ def main():
     X_scaled_df = pd.DataFrame(X_scaled, index=X.index, columns=X.columns)
     
     # === PREDICTION ===
+    # S-6: Signal dari threshold operasi model_card (tune val train-only),
+    # bukan 0.5 baku — model lama tanpa field fallback 0.5.
     logging.info("Menganalisis pola dan menghitung probabilitas...")
-    predictions = model.predict(X_scaled_df)
     probabilities = model.predict_proba(X_scaled_df)[:, 1] # Ambil probabilitas kelas 1 (Beli)
+    decision_threshold = load_decision_threshold(model_path)
+    logging.info(f"Decision threshold operasi: {decision_threshold:.2f}")
+    predictions = apply_decision_threshold(probabilities, decision_threshold)
     
     # Masukkan hasil kembali ke dataframe agar mudah dibaca
     # Karena combined_df mungkin punya duplicate index (hari yang sama untuk banyak ticker), kita pakai array numpy
