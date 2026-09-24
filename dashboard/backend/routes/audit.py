@@ -112,25 +112,25 @@ def save_signals_to_db(signals: list[dict]):
 
 @router.get("/audit/track-record")
 def get_track_record():
-    """Mengambil riwayat semua sinyal yang tersimpan dari database. Auto-seed jika DB kosong atau data tertinggal."""
+    """Mengambil riwayat semua sinyal yang tersimpan dari database. Auto-seed HANYA jika DB kosong."""
     init_db()
-    
+
     with get_db_connection() as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        cursor.execute("SELECT strftime('%Y-%m-%d', created_at) as latest_dt FROM signals ORDER BY id DESC LIMIT 1")
-        latest_row = cursor.fetchone()
-    
-    yesterday_str = (get_wib_now() - timedelta(days=2)).strftime("%Y-%m-%d")
-    
-    # Jika DB kosong atau sinyal terbaru lebih tua dari kemarin, jalankan auto-seed bursa terbaru
-    if (not latest_row) or (latest_row["latest_dt"] and latest_row["latest_dt"] < yesterday_str):
+        cursor.execute("SELECT COUNT(*) as cnt FROM signals")
+        count_row = cursor.fetchone()
+        is_empty = (not count_row) or (count_row["cnt"] == 0)
+
+    # Seed hanya saat DB benar-benar kosong (install pertama).
+    # Sinyal real user TIDAK PERNAH dihapus/di-reset oleh endpoint baca ini.
+    if is_empty:
         try:
-            print("[AUDIT] Data terdeteksi usang, menjalankan auto-seed bursa terbaru...")
+            print("[AUDIT] DB kosong, menjalankan seed awal...")
             seed_simulation_audit()
             run_audit()
         except Exception as e:
-            print(f"[AUDIT] Auto-seed warning: {e}")
+            print(f"[AUDIT] Seed awal warning: {e}")
     else:
         try:
             run_audit()
@@ -139,26 +139,13 @@ def get_track_record():
 
     now_local = get_wib_now()
     today_str = now_local.strftime("%Y-%m-%d")
-    yesterday_str = (now_local - timedelta(days=1)).strftime("%Y-%m-%d")
     market_open = now_local.hour < 16  # Bursa BEI tutup sekitar 16:00 WIB
     
     with _db_lock, get_db_connection() as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        if market_open:
-            cursor.execute("""
-                DELETE FROM signals 
-                WHERE strftime('%Y-%m-%d', created_at) = ? AND created_at LIKE '%16:05:00'
-            """, (today_str,))
-            cursor.execute("""
-                UPDATE signals
-                SET status = 'PENDING', realized_return = NULL, updated_at = datetime('now', 'localtime')
-                WHERE status IN ('WIN', 'LOSS')
-                AND strftime('%Y-%m-%d', created_at) = ?
-                AND strftime('%Y-%m-%d', COALESCE(updated_at, created_at)) = ?
-            """, (yesterday_str, today_str))
-            conn.commit()
-
+        # Sinyal hari ini dibiarkan apa adanya — endpoint baca tidak boleh
+        # menghapus atau me-reset status audit yang sudah diputus.
         cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
         rows = cursor.fetchall()
     
@@ -273,7 +260,7 @@ def run_audit():
                 m_conn = sqlite3.connect(str(market_db_path), timeout=10.0, check_same_thread=False)
                 try:
                     query = """
-                        SELECT date, high as High, low as Low, close as Close 
+                        SELECT date, open as Open, high as High, low as Low, close as Close 
                         FROM daily_prices 
                         WHERE (ticker = ? OR ticker = ?) AND date >= ?
                         ORDER BY date ASC
@@ -351,12 +338,14 @@ def run_audit():
                 break
 
         # Jika TP/SL belum tercapai setelah maksimal 5 hari bursa:
+        # Tanpa edge (tak sentuh TP maupun SL) = PENDING, bukan WIN.
+        # Menang kecil tanpa sentuh target bukan bukti model benar.
         if new_status == "PENDING" and has_future_candles and candle_count >= 5:
             ret_pct = round(((last_candle_close - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
-            if ret_pct > 0:
+            if ret_pct >= 3.0:
                 new_status = "WIN"
                 real_ret = ret_pct
-            elif ret_pct < 0:
+            elif ret_pct <= -1.5:
                 new_status = "LOSS"
                 real_ret = max(-1.5, ret_pct)
             else:
@@ -723,24 +712,44 @@ def seed_simulation_audit():
                             status = "PENDING"
                             real_ret = 0.0
                         else:
+                            # Aturan TP/SL jujur: sentuh target = WIN (+3.0),
+                            # sentuh stop = LOSS (-1.5). Ambigu (dua-duanya
+                            # dalam satu candle) ikut arah open vs entry.
                             max_h = float(fw['High'].max())
+                            min_l = float(fw['Low'].min())
                             last_c = float(fw['Close'].iloc[-1])
-                            if max_h >= target_price or last_c >= entry_price:
+                            first_o = float(fw['Open'].iloc[0]) if 'Open' in fw else entry_price
+                            hit_tp = max_h >= target_price
+                            hit_sl = min_l <= stop_loss
+                            if hit_tp and hit_sl:
+                                if first_o >= entry_price:
+                                    status = "WIN"
+                                    real_ret = 3.0
+                                else:
+                                    status = "LOSS"
+                                    real_ret = -1.5
+                            elif hit_tp:
                                 status = "WIN"
-                                real_ret = round(((max_h - entry_price) / entry_price) * 100, 1) if max_h >= target_price else round(((last_c - entry_price) / entry_price) * 100, 1)
-                                real_ret = max(real_ret, 3.0)
+                                real_ret = 3.0
+                            elif hit_sl:
+                                status = "LOSS"
+                                real_ret = -1.5
                             elif len(fw) < 5:
-                                min_l = float(fw['Low'].min())
-                                if min_l <= stop_loss:
+                                # Data belum 5 candle: belum bisa diputus.
+                                status = "PENDING"
+                                real_ret = 0.0
+                            else:
+                                # 5 candle penuh tanpa sentuh TP/SL:
+                                # hanya WIN bila close akhir >= target.
+                                if last_c >= target_price:
+                                    status = "WIN"
+                                    real_ret = round(((last_c - entry_price) / entry_price) * 100, 1)
+                                elif last_c <= stop_loss:
                                     status = "LOSS"
                                     real_ret = -1.5
                                 else:
-                                    status = "WIN" if last_c >= entry_price else "PENDING"
-                                    real_ret = 3.0 if status == "WIN" else 0.0
-                            else:
-                                hash_val = (hash(clean_ticker) + i) % 100
-                                status = "WIN" if hash_val < 74 else "LOSS"
-                                real_ret = 3.0 if status == "WIN" else -1.5
+                                    status = "PENDING"
+                                    real_ret = 0.0
 
                         real_records.append((
                             clean_ticker, entry_price, target_price, stop_loss,
