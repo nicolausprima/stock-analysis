@@ -2205,6 +2205,54 @@ strong {
     margin-top: var(--sp-6);
 }
 
+/* ── Audit table filters ── */
+.audit-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 10px 14px;
+    margin: 0 0 12px;
+}
+
+.audit-filter {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-medium-gray);
+}
+
+.audit-filter select,
+.audit-filter input[type="text"] {
+    min-height: 40px;
+    font-size: 13px;
+    font-family: var(--font-ui);
+    color: var(--c-charcoal);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-sharp);
+    background: var(--c-surface);
+    padding: 8px 12px;
+}
+
+.audit-filter select:focus-visible,
+.audit-filter input[type="text"]:focus-visible {
+    outline: 2px solid var(--c-border-active);
+    outline-offset: 1px;
+}
+
+.audit-filter--ticker input[type="text"] {
+    width: 140px;
+    text-transform: uppercase;
+}
+
+.audit-filter-count {
+    font-size: 12px;
+    color: var(--c-soft-gray);
+    margin-left: auto;
+    align-self: center;
+}
+
 /* ═══════════════════════════════════════════════════════
    Agent-1 RESPONSIVE OVERHAUL (360 / 768 / 1024)
    - Page-level: no horizontal scroll di 360px

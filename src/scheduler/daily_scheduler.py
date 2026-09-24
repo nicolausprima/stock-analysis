@@ -249,21 +249,26 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
 
     # Matriks Fitur X — skema + urutan = expected_cols (AI-01).
     # Ticker warm-up/missing (NaN) di-skip, bukan di-zero-fill.
+    # Index datetime DUPLIKAT antar-ticker: pakai posisi ordinal, bukan
+    # label (.loc[[idx]] cocokkan SEMUA baris tanggal sama -> length mismatch).
     from src.screener import build_serve_matrix
-    ok_idx = []
-    for idx in combined_df.index:
-        row = combined_df.loc[[idx]]
-        emb = embed_df.loc[[idx]] if idx in embed_df.index else embed_df.iloc[0:0]
+    ok_pos = []
+    for pos in range(len(combined_df)):
+        row = combined_df.iloc[[pos]]
+        emb = embed_df.iloc[[pos]]
         try:
             build_serve_matrix(row, emb, expected_cols)
-            ok_idx.append(idx)
+            ok_pos.append(pos)
         except ValueError:
             continue
-    if not ok_idx:
+    if not ok_pos:
         print("[WARNING] Semua ticker warm-up/missing: tidak ada prediksi.")
         return {"status": "error", "message": "All tickers in warm-up"}
-    combined_df = combined_df.loc[ok_idx]
-    embed_df = embed_df.loc[combined_df.index]
+    combined_df = combined_df.iloc[ok_pos].copy()
+    embed_df = embed_df.iloc[ok_pos].copy()
+    # reset index tanggal duplikat -> posisi unik agar X/combined/embed selaras
+    combined_df.reset_index(drop=True, inplace=True)
+    embed_df.reset_index(drop=True, inplace=True)
     X = build_serve_matrix(combined_df, embed_df, expected_cols)
     assert list(X.columns) == list(expected_cols), \
         f"Serve/train schema mismatch: serve={list(X.columns)} vs train={list(expected_cols)}"
@@ -271,8 +276,13 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     X_scaled = scaler.transform(X)
     X_scaled_df = pd.DataFrame(X_scaled, index=X.index, columns=X.columns)
 
-    predictions = model.predict(X_scaled_df)
+    # S-6: Signal dari threshold operasi model_card (tune val train-only),
+    # bukan 0.5 baku — model lama tanpa field fallback 0.5.
+    from src.screener import apply_decision_threshold, load_decision_threshold
     probabilities = model.predict_proba(X_scaled_df)[:, 1]
+    decision_threshold = load_decision_threshold(model_path)
+    print(f"[MODEL] Decision threshold operasi: {decision_threshold:.2f}")
+    predictions = apply_decision_threshold(probabilities, decision_threshold)
 
     combined_df['Signal'] = predictions
     combined_df['Probability'] = (probabilities * 100).round(1)

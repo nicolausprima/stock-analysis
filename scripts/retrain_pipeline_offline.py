@@ -21,7 +21,12 @@ from pathlib import Path
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import (
+    average_precision_score,
+    classification_report,
+    confusion_matrix,
+    f1_score,
+)
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 
@@ -119,12 +124,23 @@ def main() -> None:
     y_train, y_test = y.iloc[lo], y.iloc[hi]
     dropped_gap = len(X) - len(X_train) - len(X_test)
 
-    medians = X_train.median()
-    X_train = X_train.fillna(medians)
+    # Split validasi train-only DULU di atas data mentah (cutoff+embargo tetap),
+    # lalu median dari X_tr saja (tanpa leakage val/test), baru tulis CSV.
+    tr_dates = X_train.index.sort_values()
+    val_cut = tr_dates.quantile(0.85)
+    tr_mask = np.asarray(X_train.index < val_cut)
+    va_mask = np.asarray(X_train.index >= val_cut)
+    X_tr, y_tr = X_train.iloc[tr_mask], y_train.iloc[tr_mask]
+    X_va, y_va = X_train.iloc[va_mask], y_train.iloc[va_mask]
+    medians = X_tr.median()
+    X_tr = X_tr.fillna(medians)
+    X_va = X_va.fillna(medians)
     X_test = X_test.fillna(medians)
+    X_train = pd.concat([X_tr, X_va]).sort_index()
+    y_train = pd.concat([y_tr, y_va]).sort_index()
     assert X_train.notna().all().all() and X_test.notna().all().all()
 
-    # feature_matrix bersih: X penuh pasca-warmup + Target + Ticker
+    # feature_matrix bersih: X penuh pasca-warmup (mentah pra-impute) + Target + Ticker
     fm = X.copy()
     fm["Target"] = y.to_numpy()
     fm["Ticker"] = tickers.to_numpy()
@@ -134,20 +150,45 @@ def main() -> None:
     y_train.to_csv(processed / "y_train.csv", header=True)
     y_test.to_csv(processed / "y_test.csv", header=True)
 
-    # model: scaler fit train-only + XGB (param notebook 03)
+    # model: scaler fit train-only + XGB (param notebook 03).
+    # S-6: cap scale_pos_weight 10.42 -> 3.0 terbukti underweight 3.5x
+    # (recall@0.5 hanya 0.075). Pakai rasio penuh + reg_lambda naik agar
+    # kompensasi imbalance tanpa overfit; threshold operasi di-tune di
+    # VALIDASI train-only (bukan test) lalu dicatat di model_card.
     ratio = float((y_train == 0).sum()) / max(int((y_train == 1).sum()), 1)
+    # Split validasi train-only: 15% tanggal terbaru train (cutoff+embargo tetap).
+    tr_dates = X_train.index.sort_values()
+    val_cut = tr_dates.quantile(0.85)
+    tr_mask = np.asarray(X_train.index < val_cut)
+    va_mask = np.asarray(X_train.index >= val_cut)
+    X_tr, y_tr = X_train.iloc[tr_mask], y_train.iloc[tr_mask]
+    X_va, y_va = X_train.iloc[va_mask], y_train.iloc[va_mask]
+    # (X_tr/X_va/X_test sudah di-impute median-fit-X_tr di atas; tanpa leakage.)
+    assert X_tr.notna().all().all() and X_va.notna().all().all() and X_test.notna().all().all()
     scaler = StandardScaler()
-    Xtr_s = scaler.fit_transform(X_train)
+    Xtr_s = scaler.fit_transform(X_tr)
+    Xva_s = scaler.transform(X_va)
     Xte_s = scaler.transform(X_test)
     model = XGBClassifier(
         n_estimators=120, max_depth=4, learning_rate=0.03,
         subsample=0.8, colsample_bytree=0.8,
-        scale_pos_weight=min(ratio, 3.0), random_state=42,
+        scale_pos_weight=ratio, reg_lambda=3.0, random_state=42,
     )
-    model.fit(pd.DataFrame(Xtr_s, columns=FEATURE_COLS), y_train)
-    y_pred = model.predict(pd.DataFrame(Xte_s, columns=FEATURE_COLS))
+    model.fit(pd.DataFrame(Xtr_s, columns=FEATURE_COLS), y_tr)
+    # Tune threshold operasi di VALIDASI (train-only): max F1, tie-break recall.
+    va_proba = model.predict_proba(pd.DataFrame(Xva_s, columns=FEATURE_COLS))[:, 1]
+    best_thr, best_f1 = 0.5, -1.0
+    for thr in [round(t, 2) for t in np.arange(0.10, 0.61, 0.05)]:
+        yp = (va_proba >= thr).astype(int)
+        f1 = f1_score(y_va, yp, zero_division=0)
+        if f1 > best_f1:
+            best_thr, best_f1 = thr, f1
+    decision_threshold = float(best_thr)
+    te_proba = model.predict_proba(pd.DataFrame(Xte_s, columns=FEATURE_COLS))[:, 1]
+    y_pred = (te_proba >= decision_threshold).astype(int)
     cm = confusion_matrix(y_test, y_pred).tolist()
     rep = classification_report(y_test, y_pred, output_dict=True, zero_division=0)
+    ap = float(average_precision_score(y_test, te_proba))
     joblib.dump(model, models_dir / "best_xgboost_optuna.pkl")
     joblib.dump(scaler, models_dir / "standard_scaler.pkl")
 
@@ -166,8 +207,16 @@ def main() -> None:
         "test_date_min": str(X_test.index.min().date()),
         "test_date_max": str(X_test.index.max().date()),
         "tickers": int(tickers.nunique()),
-        "label_policy": "last bar dropped (no future), warm-up dropped, median-train-only",
+        "label_policy": "last bar dropped (no future), warm-up dropped, median-fit-X_tr-only",
         "imbalance_ratio": round(ratio, 4),
+        "scale_pos_weight": round(float(ratio), 4),
+        "reg_lambda": 3.0,
+        "val_rows": len(X_va),
+        "val_cutoff": str(pd.Timestamp(val_cut).date()),
+        "decision_threshold": decision_threshold,
+        "decision_threshold_tuned_on": "validation train-only (max F1)",
+        "val_f1_at_threshold": round(float(best_f1), 4),
+        "test_average_precision": round(ap, 4),
         "test_precision_1": round(float(rep["1"]["precision"]), 4),
         "test_recall_1": round(float(rep["1"]["recall"]), 4),
         "test_f1_1": round(float(rep["1"]["f1-score"]), 4),
