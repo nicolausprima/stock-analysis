@@ -821,6 +821,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (resultsDiv) resultsDiv.classList.add('hidden');
                 if (emptyState) emptyState.classList.add('hidden');
                 if (auditSec) auditSec.style.display = 'block';
+                // Chart equity dibuat saat panel tersembunyi (clientWidth 0) → resize ulang setelah layout tersedia.
+                try {
+                    const eqChart = document.getElementById('audit-equity-chart');
+                    if (eqChart) {
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                try {
+                                    if (typeof resizeOneChart === 'function') {
+                                        resizeOneChart(eqChart);
+                                        const c = eqChart._chart;
+                                        if (c) c.timeScale().fitContent();
+                                    } else if (eqChart._chart) {
+                                        eqChart._chart.resize(eqChart.clientWidth || 600, eqChart.clientHeight || 220);
+                                        eqChart._chart.timeScale().fitContent();
+                                    }
+                                } catch (_) { /* noop */ }
+                            });
+                        });
+                    }
+                } catch (_) { /* noop */ }
                 if (btnRecom && btnAudit) setActive(btnAudit, btnRecom);
                 try {
                     sessionStorage.setItem('aksa-main-tab', 'audit');
@@ -1026,8 +1046,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     allMonthlyData = data.monthly_breakdown || [];
                     renderMonthlyTable();
 
-                    // Render Equity Curve Chart
+                    // Render Equity Curve Chart (tunda bila panel tersembunyi: clientWidth 0)
                     if (chartDiv && typeof LightweightCharts !== 'undefined' && data.equity_curve?.length > 0) {
+                        const equityData = data.equity_curve;
+                        const buildEquityChart = () => {
                         disposeChart(chartDiv);
                         chartDiv.innerHTML = '';
                         try {
@@ -1054,11 +1076,20 @@ document.addEventListener('DOMContentLoaded', () => {
                                 lineWidth: 2,
                             });
 
-                            areaSeries.setData(data.equity_curve);
+                            areaSeries.setData(equityData);
                             chart.timeScale().fitContent();
                             registerChart(chartDiv, chart, 220);
                         } catch (ce) {
                             console.error('Equity chart error:', ce);
+                        }
+                        };
+                        if (chartDiv.clientWidth > 0) {
+                            buildEquityChart();
+                        } else {
+                            requestAnimationFrame(function retryEquityChart() {
+                                if (chartDiv.clientWidth > 0) buildEquityChart();
+                                else requestAnimationFrame(retryEquityChart);
+                            });
                         }
                     }
                 }

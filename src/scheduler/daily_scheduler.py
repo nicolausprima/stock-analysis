@@ -318,6 +318,19 @@ def run_morning_premarket_job():
         try:
             with open(CACHE_FILE, 'r') as f:
                 data = json.load(f)
+            # Guard stale: cache wajib dari scan kemarin sore / pagi ini.
+            # Tanpa ini cache Jumat dikirim Senin berlabel hari Senin.
+            cache_ts = str(data.get("timestamp", ""))[:10]
+            wib_today = _get_wib_now()
+            age_days = 99
+            try:
+                cache_dt = datetime.strptime(cache_ts, "%Y-%m-%d").replace(tzinfo=wib_today.tzinfo)
+                age_days = (wib_today - cache_dt).days
+            except Exception:
+                pass
+            if age_days > 3:
+                print(f"[WARNING] [SCHEDULER 08:30 WIB] Cache basi ({cache_ts}) — radar dibatalkan.")
+                return {"status": "error", "message": f"Cache basi ({cache_ts})"}
             stocks = data.get("data", [])
             if stocks:
                 from src.notifications.telegram_bot import send_morning_radar_broadcast
@@ -366,6 +379,16 @@ def run_bsjp_radar_job():
         print(f"[ERROR] [SCHEDULER 15:30 WIB] Gagal menjalankan BSJP Radar: {e!s}")
     return {"status": "error", "message": "BSJP scan failed"}
 
+def _is_trading_day(wib_now=None) -> bool:
+    """True bila hari bursa (Senin-Jumat). Sabtu/Minggu/libur: job diam.
+
+    Tanpa guard ini scheduler tetap scan + broadcast tiap Sabtu
+    (cache Jumat berlabel hari-H) — temuan audit 2026-09-25.
+    """
+    day = (wib_now or _get_wib_now()).weekday()
+    return day < 5
+
+
 def start_background_scheduler():
     """Menjalankan scheduler 4-fase di background thread (08:30, 12:00, 15:30, 16:05 WIB)."""
     if os.getenv("TESTING") == "true" or "pytest" in sys.modules:
@@ -389,6 +412,9 @@ def start_background_scheduler():
             for sched_time, end_window, job_fn in schedules:
                 if (sched_time <= now_time <= end_window) and last_run.get(sched_time) != today_str:
                     last_run[sched_time] = today_str
+                    if not _is_trading_day(wib_now):
+                        print(f"[SCHEDULER] {today_str} hari libur bursa — job {sched_time} dilewati.")
+                        continue
                     try:
                         job_fn()
                     except Exception as e:
