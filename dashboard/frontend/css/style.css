@@ -849,6 +849,37 @@ strong {
     border: 1px solid var(--c-border);
 }
 
+/* Badge pengisi: netral garis putus-putus, beda dari bullish/bearish/booster */
+.badge.filler {
+    background-color: transparent;
+    color: var(--c-soft-gray);
+    border: 1px dashed #C9C9C9;
+}
+
+/* Angka mentah dalam kurung: teks kecil abu di samping skor final */
+.score-raw {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--c-soft-gray);
+    white-space: nowrap;
+}
+
+/* Skor ganda: bungkus aman, tak overflow di tabel/kartu/audit */
+.score-cell {
+    flex-wrap: wrap;
+    min-width: 0;
+}
+.score-val {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.dc-score .score-raw {
+    display: block;
+    font-size: 11px;
+    margin-top: 2px;
+}
+
 /* Signal Pill */
 .sig-pill {
     display: inline-flex;
@@ -2449,6 +2480,28 @@ canvas {
     }
     .stock-table th, .stock-table td {
         padding: 10px 12px;
+    }
+    /* Badge 'Pengisi' + skor ganda: wrap di kartu, skor tak overflow di 360px */
+    .badge, .badge.filler {
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    .dc-badges {
+        max-width: 100%;
+    }
+    .score-cell {
+        min-width: 0;
+        max-width: 100%;
+    }
+    .score-raw {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    .dc-score {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
     }
     .loader-shimmer-text {
         white-space: normal;

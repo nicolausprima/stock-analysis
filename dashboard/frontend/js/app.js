@@ -298,6 +298,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const macdClass      = cls(s.macd_signal);
             const trendClass     = cls(s.trend);
             const isBuy          = s.signal === 1;
+            const isFiller       = s.is_high_conviction === false;
+            const showBuy        = isBuy && !isFiller;
+            const probFinal      = Number(s.probability);
+            const probRaw        = Number(s.probability_raw);
+            const hasRawDiff     = Number.isFinite(probRaw) && Number.isFinite(probFinal) && Math.abs(probRaw - probFinal) >= 0.05;
+            const scoreLabel     = hasRawDiff
+                ? probFinal.toFixed(1) + '% (' + probRaw.toFixed(1) + ')'
+                : probFinal.toFixed(1) + '%';
+            const fillerTip      = 'Pengisi Top 10 — keyakinan model rendah, bukan sinyal beli';
             const sentStatus     = normSent(s.sentiment_status);
             const sentImpact     = normSent(s.sentiment_impact);
             const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
@@ -332,14 +341,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="score-track">
                             <div class="score-fill" style="width:${s.probability}%"></div>
                         </div>
-                        <span class="score-val">${s.probability.toFixed(1)}%</span>
+                        <span class="score-val"${hasRawDiff ? ` title="Skor mentah model: ${probRaw.toFixed(1)}"` : ''}>${scoreLabel}</span>
                     </div>
                 </td>
                 <td>
-                    <span class="sig-pill ${isBuy ? 'buy' : 'watch'}">
-                        <span class="sig-dot ${isBuy ? 'green' : 'blue'}"></span>
-                        ${isBuy ? 'BUY' : 'WATCH'}
-                    </span>
+                    <span class="sig-pill ${showBuy ? 'buy' : 'watch'}"${isFiller ? ` title="${fillerTip}"` : ''}>
+                        <span class="sig-dot ${showBuy ? 'green' : 'blue'}"></span>
+                        ${showBuy ? 'BUY' : 'WATCH'}
+                    </span>${isFiller ? `<br><span class="badge neutral-sent" title="${fillerTip}">Pengisi</span>` : ''}
                 </td>
             `;
             tableBody.appendChild(row);
@@ -353,6 +362,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const trendClass     = cls(s.trend);
             const rsiClass       = rc === 'green' ? 'bullish' : rc === 'red' ? 'bearish' : 'uptrend';
             const isBuy          = s.signal === 1;
+            const isFiller       = s.is_high_conviction === false;
+            const showBuy        = isBuy && !isFiller;
+            const probFinal      = Number(s.probability || 0);
+            const probRaw        = Number(s.probability_raw);
+            const hasRawDiff     = Number.isFinite(probRaw) && Number.isFinite(probFinal) && Math.abs(probRaw - probFinal) >= 0.05;
+            const scoreLabel     = hasRawDiff
+                ? probFinal.toFixed(1) + '% (' + probRaw.toFixed(1) + ')'
+                : probFinal.toFixed(1) + '%';
+            const fillerTip      = 'Pengisi Top 10 — keyakinan model rendah, bukan sinyal beli';
             const sentStatus     = normSent(s.sentiment_status);
             const sentImpact     = normSent(s.sentiment_impact);
             const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
@@ -363,15 +381,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = document.createElement('div');
             card.className = 'detail-card';
             card.setAttribute('role', 'listitem');
-            card.setAttribute('aria-label', `Saham ${tickShort}, skor kuantitatif ${Number(s.probability || 0).toFixed(1)} persen. Sinyal riset, bukan perintah beli atau jual.`);
+            card.setAttribute('aria-label', `Saham ${tickShort}, skor kuantitatif ${scoreLabel} persen${isFiller ? '. Pengisi Top 10, keyakinan model rendah' : ''}. Sinyal riset, bukan perintah beli atau jual.`);
             card.innerHTML = `
                 <div class="dc-head">
                     <div>
                         <div class="dc-ticker">${esc(tickShort)}</div>
-                        <span class="dc-code">${esc(s.ticker)}</span>
+                        <span class="dc-code">${esc(s.ticker)}</span>${isFiller ? `<br><span class="badge neutral-sent" title="${fillerTip}">Pengisi</span>` : ''}
                     </div>
                     <div>
-                        <div class="dc-score">${s.probability.toFixed(1)}%</div>
+                        <div class="dc-score"${hasRawDiff ? ` title="Skor mentah model: ${probRaw.toFixed(1)}"` : ''}>${scoreLabel}</div>
                         <div class="dc-score-lbl">Quant Score</div>
                     </div>
                 </div>
@@ -391,7 +409,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <div id="chart-${esc(tickShort)}" class="mini-chart-container" role="img" aria-label="Grafik mini ${esc(tickShort)} 60 hari. Sinyal ${isBuy ? 'riset beli' : 'pantau'}, tren ${esc(s.trend || 'tidak diketahui')}, skor ${Number(s.probability || 0).toFixed(1)} persen."></div>
+                <div id="chart-${esc(tickShort)}" class="mini-chart-container" role="img" aria-label="Grafik mini ${esc(tickShort)} 60 hari. Sinyal ${showBuy ? 'riset beli' : 'pantau'}${isFiller ? ', pengisi Top 10 keyakinan rendah' : ''}, tren ${esc(s.trend || 'tidak diketahui')}, skor ${scoreLabel} persen."></div>
                 <p class="legal-microcopy" style="margin:4px 0 8px">Sinyal riset — bukan perintah beli/jual. Saham berisiko rugi. DYOR.</p>
 
                 <div class="dc-quant-metrics">
@@ -408,10 +426,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="badge ${trendClass}">${esc(s.trend)}</span>
                     <span class="badge ${rsiClass}">RSI ${esc(s.rsi)}</span>
                     <span class="badge ${sentBadgeClass}">${esc(sentImpact)}</span>
-                    <span class="sig-pill sig-pill--sm ${isBuy ? 'buy' : 'watch'}" title="${isBuy ? 'Sinyal riset — bukan perintah beli' : 'Pantau — bukan perintah jual/beli'}">
-                        <span class="sig-dot ${isBuy ? 'green' : 'blue'}" aria-hidden="true"></span>
-                        ${isBuy ? 'SINYAL RISET' : 'PANTAU'}
-                    </span>
+                    <span class="sig-pill sig-pill--sm ${showBuy ? 'buy' : 'watch'}" title="${isFiller ? fillerTip : (showBuy ? 'Sinyal riset — bukan perintah beli' : 'Pantau — bukan perintah jual/beli')}">
+                        <span class="sig-dot ${showBuy ? 'green' : 'blue'}" aria-hidden="true"></span>
+                        ${showBuy ? 'SINYAL RISET' : 'PANTAU'}
+                    </span>${isFiller ? `<span class="badge neutral-sent" title="${fillerTip}">Pengisi</span>` : ''}
                     <button class="agent-toggle-btn" id="btn-ma-${esc(tickShort)}" aria-expanded="false" aria-controls="ma-box-${esc(tickShort)}">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                         Multi-Agent
@@ -946,6 +964,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const retVal = s.status === 'LOSS' ? -1.5 : (s.return_pct != null ? s.return_pct : 0);
                 const retSign = retVal >= 0 ? '+' : '';
+                const isFillerAudit = s.is_high_conviction === false;
+                const probFinalAudit = Number(s.probability);
+                const probRawAudit = Number(s.probability_raw);
+                const hasRawDiffAudit = Number.isFinite(probRawAudit) && Number.isFinite(probFinalAudit) && Math.abs(probRawAudit - probFinalAudit) >= 0.05;
+                const scoreLabelAudit = Number.isFinite(probFinalAudit)
+                    ? (hasRawDiffAudit ? probFinalAudit.toFixed(1) + '% (' + probRawAudit.toFixed(1) + ')' : probFinalAudit.toFixed(1) + '%')
+                    : '—';
                 const statusKey = String(s.status || 'PENDING').toUpperCase();
                 const badge = statusKey === 'WIN' ? `<span class="badge bullish">SIM-WIN ${retSign}${retVal.toFixed(1)}%</span>` :
                               (statusKey === 'LOSS' ? `<span class="badge bearish">SIM-LOSS ${retVal.toFixed(1)}%</span>` : `<span class="badge neutral-sent">SIM-PENDING</span>`);
@@ -956,7 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${fmtPrice(s.entry_price)}</td>
                     <td class="td-win">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
                     <td class="td-loss">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
-                    <td>${s.probability.toFixed(1)}%</td>
+                    <td${hasRawDiffAudit ? ` title="Skor mentah model: ${probRawAudit.toFixed(1)}"` : ''}>${scoreLabelAudit}${isFillerAudit ? ' <span class="badge neutral-sent" title="Pengisi Top 10 — keyakinan model rendah, bukan sinyal beli">Pengisi</span>' : ''}</td>
                     <td>${badge}</td>
                 `;
                 body.appendChild(row);

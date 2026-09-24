@@ -210,6 +210,7 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         candidate_df = pd.concat([high_conviction, secondary, remaining]).drop_duplicates(subset=['Ticker']).head(15)
     else:
         candidate_df = high_conviction.head(15)
+    hc_tickers = set(high_conviction['Ticker'].tolist())
 
     from src.agents.ihsg_macro_agent import get_ticker_sector
     leading_sectors = macro_eval.get("sector_rotation", {}).get("leading_sectors", [])
@@ -219,8 +220,13 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         signals = derive_signals(row)
         sec = get_ticker_sector(row['Ticker'])
         is_leading = sec in leading_sectors
+        # Prob mentah model (pra-booster) disimpan terpisah untuk audit jujur.
+        raw_model_prob = round(float(row['Probability']), 1)
         # Sektor Booster: +2.0% probabilitas jika saham berada di sektor leading inflow
-        boosted_prob = min(98.5, float(row['Probability']) + (2.0 if is_leading else 0.0))
+        boosted_prob = min(98.5, raw_model_prob + (2.0 if is_leading else 0.0))
+        # Tandai apakah kandidat ini lolos high-conviction model murni
+        # (Signal==1 & prob>=ambang) atau hanya pengisi fallback Top 10.
+        is_hc = bool(row['Ticker'] in hc_tickers)
 
         # Jika BLOCK mode aktif, Kelly allocation dipotong 50% untuk manajemen risiko defensif
         base_kelly = signals.get('kelly_allocation', 10.0)
@@ -234,6 +240,8 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             "ticker": row['Ticker'],
             "sector": sec,
             "is_leading_sector": is_leading,
+            "is_high_conviction": is_hc,
+            "probability_raw": raw_model_prob,
             "probability": round(boosted_prob, 1),
             "signal": int(row.get('Signal', 0)),
             "close_price": signals['close_price'],

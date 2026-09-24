@@ -75,6 +75,10 @@ def init_db():
         cols = [c[1] for c in cursor.fetchall()]
         if "realized_return" not in cols:
             cursor.execute("ALTER TABLE signals ADD COLUMN realized_return REAL")
+        if "probability_raw" not in cols:
+            cursor.execute("ALTER TABLE signals ADD COLUMN probability_raw REAL")
+        if "is_high_conviction" not in cols:
+            cursor.execute("ALTER TABLE signals ADD COLUMN is_high_conviction INTEGER DEFAULT 1")
         conn.commit()
 
 # Database initialization is handled inside request handlers via init_db()
@@ -90,24 +94,31 @@ def save_signals_to_db(signals: list[dict]):
     """Menyimpan list sinyal baru ke database. Menghindari duplikasi ticker pada hari kalender yang sama."""
     init_db()
     today_str = get_wib_now().strftime("%Y-%m-%d")
-    
+
     with _db_lock, get_db_connection() as conn:
         cursor = conn.cursor()
         for s in signals:
             ticker = s["ticker"]
             clean_ticker = ticker.replace(".JK", "")
-            
+
             cursor.execute("""
-                SELECT id FROM signals 
+                SELECT id FROM signals
                 WHERE ticker = ? AND strftime('%Y-%m-%d', created_at) = ?
             """, (clean_ticker, today_str))
-            
+
             row = cursor.fetchone()
             if row is None:
+                # probability_raw = output mentah model sebelum booster
+                # (sektor +2.0, sentimen +1.5..+4.5); probability = angka final.
+                raw_prob = s.get("probability_raw")
+                if raw_prob is None:
+                    raw_prob = s["probability"]
+                hc = s.get("is_high_conviction")
+                hc_int = 1 if hc is None else (1 if hc else 0)
                 cursor.execute("""
-                    INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, 'PENDING', datetime('now', 'localtime'), datetime('now', 'localtime'))
-                """, (clean_ticker, s["close_price"], s["target_price"], s["stop_loss"], s["probability"]))
+                    INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, probability_raw, is_high_conviction, status, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', datetime('now', 'localtime'), datetime('now', 'localtime'))
+                """, (clean_ticker, s["close_price"], s["target_price"], s["stop_loss"], s["probability"], raw_prob, hc_int))
         conn.commit()
 
 @router.get("/audit/track-record")
@@ -192,6 +203,8 @@ def get_track_record():
             "target_price": r["target_price"],
             "stop_loss": r["stop_loss"],
             "probability": r["probability"],
+            "probability_raw": r["probability_raw"] if r["probability_raw"] is not None else r["probability"],
+            "is_high_conviction": r["is_high_conviction"] if r["is_high_conviction"] is not None else 1,
             "status": display_status,
             "return_pct": display_ret,
             "realized_return": display_ret,
@@ -602,11 +615,11 @@ def audit_seed_endpoint(request: Request):
 def seed_simulation_audit():
     """
     Menjalankan Quant Optimization Backtest Engine 6 Bulan Terakhir.
-    Menerapkan 4 Lapis Perlindungan:
+    Menerapkan 4 lapis filter rule-based (bukan skor ML):
     1. IHSG Market Regime Guard (Filter Indeks Makro)
-    2. Confidence Threshold Cutoff (AI Score >= 70.0%)
-    3. Volume Accumulation Guard (Vol > 1.1x SMA20)
-    4. Multi-Factor ML Technical Alignment
+    2. Ambang skor rule-based >= 70.0
+    3. Volume Accumulation Guard (Vol >= 1.05x SMA20)
+    4. Penyelarasan teknikal MACD + posisi harga vs SMA20
     """
     init_db()
     with _db_lock, get_db_connection() as conn:
@@ -678,8 +691,9 @@ def seed_simulation_audit():
                         if pd.notna(ihsg_sma20.loc[m_dt]) and ihsg_close.loc[m_dt] < ihsg_sma20.loc[m_dt] * 0.99:
                             is_market_bullish = False
 
-                    # VETO di pasar bearish ekstrem untuk mengeliminasi drawdown Mei 2026
-                    if not is_market_bullish and date_str.startswith("2026-05"):
+                    # Regime guard umum: di pasar bearish jangan ambil sinyal baru
+                    # (berlaku semua bulan — tanpa pengecualian hardcode).
+                    if not is_market_bullish:
                         continue
 
                     rsi_val = float(row['RSI_14']) if pd.notna(row['RSI_14']) else 50.0
@@ -703,22 +717,26 @@ def seed_simulation_audit():
                         if prob < 70.0:
                             continue
 
-                        entry_price = close_p
+                        fw = df_stock.iloc[i+1 : i+6]
+                        # Entry realistis = harga buka candle BERIKUTNYA (tak bisa
+                        # beli di close yang baru diketahui setelah tutup).
+                        next_open = float(fw['Open'].iloc[0]) if len(fw) > 0 and 'Open' in fw else close_p
+                        entry_price = next_open
                         target_price = round(entry_price * 1.03)
                         stop_loss = round(entry_price * 0.985)
 
-                        fw = df_stock.iloc[i+1 : i+6]
-                        if len(fw) == 0:
+                        eval_fw = fw.iloc[1:] if len(fw) > 1 else fw.iloc[0:0]
+                        if len(eval_fw) == 0:
                             status = "PENDING"
                             real_ret = 0.0
                         else:
                             # Aturan TP/SL jujur: sentuh target = WIN (+3.0),
                             # sentuh stop = LOSS (-1.5). Ambigu (dua-duanya
                             # dalam satu candle) ikut arah open vs entry.
-                            max_h = float(fw['High'].max())
-                            min_l = float(fw['Low'].min())
-                            last_c = float(fw['Close'].iloc[-1])
-                            first_o = float(fw['Open'].iloc[0]) if 'Open' in fw else entry_price
+                            max_h = float(eval_fw['High'].max())
+                            min_l = float(eval_fw['Low'].min())
+                            last_c = float(eval_fw['Close'].iloc[-1])
+                            first_o = float(eval_fw['Open'].iloc[0]) if 'Open' in eval_fw else entry_price
                             hit_tp = max_h >= target_price
                             hit_sl = min_l <= stop_loss
                             if hit_tp and hit_sl:
@@ -734,7 +752,7 @@ def seed_simulation_audit():
                             elif hit_sl:
                                 status = "LOSS"
                                 real_ret = -1.5
-                            elif len(fw) < 5:
+                            elif len(eval_fw) < 5:
                                 # Data belum 5 candle: belum bisa diputus.
                                 status = "PENDING"
                                 real_ret = 0.0
@@ -753,7 +771,7 @@ def seed_simulation_audit():
 
                         real_records.append((
                             clean_ticker, entry_price, target_price, stop_loss,
-                            prob, status, real_ret, created_str, created_str
+                            prob, prob, 1, status, real_ret, created_str, created_str
                         ))
 
             except Exception as se:
@@ -766,8 +784,8 @@ def seed_simulation_audit():
         with _db_lock, get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.executemany("""
-                INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, status, realized_return, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, probability_raw, is_high_conviction, status, realized_return, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, real_records)
             conn.commit()
 
