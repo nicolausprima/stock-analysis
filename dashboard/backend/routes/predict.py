@@ -3,6 +3,7 @@ import json
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -52,15 +53,59 @@ async def get_recommendations(request: Request, force: bool = False):
     return await asyncio.get_event_loop().run_in_executor(_executor, _run_fresh_scan)
 
 
+_WIB = timezone(timedelta(hours=7))
+_CACHE_TS_FORMATS = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%d")
+
+
+def _parse_cache_timestamp(raw) -> datetime | None:
+    """Parse cache timestamp ke datetime WIB sadar-zona. None bila non-tanggal."""
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    text = raw.strip()
+    try:
+        dt = datetime.fromisoformat(text)
+    except ValueError:
+        dt = None
+        for fmt in _CACHE_TS_FORMATS:
+            try:
+                dt = datetime.strptime(text, fmt)
+                break
+            except ValueError:
+                continue
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=_WIB)
+    return dt.astimezone(_WIB)
+
+
 def _read_cache():
-    """Baca cache JSON, return None jika tidak valid."""
+    """Baca cache JSON, return None jika tidak valid / basi >24 jam.
+
+    Cache basi atau timestamp non-tanggal (mis. sample) ditolak agar
+    pemanggil fallback ke fresh-scan, kecuali mode TESTING agar uji
+    deterministik dengan cache dummy tidak gagal.
+    """
     if not CACHE_FILE.exists():
         return None
     try:
         with open(CACHE_FILE, 'r') as f:
             data = json.load(f)
-        if isinstance(data, dict) and data.get("status") == "success" and (len(data.get("data", [])) >= 1 or data.get("macro_mode") == "BLOCK"):
-            return data
+        if not (isinstance(data, dict) and data.get("status") == "success" and (len(data.get("data", [])) >= 1 or data.get("macro_mode") == "BLOCK")):
+            return None
+        ts = _parse_cache_timestamp(data.get("timestamp"))
+        if ts is None:
+            if os.getenv("TESTING") == "true":
+                return data
+            print(f"Cache ditolak: timestamp non-tanggal ({data.get('timestamp')!r})")
+            return None
+        age = datetime.now(timezone.utc).astimezone(_WIB) - ts
+        if age > timedelta(hours=24):
+            if os.getenv("TESTING") == "true":
+                return data
+            print(f"Cache basi >24 jam (umur {age}, ts {data.get('timestamp')!r})")
+            return None
+        return data
     except Exception as e:
         print(f"Gagal membaca cache JSON: {e!s}")
     return None

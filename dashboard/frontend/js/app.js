@@ -261,7 +261,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     bA.classList.remove('is-active'); bA.setAttribute('aria-selected', 'false');
                 }
             }
-            if (lastScan) lastScan.textContent = 'Updated ' + new Date().toLocaleTimeString('en-US');
+            if (lastScan) {
+                const tsRaw = data && data.timestamp;
+                let scanLabel = '';
+                if (tsRaw && /^\d{4}-\d{2}-\d{2}/.test(String(tsRaw))) {
+                    const parsed = new Date(String(tsRaw).replace(' ', 'T'));
+                    if (!isNaN(parsed)) {
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                        const dd = String(parsed.getDate()).padStart(2, '0');
+                        const mmm = months[parsed.getMonth()];
+                        const yyyy = parsed.getFullYear();
+                        const hh = String(parsed.getHours()).padStart(2, '0');
+                        const mm = String(parsed.getMinutes()).padStart(2, '0');
+                        scanLabel = `Data scan ${dd} ${mmm} ${yyyy} ${hh}:${mm}`;
+                    }
+                }
+                if (!scanLabel) {
+                    scanLabel = 'Data scan ' + new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (waktu buka)';
+                }
+                lastScan.textContent = scanLabel;
+            }
             loadTrackRecord();
 
             // Smooth scroll ke hasil (auto bila reduced-motion)

@@ -18,6 +18,86 @@ def _get_wib_now():
     return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7)))
 
 
+_ROTATION_PENALTY_PER_HIT = 5.0
+_ROTATION_LOOKBACK_DATES = 3
+_MAX_PER_SECTOR = 3
+
+
+def _get_recent_scan_ticker_counts():
+    """Hitung kemunculan tiap ticker di N tanggal scan terakhir (DB signals).
+
+    Return dict {TICKER_TANPA_.JK: jumlah_kemunculan}. {} bila DB kosong/hilang.
+    """
+    try:
+        from dashboard.backend.routes.audit import DB_PATH
+    except Exception:
+        return {}
+    if not DB_PATH.exists():
+        return {}
+    import sqlite3
+
+    try:
+        conn = sqlite3.connect(str(DB_PATH), timeout=10.0, check_same_thread=False)
+        try:
+            cur = conn.cursor()
+            cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='signals'")
+            if cur.fetchone() is None:
+                return {}
+            cur.execute(
+                "SELECT DISTINCT strftime('%Y-%m-%d', created_at) AS d FROM signals "
+                "WHERE created_at IS NOT NULL ORDER BY d DESC LIMIT 3"
+            )
+            dates = [r[0] for r in cur.fetchall() if r[0]]
+            if not dates:
+                return {}
+            placeholders = ",".join("?" * len(dates))
+            cur.execute(
+                f"SELECT ticker, COUNT(*) FROM signals "
+                f"WHERE strftime('%Y-%m-%d', created_at) IN ({placeholders}) GROUP BY ticker",
+                dates,
+            )
+            counts = {}
+            for t, n in cur.fetchall():
+                if t:
+                    counts[str(t).upper().replace(".JK", "")] = int(n)
+            return counts
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"[ROTATION] Warning baca riwayat scan: {e!s}")
+        return {}
+
+
+def _apply_rotation_diversification(candidates):
+    """Rotasi: penalti ticker jenuh + cap sektor, sebelum potong Top 10.
+
+    - Ticker yang muncul di 3 tanggal scan terakhir kena -5.0 prob per
+      kemunculan (probability_raw mentah tidak diubah).
+    - Maksimal 3 ticker per sektor agar Top 10 terdiversifikasi.
+    Return list kandidat terurut-ulang yang sudah di-cap.
+    """
+    counts = _get_recent_scan_ticker_counts()
+    for c in candidates:
+        key = str(c.get("ticker", "")).upper().replace(".JK", "")
+        hits = counts.get(key, 0)
+        if hits > 0:
+            penalty = round(_ROTATION_PENALTY_PER_HIT * hits, 1)
+            c["rotation_penalty"] = penalty
+            c["probability"] = round(max(0.0, float(c.get("probability", 0)) - penalty), 1)
+        else:
+            c.setdefault("rotation_penalty", 0.0)
+    ordered = sorted(candidates, key=lambda c: float(c.get("probability", 0)), reverse=True)
+    capped = []
+    per_sector = {}
+    for c in ordered:
+        sec = c.get("sector") or "Umum"
+        if per_sector.get(sec, 0) >= _MAX_PER_SECTOR:
+            continue
+        per_sector[sec] = per_sector.get(sec, 0) + 1
+        capped.append(c)
+    return capped
+
+
 # Absolute import resolution
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -275,7 +355,10 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
 
     # 4. Terapkan Asymmetric Risk Filter & Score Booster untuk sinyal esok hari
     filtered_candidates = apply_asymmetric_sentiment_filter(candidates)
-    results = filtered_candidates[:10]
+    # 4b. Rotasi + diversifikasi sektor SEBELUM potong Top 10:
+    # penalti ticker jenuh 3 scan terakhir + cap max 3 per sektor.
+    rotated_candidates = _apply_rotation_diversification(filtered_candidates)
+    results = rotated_candidates[:10]
 
     # Simpan sinyal baru ke SQLite database audit & cache JSON
     if save_to_db:
