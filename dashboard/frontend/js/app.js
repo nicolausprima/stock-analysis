@@ -250,6 +250,19 @@ document.addEventListener('DOMContentLoaded', () => {
             buildTable(data.data);
             buildCards(data.data);
             results.classList.remove('hidden');
+            // Tandai data contoh/simulasi agar tak disangka hasil scan nyata.
+            try {
+                const tag = document.getElementById('sample-data-tag');
+                if (tag) {
+                    const isSample = !!(data && (data.is_sample || data.stale));
+                    tag.classList.toggle('hidden', !isSample);
+                    if (isSample) {
+                        const why = (data && data.fallback_reason) ? String(data.fallback_reason) : 'data-contoh';
+                        tag.textContent = `DATA CONTOH (${why}) — bukan hasil scan. Jalankan scan harian untuk data nyata.`;
+                        tag.setAttribute('role', 'status');
+                    }
+                }
+            } catch (_) { /* noop */ }
             try {
                 window.switchMainTab('recom', { scroll: false, focus: false });
             } catch (_) {
