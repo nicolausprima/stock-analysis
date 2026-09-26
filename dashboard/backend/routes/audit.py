@@ -106,7 +106,7 @@ def save_signals_to_db(signals: list[dict]):
 
             cursor.execute("""
                 SELECT id FROM signals
-                WHERE ticker = ? AND strftime('%Y-%m-%d', created_at) = ?
+                WHERE ticker = ? AND strftime('%Y-%m-%d', created_at) = ? AND source = 'scan'
             """, (clean_ticker, today_str))
 
             row = cursor.fetchone()
@@ -738,6 +738,8 @@ def seed_simulation_audit():
                             # Aturan TP/SL jujur: sentuh target = WIN (+3.0),
                             # sentuh stop = LOSS (-1.5). Ambigu (dua-duanya
                             # dalam satu candle) ikut arah open vs entry.
+                            # Jendela maks 4 candle pasca-entry (fw 5 minus
+                            # candle entry); komentar "5 candle" lama salah.
                             max_h = float(eval_fw['High'].max())
                             min_l = float(eval_fw['Low'].min())
                             last_c = float(eval_fw['Close'].iloc[-1])
@@ -757,12 +759,12 @@ def seed_simulation_audit():
                             elif hit_sl:
                                 status = "LOSS"
                                 real_ret = -1.5
-                            elif len(eval_fw) < 5:
-                                # Data belum 5 candle: belum bisa diputus.
+                            elif len(eval_fw) < 4:
+                                # Data belum 4 candle: belum bisa diputus.
                                 status = "PENDING"
                                 real_ret = 0.0
                             else:
-                                # 5 candle penuh tanpa sentuh TP/SL:
+                                # 4 candle penuh tanpa sentuh TP/SL:
                                 # hanya WIN bila close akhir >= target.
                                 if last_c >= target_price:
                                     status = "WIN"
