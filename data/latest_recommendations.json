@@ -1,85 +1,32 @@
 {
   "status": "success",
-  "timestamp": "2026-09-25 14:36:55",
-  "total_scanned": 568,
+  "timestamp": "2026-09-26 23:42:22",
+  "total_scanned": 569,
   "macro_eval": {
     "status": "success",
-    "mode": "BLOCK",
-    "mode_badge": "\ud83d\udd34 MODE BLOCK (Pasar High Risk / Downtrend)",
-    "macro_score": -2.5,
-    "prob_threshold": 0.85,
+    "mode": "CAUTIOUS",
+    "mode_badge": "\ud83d\udfe1 MODE CAUTIOUS (Waspada / Konsolidasi)",
+    "macro_score": -0.5,
+    "prob_threshold": 0.8,
     "stop_loss_pct": 0.01,
     "details": [
-      "\u2022 USD/IDR: Rp 17,912 (+0.42% Melemah) \u26a0\ufe0f",
+      "\u2022 USD/IDR: Rp 17,890 (+1.88% Melemah) \u26a0\ufe0f",
+      "\u2022 DXY (US Dollar): 100.97 (-0.32%) \u2705",
       "\u2022 Bursa Asia (Nikkei/HSI/STI): Flat (+0.26%) \u2796",
-      "\u2022 Teknikal IHSG: 6241.9 < SMA20 6502.7 (Downtrend) \u26a0\ufe0f",
-      "\u2022 Sentimen Berita Makro: NETRAL (0.0) \u2796",
-      "\u2022 Sektor Terkuat (Inflow): Bahan Baku, Finansial, Teknologi \u26a1"
+      "\u2022 Bursa Wall St (S&P500/NASDAQ): Rata-rata +0.50% \u2705",
+      "\u2022 Teknikal IHSG: 6241.9 < SMA20 6502.7 (Downtrend) \u26a0\ufe0f"
     ],
     "news_sentiment": {
-      "score": 0.13,
+      "score": 0.0,
       "label": "NETRAL",
-      "reason": "Analisis sentimen AI dari 7 berita makroekonomi (Melemah (-1.2), Stabilitas (+1.2), Rebound (+1.6)).",
-      "headlines": [
-        {
-          "title": "IHSG Usai BI Rate Ditahan: Rebound Sesaat atau Pemulihan - maybanktrade.co.id",
-          "source": "maybanktrade.co.id",
-          "sentiment": "POSITIF \u2705",
-          "score": 0.457
-        },
-        {
-          "title": "Rupiah dan Arus Dana Asing Jadi Penentu Utama Penguatan IHSG ke Depan - investortrust.id",
-          "source": "investortrust.id",
-          "sentiment": "NETRAL \u2796",
-          "score": 0.0
-        },
-        {
-          "title": "IHSG terancam jebol 6.200 imbas yield US Treasury dan rupiah - IDNFinancials",
-          "source": "IDNFinancials",
-          "sentiment": "NETRAL \u2796",
-          "score": 0.0
-        },
-        {
-          "title": "Nilai Tukar Rupiah Kembali Melemah, Pakar UMY Soroti Hal Ini! - UMY",
-          "source": "UMY",
-          "sentiment": "NEGATIF \u26a0\ufe0f",
-          "score": -0.343
-        },
-        {
-          "title": "BI Tahan Suku Bunga 5,75%, Rebound IHSG Bergantung Stabilitas Rupiah dan Arus Asing - TopBusiness.id",
-          "source": "TopBusiness.id",
-          "sentiment": "POSITIF \u2705",
-          "score": 0.8
-        }
-      ],
-      "highlights": [
-        "Melemah (-1.2)",
-        "Rebound (+1.6)",
-        "Stabilitas (+1.2)"
-      ]
+      "headlines": []
     },
     "sector_rotation": {
-      "leading_sectors": [
-        "Bahan Baku",
-        "Finansial",
-        "Teknologi"
-      ],
-      "sector_rankings": {
-        "Bahan Baku": 6.97,
-        "Finansial": 0.4,
-        "Teknologi": 0.0,
-        "Energi": -0.76,
-        "Perindustrian": -1.92,
-        "Kesehatan": -2.0,
-        "Konsumer Primer": -2.21,
-        "Konsumer Non-Primer": -2.7,
-        "Transportasi & Logistik": -2.97,
-        "Infrastruktur": -3.6,
-        "Properti & Real Estate": -5.88
-      }
+      "leading_sectors": [],
+      "sector_rankings": {}
     }
   },
-  "macro_mode": "BLOCK",
+  "macro_mode": "CAUTIOUS",
   "data": [
     {
       "ticker": "ESTI.JK",
@@ -92,15 +39,15 @@
       "close_price": 145.0,
       "target_price": 152.0,
       "stop_loss": 142.0,
-      "rsi": 38.6,
+      "rsi": 38.5,
       "rsi_signal": "Oversold",
       "macd_signal": "Bearish",
       "trend": "Downtrend",
-      "adx": 52.5,
+      "adx": 52.3,
       "rvol": 0.35,
       "risk_reward_ratio": 2.33,
-      "kelly_allocation": 12.5,
-      "reason": "[DEFENSIVE] IHSG Downtrend. High-conviction setup only. Inflow Uang Kuat (MFI 93), Tren Kuat (ADX 52), Oversold (Koreksi Sehat)",
+      "kelly_allocation": 25.0,
+      "reason": "Inflow Uang Kuat (MFI 93), Tren Kuat (ADX 52), Oversold (Koreksi Sehat)",
       "sentiment_status": "NETRAL",
       "sentiment_impact": "NETRAL",
       "sentiment_reason": "Tidak ada berita baru (Netral)",
@@ -123,11 +70,11 @@
       "rsi_signal": "Oversold",
       "macd_signal": "Bearish",
       "trend": "Downtrend",
-      "adx": 36.1,
+      "adx": 36.2,
       "rvol": 0.48,
       "risk_reward_ratio": 3.0,
-      "kelly_allocation": 12.5,
-      "reason": "[DEFENSIVE] IHSG Downtrend. High-conviction setup only. Inflow Uang Kuat (MFI 74), Tren Kuat (ADX 36), Oversold (Koreksi Sehat)",
+      "kelly_allocation": 25.0,
+      "reason": "Inflow Uang Kuat (MFI 74), Tren Kuat (ADX 36), Oversold (Koreksi Sehat)",
       "sentiment_status": "NETRAL",
       "sentiment_impact": "NETRAL",
       "sentiment_reason": "Tidak ada berita baru (Netral)",
@@ -150,11 +97,11 @@
       "rsi_signal": "Netral",
       "macd_signal": "Bullish",
       "trend": "Uptrend",
-      "adx": 45.0,
+      "adx": 47.5,
       "rvol": 1.02,
       "risk_reward_ratio": 3.0,
-      "kelly_allocation": 12.5,
-      "reason": "[DEFENSIVE] IHSG Downtrend. High-conviction setup only. Inflow Uang Kuat (MFI 79), Tren Kuat (ADX 45), MACD Menguat (Bullish), Harga di atas MA-50, EMA-12 Golden Cross EMA-26",
+      "kelly_allocation": 25.0,
+      "reason": "Inflow Uang Kuat (MFI 79), Tren Kuat (ADX 48), MACD Menguat (Bullish), Harga di atas MA-50, EMA-12 Golden Cross EMA-26",
       "sentiment_status": "NETRAL",
       "sentiment_impact": "NETRAL",
       "sentiment_reason": "Tidak ada berita baru (Netral)",
@@ -177,11 +124,11 @@
       "rsi_signal": "Netral",
       "macd_signal": "Bearish",
       "trend": "Downtrend",
-      "adx": 55.3,
+      "adx": 55.4,
       "rvol": 0.51,
       "risk_reward_ratio": 2.5,
-      "kelly_allocation": 12.5,
-      "reason": "[DEFENSIVE] IHSG Downtrend. High-conviction setup only. Inflow Uang Kuat (MFI 82), Tren Kuat (ADX 55), Oversold (Koreksi Sehat), EMA-12 Golden Cross EMA-26",
+      "kelly_allocation": 25.0,
+      "reason": "Inflow Uang Kuat (MFI 82), Tren Kuat (ADX 55), Oversold (Koreksi Sehat), EMA-12 Golden Cross EMA-26",
       "sentiment_status": "NETRAL",
       "sentiment_impact": "NETRAL",
       "sentiment_reason": "Tidak ada berita baru (Netral)",
