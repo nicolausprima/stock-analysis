@@ -40,6 +40,174 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardsGrid  = document.getElementById('cards-grid');
     const lastScan   = document.getElementById('last-scan-time');
     const emptyState = document.getElementById('empty-state');
+    const sessionPill = document.getElementById('session-pill');
+    const freshnessBadge = document.getElementById('data-freshness');
+
+    // --- Pill sesi BEI (zona Asia/Jakarta), tampil sebelum scan, refresh tiap menit ---
+    function updateSessionPill(now) {
+        if (!sessionPill) return;
+        try {
+            const parts = new Intl.DateTimeFormat('en-GB', {
+                timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', hour12: false
+            }).formatToParts(now || new Date());
+            const get = t => (parts.find(p => p.type === t) || {}).value || '00';
+            const mins = Number(get('hour')) * 60 + Number(get('minute'));
+            const hh = get('hour');
+            const mm = get('minute');
+            let label = 'TUTUP';
+            if (mins < 9 * 60) label = 'PRE-OPEN';
+            else if (mins < 12 * 60) label = 'SESI 1';
+            else if (mins < 14 * 60) label = 'ISTIRAHAT';
+            else if (mins <= 15 * 60 + 30) label = 'SESI 2';
+            sessionPill.textContent = `${label} · ${hh}:${mm} WIB`;
+        } catch (_) {
+            sessionPill.textContent = 'SESI BEI';
+        }
+    }
+    updateSessionPill();
+    setInterval(updateSessionPill, 60000);
+
+    // --- Toast generik (clipboard, sizing, dsb) ---
+    let toastTimer = null;
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        if (!t) return;
+        t.textContent = String(msg || '');
+        t.classList.remove('hidden');
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => { t.classList.add('hidden'); t.classList.remove('show'); }, 2600);
+    }
+    window.showToast = showToast;
+    window.updateSessionPill = updateSessionPill;
+    window.updateFreshness = updateFreshness;
+
+    // --- Badge freshness data: DATA CONTOH / CACHE HH:mm WIB / SEGERA ---
+    function updateFreshness(data, isFreshScan) {
+        if (!freshnessBadge) return;
+        try {
+            const isSample = !!(data && (data.is_sample || data.stale));
+            if (isSample) {
+                freshnessBadge.textContent = 'DATA CONTOH';
+                return;
+            }
+            const tsRaw = data && data.timestamp;
+            let ts = null;
+            if (tsRaw && /^\d{4}-\d{2}-\d{2}/.test(String(tsRaw))) {
+                const p = new Date(String(tsRaw).replace(' ', 'T'));
+                if (!isNaN(p)) ts = p;
+            }
+            // Cache scheduler bisa berumur jam-an: umur >30 mnt = CACHE, baru = SEGERA.
+            if (ts && (Date.now() - ts.getTime() > 30 * 60 * 1000)) {
+                const hh = String(ts.getHours()).padStart(2, '0');
+                const mm = String(ts.getMinutes()).padStart(2, '0');
+                freshnessBadge.textContent = `CACHE ${hh}:${mm} WIB`;
+                return;
+            }
+            if (ts && !isFreshScan) {
+                const hh = String(ts.getHours()).padStart(2, '0');
+                const mm = String(ts.getMinutes()).padStart(2, '0');
+                freshnessBadge.textContent = `CACHE ${hh}:${mm} WIB`;
+                return;
+            }
+            freshnessBadge.textContent = 'SEGERA';
+        } catch (_) { /* noop */ }
+    }
+
+    // --- Modal sizing posisi (simulasi, bukan saran) ---
+    let sizingReturnFocus = null;
+    function calcSizing() {
+        const modalEl = document.getElementById('sizing-modal-input');
+        const riskEl = document.getElementById('sizing-risk-input');
+        const entryEl = document.getElementById('sizing-entry');
+        const slEl = document.getElementById('sizing-sl');
+        const out = document.getElementById('sizing-result');
+        if (!modalEl || !riskEl || !out) return;
+        const modal = Number(modalEl.value) || 0;
+        const riskPct = Number(riskEl.value) || 0;
+        const entry = Number(entryEl && entryEl.dataset ? entryEl.dataset.value : NaN);
+        const sl = Number(slEl && slEl.dataset ? slEl.dataset.value : NaN);
+        if (!(modal > 0) || !(riskPct > 0) || !Number.isFinite(entry) || !Number.isFinite(sl) || entry <= sl) {
+            out.textContent = 'Isi modal dan risiko dengan benar; entry harus di atas stop loss.';
+            return;
+        }
+        const riskRp = modal * (riskPct / 100);
+        const shares = Math.floor(riskRp / (entry - sl) / 100) * 100;
+        const lots = Math.floor(shares / 100);
+        const cost = shares * entry;
+        out.textContent = `Risiko Rp${Math.round(riskRp).toLocaleString('id-ID')} → maks ${lots} lot (${shares.toLocaleString('id-ID')} lbr), estimasi dana Rp${Math.round(cost).toLocaleString('id-ID')}. Bukan saran beli/jual.`;
+    }
+    function openSizingModal(s) {
+        const modal = document.getElementById('sizing-modal');
+        if (!modal) return;
+        sizingReturnFocus = document.activeElement;
+        const tickEl = document.getElementById('sizing-ticker');
+        const entryEl = document.getElementById('sizing-entry');
+        const slEl = document.getElementById('sizing-sl');
+        if (tickEl) tickEl.textContent = safeId(s.ticker);
+        if (entryEl) {
+            entryEl.textContent = s.close_price > 0 ? idr(s.close_price) : '—';
+            try { entryEl.dataset.value = String(s.close_price || 0); } catch (_) {}
+        }
+        if (slEl) {
+            slEl.textContent = s.stop_loss > 0 ? idr(s.stop_loss) : '—';
+            try { slEl.dataset.value = String(s.stop_loss || 0); } catch (_) {}
+        }
+        modal.classList.remove('hidden');
+        calcSizing();
+        const closeBtn = document.getElementById('sizing-close');
+        if (closeBtn) { try { closeBtn.focus({ preventScroll: true }); } catch (_) { closeBtn.focus(); } }
+    }
+    function closeSizingModal() {
+        const modal = document.getElementById('sizing-modal');
+        if (modal) modal.classList.add('hidden');
+        if (sizingReturnFocus && document.contains(sizingReturnFocus)) {
+            try { sizingReturnFocus.focus({ preventScroll: true }); } catch (_) { sizingReturnFocus.focus(); }
+            sizingReturnFocus = null;
+        }
+    }
+    window.openSizingModal = openSizingModal;
+    window.closeSizingModal = closeSizingModal;
+    (function wireSizingModal() {
+        const modal = document.getElementById('sizing-modal');
+        if (!modal) return;
+        const closeBtn = document.getElementById('sizing-close');
+        if (closeBtn) closeBtn.addEventListener('click', closeSizingModal);
+        modal.querySelectorAll('[data-close-sizing]').forEach(el => {
+            el.addEventListener('click', closeSizingModal);
+        });
+        const mInput = document.getElementById('sizing-modal-input');
+        const rInput = document.getElementById('sizing-risk-input');
+        if (mInput) mInput.addEventListener('input', calcSizing);
+        if (rInput) rInput.addEventListener('input', calcSizing);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeSizingModal();
+        });
+    })();
+
+    // --- Salin watchlist: 'TICKER @ RpX (target RpY, SL RpZ)' + toast ---
+    function copyWatchlist(s) {
+        const tick = safeId(s.ticker);
+        const entry = s.close_price > 0 ? idr(s.close_price) : '—';
+        const tp = s.target_price > 0 ? idr(s.target_price) : '—';
+        const sl = s.stop_loss > 0 ? idr(s.stop_loss) : '—';
+        const text = `${tick} @ ${entry} (target ${tp}, SL ${sl})`;
+        const done = () => showToast(`Watchlist tersalin: ${tick}`);
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done, () => showToast(text));
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); } catch (_) {}
+                ta.remove();
+                done();
+            }
+        } catch (_) { showToast(text); }
+    }
+    window.copyWatchlist = copyWatchlist;
 
     // Referensi handler resize disimpan agar bisa dilepas saat chart dirender ulang (anti memory-leak)
     // Helpers
@@ -250,6 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
             buildTable(data.data);
             buildCards(data.data);
             results.classList.remove('hidden');
+            try { updateFreshness(data, true); } catch (_) { /* noop */ }
             // Tandai data contoh/simulasi agar tak disangka hasil scan nyata.
             try {
                 const tag = document.getElementById('sample-data-tag');
@@ -267,7 +436,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.switchMainTab('recom', { scroll: false, focus: false });
             } catch (_) {
                 const auditSec = document.getElementById('audit-section');
-                if (auditSec) auditSec.style.display = 'none';
+                if (auditSec) auditSec.classList.add('hidden');
                 const bR = document.getElementById('tab-btn-recom');
                 const bA = document.getElementById('tab-btn-audit');
                 if (bR && bA) {
@@ -287,11 +456,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         const yyyy = parsed.getFullYear();
                         const hh = String(parsed.getHours()).padStart(2, '0');
                         const mm = String(parsed.getMinutes()).padStart(2, '0');
-                        scanLabel = `Data scan ${dd} ${mmm} ${yyyy} ${hh}:${mm}`;
+                        scanLabel = `Data scan ${dd} ${mmm} ${yyyy} ${hh}:${mm} WIB`;
                     }
                 }
                 if (!scanLabel) {
-                    scanLabel = 'Data scan ' + new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' (waktu buka)';
+                    scanLabel = 'Data scan ' + new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB';
                 }
                 lastScan.textContent = scanLabel;
             }
@@ -303,10 +472,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 results.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
             }, 80);
 
-            // Render Charts after DOM updates
+            // Render IHSG; mini-chart kartu dimuat lazy via ensureCardLazy (3 teratas langsung).
             setTimeout(() => {
                 renderIHSGChart(1);
-                renderAllMiniCharts(data.data);
             }, 150);
 
         } catch (err) {
@@ -324,25 +492,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Skor ganda: selalu tampil dua span (bukan title-only).
+    const scoreHtml = (probFinal, probRaw) => {
+        const fin = Number.isFinite(probFinal) ? probFinal.toFixed(1) + '%' : '—';
+        const raw = Number.isFinite(probRaw) ? ` <span class="score-raw">(mentah ${probRaw.toFixed(1)})</span>` : '';
+        return `<span class="score-val">${fin}</span>${raw}`;
+    };
+
     function buildTable(stocks) {
+        tableBody.innerHTML = '';
         stocks.forEach((s, i) => {
-            const rc             = rsiColor(s.rsi);
-            const rw             = rsiW(s.rsi);
-            const macdClass      = cls(s.macd_signal);
-            const trendClass     = cls(s.trend);
             const isBuy          = s.signal === 1;
             const isFiller       = s.is_high_conviction === false;
             const showBuy        = isBuy && !isFiller;
             const probFinal      = Number(s.probability);
             const probRaw        = Number(s.probability_raw);
-            const hasRawDiff     = Number.isFinite(probRaw) && Number.isFinite(probFinal) && Math.abs(probRaw - probFinal) >= 0.05;
-            const scoreLabel     = hasRawDiff
-                ? probFinal.toFixed(1) + '% (' + probRaw.toFixed(1) + ')'
-                : probFinal.toFixed(1) + '%';
             const fillerTip      = 'Pengisi Top 10 — keyakinan model rendah, bukan sinyal beli';
-            const sentStatus     = normSent(s.sentiment_status);
-            const sentImpact     = normSent(s.sentiment_impact);
-            const sentBadgeClass = sentStatus === 'POSITIF' ? 'booster' : (sentStatus === 'NEGATIF' ? 'veto' : 'neutral-sent');
+            const tickShort      = safeId(s.ticker);
 
             const tpPct = tpPctOf(s);
             const slPct = slPctOf(s);
@@ -358,38 +524,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="td-target">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
                 <td class="td-sl">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
                 <td>
-                    <div class="rsi-cell">
-                        <span class="rsi-val">${esc(s.rsi)}</span>
-                        <div class="rsi-track">
-                            <div class="rsi-fill ${rc}" style="width:${rw}%"></div>
-                        </div>
-                        <span class="rsi-sig">${esc(s.rsi_signal)}</span>
-                    </div>
-                </td>
-                <td><span class="badge ${macdClass}">${esc(s.macd_signal)}</span></td>
-                <td><span class="badge ${trendClass}">${esc(s.trend)}</span></td>
-                <td><span class="badge ${sentBadgeClass}">${esc(sentImpact)}</span></td>
-                <td>
                     <div class="score-cell">
                         <div class="score-track">
                             <div class="score-fill" style="width:${s.probability}%"></div>
                         </div>
-                        <span class="score-val"${hasRawDiff ? ` title="Skor mentah model: ${probRaw.toFixed(1)}"` : ''}>${scoreLabel}</span>
+                        ${scoreHtml(probFinal, probRaw)}
                     </div>
                 </td>
                 <td>
                     <span class="sig-pill ${showBuy ? 'buy' : 'watch'}"${isFiller ? ` title="${fillerTip}"` : ''}>
                         <span class="sig-dot ${showBuy ? 'green' : 'blue'}"></span>
-                        ${showBuy ? 'BUY' : 'WATCH'}
-                    </span>${isFiller ? `<br><span class="badge neutral-sent" title="${fillerTip}">Pengisi</span>` : ''}
+                        ${showBuy ? 'SINYAL RISET' : 'PANTAU'}
+                    </span>${isFiller ? `<br><span class="badge filler" title="${fillerTip}">Pengisi, keyakinan rendah</span>` : ''}
+                </td>
+                <td>
+                    <button type="button" class="row-detail-btn" data-ticker="${esc(tickShort)}" aria-label="Buka detail ${esc(tickShort)}">Detail</button>
                 </td>
             `;
             tableBody.appendChild(row);
         });
+        // Tombol Detail: buka kartu + scroll ke sana.
+        tableBody.querySelectorAll('.row-detail-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const card = document.getElementById(`card-${btn.dataset.ticker}`);
+                if (!card) return;
+                const det = card.querySelector('details.dc-details');
+                if (det && !det.open) det.open = true;
+                try {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    const sum = card.querySelector('summary.dc-summary');
+                    if (sum) sum.focus({ preventScroll: true });
+                } catch (_) { card.scrollIntoView(); }
+            });
+        });
+    }
+
+    // Lazy per-kartu: narasi + mini-chart + multi-agent di-fetch saat details pertama dibuka.
+    // Kartu 3 teratas langsung dimuat; sisanya menunggu dibuka user (hemat 7 fetch narasi/chart).
+    let lastScanStocks = [];
+    function ensureCardLazy(s, card, det) {
+        if (!det || det.dataset.lazyLoaded) return;
+        det.dataset.lazyLoaded = '1';
+        try { renderOneMiniChart(s); } catch (_) { /* noop */ }
+        try { fetchNarrative(s, card); } catch (_) { /* noop */ }
+        try { loadMultiAgent(s, card); } catch (_) { /* noop */ }
     }
 
     function buildCards(stocks) {
-        stocks.forEach(s => {
+        cardsGrid.innerHTML = '';
+        lastScanStocks = Array.isArray(stocks) ? stocks : [];
+        stocks.forEach((s, idx) => {
             const rc             = rsiColor(s.rsi);
             const macdClass      = cls(s.macd_signal);
             const trendClass     = cls(s.trend);
@@ -399,10 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const showBuy        = isBuy && !isFiller;
             const probFinal      = Number(s.probability || 0);
             const probRaw        = Number(s.probability_raw);
-            const hasRawDiff     = Number.isFinite(probRaw) && Number.isFinite(probFinal) && Math.abs(probRaw - probFinal) >= 0.05;
-            const scoreLabel     = hasRawDiff
-                ? probFinal.toFixed(1) + '% (' + probRaw.toFixed(1) + ')'
-                : probFinal.toFixed(1) + '%';
+            const scoreLabel     = Number.isFinite(probFinal) ? probFinal.toFixed(1) + '%' : '—';
             const fillerTip      = 'Pengisi Top 10 — keyakinan model rendah, bukan sinyal beli';
             const sentStatus     = normSent(s.sentiment_status);
             const sentImpact     = normSent(s.sentiment_impact);
@@ -411,29 +592,37 @@ document.addEventListener('DOMContentLoaded', () => {
             const tpPct = tpPctOf(s);
             const slPct = slPctOf(s);
             const tickShort = safeId(s.ticker);
-            const card = document.createElement('div');
+            const card = document.createElement('article');
             card.className = 'detail-card';
+            card.id = `card-${tickShort}`;
             card.setAttribute('role', 'listitem');
             card.setAttribute('aria-label', `Saham ${tickShort}, skor kuantitatif ${scoreLabel} persen${isFiller ? '. Pengisi Top 10, keyakinan model rendah' : ''}. Sinyal riset, bukan perintah beli atau jual.`);
             card.innerHTML = `
+                <details class="dc-details"${idx < 3 ? ' open' : ''}>
+                    <summary class="dc-summary">
+                        <span class="dc-sum-ticker">${esc(tickShort)}</span>
+                        <span class="dc-sum-score">${scoreHtml(probFinal, probRaw)}</span>
+                        <span class="sig-pill sig-pill--sm ${showBuy ? 'buy' : 'watch'}">${showBuy ? 'SINYAL RISET' : 'PANTAU'}</span>
+                    </summary>
+                    <div class="dc-body">
                 <div class="dc-head">
                     <div>
                         <div class="dc-ticker">${esc(tickShort)}</div>
-                        <span class="dc-code">${esc(s.ticker)}</span>${isFiller ? `<br><span class="badge neutral-sent" title="${fillerTip}">Pengisi</span>` : ''}
+                        <span class="dc-code">${esc(s.ticker)}</span>${isFiller ? `<br><span class="badge filler" title="${fillerTip}">Pengisi, keyakinan rendah</span>` : ''}
                     </div>
                     <div>
-                        <div class="dc-score"${hasRawDiff ? ` title="Skor mentah model: ${probRaw.toFixed(1)}"` : ''}>${scoreLabel}</div>
-                        <div class="dc-score-lbl">Quant Score</div>
+                        <div class="dc-score">${scoreHtml(probFinal, probRaw)}</div>
+                        <div class="dc-score-lbl">Skor keyakinan <button type="button" class="btn-gloss" data-gloss aria-label="Buka glosarium skor keyakinan">?</button></div>
                     </div>
                 </div>
 
                 <div class="dc-prices">
                     <div class="dc-price-col">
-                        <div class="dc-plbl">Price</div>
+                        <div class="dc-plbl">Harga</div>
                         <div class="dc-pval primary">${s.close_price > 0 ? idr(s.close_price) : '—'}</div>
                     </div>
                     <div class="dc-price-col">
-                        <div class="dc-plbl">Target Profit</div>
+                        <div class="dc-plbl">Target model</div>
                         <div class="dc-pval green">${s.target_price > 0 ? idr(s.target_price) : '—'} <span class="dc-pct">(+${tpPct}%)</span></div>
                     </div>
                     <div class="dc-price-col">
@@ -442,13 +631,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 </div>
 
-                <div id="chart-${esc(tickShort)}" class="mini-chart-container" role="img" aria-label="Grafik mini ${esc(tickShort)} 60 hari. Sinyal ${showBuy ? 'riset beli' : 'pantau'}${isFiller ? ', pengisi Top 10 keyakinan rendah' : ''}, tren ${esc(s.trend || 'tidak diketahui')}, skor ${scoreLabel} persen."></div>
+                <div id="chart-${esc(tickShort)}" class="mini-chart-container" role="img" aria-label="Grafik mini ${esc(tickShort)} 60 hari. Sinyal ${showBuy ? 'riset' : 'pantau'}${isFiller ? ', pengisi Top 10 keyakinan rendah' : ''}, tren ${esc(s.trend || 'tidak diketahui')}, skor ${scoreLabel} persen."></div>
                 <p class="legal-microcopy" style="margin:4px 0 8px">Sinyal riset — bukan perintah beli/jual. Saham berisiko rugi. DYOR.</p>
 
                 <div class="dc-quant-metrics">
                     ${s.sector ? `<span class="qm-tag"><span class="qm-lbl">Sektor:</span> <strong>${esc(s.sector)}</strong>${s.is_leading_sector ? ' <span class="qm-leading">· Leading</span>' : ''}</span>` : ''}
-                    <span class="qm-tag"><span class="qm-lbl">Risk/Reward model:</span> <strong>1:${esc(s.risk_reward_ratio || '2.0')}</strong></span>
-                    <span class="qm-tag"><span class="qm-lbl">Alokasi model generik:</span> <strong style="color:var(--c-green);">${esc(s.kelly_allocation || '10')}% (bukan saran portofolio personal)</strong></span>
+                    <span class="qm-tag"><span class="qm-lbl">Rasio Risk/Reward (asumsi):</span> <strong>1:${esc(s.risk_reward_ratio || '2.0')}</strong></span>
+                    <span class="qm-tag"><span class="qm-lbl">Bobot simulasi (bukan saran dana):</span> <strong style="color:var(--c-green);">${esc(s.kelly_allocation || '10')}% (bukan saran portofolio personal)</strong></span>
                 </div>
 
                 <div class="dc-badges">
@@ -462,7 +651,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="sig-pill sig-pill--sm ${showBuy ? 'buy' : 'watch'}" title="${isFiller ? fillerTip : (showBuy ? 'Sinyal riset — bukan perintah beli' : 'Pantau — bukan perintah jual/beli')}">
                         <span class="sig-dot ${showBuy ? 'green' : 'blue'}" aria-hidden="true"></span>
                         ${showBuy ? 'SINYAL RISET' : 'PANTAU'}
-                    </span>${isFiller ? `<span class="badge neutral-sent" title="${fillerTip}">Pengisi</span>` : ''}
+                    </span>${isFiller ? `<span class="badge filler" title="${fillerTip}">Pengisi, keyakinan rendah</span>` : ''}
                     <button class="agent-toggle-btn" id="btn-ma-${esc(tickShort)}" aria-expanded="false" aria-controls="ma-box-${esc(tickShort)}">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
                         Multi-Agent
@@ -472,18 +661,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div id="ma-box-${esc(tickShort)}" class="multi-agent-card hidden"></div>
 
                 <div class="dc-reason">
-                    <span class="dc-reason-lbl">Quantitative Analysis (Technicals &amp; News)</span>
+                    <span class="dc-reason-lbl">Analisis Kuantitatif (Teknikal &amp; Berita)</span>
                     <div id="narasi-${esc(tickShort)}">
-                        <div class="ai-loading">Analyzing technicals &amp; sentiment data...</div>
+                        <div class="ai-loading">Menganalisis data teknikal &amp; sentimen...</div>
                     </div>
                 </div>
+                <div class="dc-actions">
+                    <button type="button" class="btn-copy-watch" data-copy-watch aria-label="Salin watchlist ${esc(tickShort)}">Salin Watchlist</button>
+                    <button type="button" class="btn-sizing" data-open-sizing aria-label="Hitung sizing ${esc(tickShort)}">Hitung Sizing</button>
+                </div>
+                    </div>
+                </details>
             `;
 
             cardsGrid.appendChild(card);
-            fetchNarrative(s, card);
+            const det = card.querySelector('details.dc-details');
+            const copyBtn = card.querySelector('[data-copy-watch]');
+            if (copyBtn) copyBtn.addEventListener('click', () => copyWatchlist(s));
+            const sizeBtn = card.querySelector('[data-open-sizing]');
+            if (sizeBtn) sizeBtn.addEventListener('click', () => openSizingModal(s));
+            const glossBtn = card.querySelector('[data-gloss]');
+            if (glossBtn) glossBtn.addEventListener('click', (ev) => {
+                ev.preventDefault(); ev.stopPropagation();
+                const g = document.querySelector('details.glossary');
+                if (g) { g.open = true; try { g.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) { g.scrollIntoView(); } }
+            });
             setupMultiAgentToggle(s, card);
+            if (det) {
+                det.addEventListener('toggle', () => { if (det.open) ensureCardLazy(s, card, det); });
+                if (det.open) ensureCardLazy(s, card, det);
+            }
         });
     }
+    // Dipakai tombol Detail tabel (fallback bila kartu belum ter-render).
+    window.openCardDetail = function(tickShort) {
+        const card = document.getElementById(`card-${tickShort}`);
+        if (!card) return;
+        const det = card.querySelector('details.dc-details');
+        if (det && !det.open) det.open = true;
+        try {
+            card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const sum = card.querySelector('summary.dc-summary');
+            if (sum) sum.focus({ preventScroll: true });
+        } catch (_) { card.scrollIntoView(); }
+    };
 
     // Charting Logic
     async function fetchChartData(ticker, days = 60) {
@@ -517,8 +738,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const rangeSelect = document.getElementById('ihsg-range-select');
         if (rangeSelect) rangeSelect.value = String(days);
         if (ihsgDesc) ihsgDesc.textContent = days === 1
-            ? "Today's price movement (5-min interval)"
-            : 'Overall market trend over the past 60 days';
+            ? 'Pergerakan hari ini (interval 5 mnt)'
+            : 'Tren pasar 60 hari terakhir';
 
         if (typeof LightweightCharts === 'undefined') {
             ihsgPriceVal.textContent = 'Error: Library not loaded';
@@ -679,7 +900,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Narasi adalah teks polos -> pakai textContent (anti-XSS).
         // Backend sudah html.escape; textContent menampilkan aman apa adanya.
-        const fallbackText = `Saham ${cleanTicker} menunjukkan momentum positif dengan RSI ${s.rsi} (${s.rsi_signal}) dan indikator MACD ${s.macd_signal} pada tren ${s.trend}.`;
+        const fallbackText = `Saham ${cleanTicker} menunjukkan momentum teknikal dengan RSI ${s.rsi} (${s.rsi_signal}) dan MACD ${s.macd_signal} pada tren ${s.trend}. Sinyal riset, bukan perintah beli/jual.`;
 
         try {
             const res = await apiFetch('/api/narasi', {
@@ -712,75 +933,78 @@ document.addEventListener('DOMContentLoaded', () => {
         container.textContent = fallbackText;
     }
 
+    function loadMultiAgent(s, card) {
+        const cleanTicker = safeId(s.ticker);
+        const box = card.querySelector(`#ma-box-${CSS.escape(cleanTicker)}`);
+        if (!box || box.dataset.maLoaded) return Promise.resolve();
+        box.dataset.maLoaded = '1';
+        box.classList.remove('hidden');
+        const btn = card.querySelector(`#btn-ma-${CSS.escape(cleanTicker)}`);
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        box.innerHTML = '<div class="ai-loading">Memproses analisis 4 agen (Teknikal, Sentimen, Debat Bull/Bear, Manajer Risiko)...</div>';
+        return apiFetch('/api/narasi/multi-agent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ticker: s.ticker,
+                close_price: s.close_price,
+                target_price: s.target_price,
+                stop_loss: s.stop_loss,
+                rsi: s.rsi,
+                macd_signal: s.macd_signal,
+                trend: s.trend,
+                probability: s.probability,
+                sentiment_status: normSent(s.sentiment_status),
+                sentiment_impact: normSent(s.sentiment_impact)
+            })
+        }).then(async (res) => {
+            const json = await res.json();
+            if (res.ok && json.status === 'success' && json.data) {
+                const d = json.data;
+                const isBuyVerdict = (d.risk_verdict || '').includes('BELI') || (d.risk_verdict || '').includes('BUY');
+                const verdictBadgeClass = isBuyVerdict ? 'pill-verdict-buy' : 'pill-verdict-watch';
+
+                // Defense-in-depth: esc() semua string eksternal walau backend sudah sanitize.
+                box.innerHTML = `
+                    <div class="ma-header">
+                        <div class="ma-title">Multi-Agent Framework Consensus</div>
+                        <span class="risk-pill ${verdictBadgeClass}">${esc(d.risk_verdict)}</span>
+                    </div>
+                    <div class="ma-subcard bull">
+                        <div class="ma-card-label label-bull">Bull Case (Buyer Analysis)</div>
+                        <div>${esc(d.bull_case)}</div>
+                    </div>
+                    <div class="ma-subcard bear">
+                        <div class="ma-card-label label-bear">Bear Case (Seller Caution)</div>
+                        <div>${esc(d.bear_case)}</div>
+                    </div>
+                    <div class="ma-subcard risk">
+                        <div class="ma-card-label label-risk">Risk Manager Verdict</div>
+                        <div class="ma-rr-row">
+                            <span>Rasio Risk/Reward (asumsi):</span>
+                            <span class="risk-pill pill-rr">${esc(d.risk_reward_ratio)}x R:R</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                box.textContent = `Gagal memuat konsensus agen: ${json.detail || 'Error'}`;
+            }
+        }).catch((err) => {
+            box.textContent = `Error: ${err.message}`;
+        });
+    }
+
     function setupMultiAgentToggle(s, card) {
         const cleanTicker = safeId(s.ticker);
         const btn = card.querySelector(`#btn-ma-${CSS.escape(cleanTicker)}`);
         const box = card.querySelector(`#ma-box-${CSS.escape(cleanTicker)}`);
         if (!btn || !box) return;
 
-        let loaded = false;
-
         btn.addEventListener('click', async () => {
             if (box.classList.contains('hidden')) {
                 box.classList.remove('hidden');
                 btn.setAttribute('aria-expanded', 'true');
-                if (!loaded) {
-                    box.innerHTML = '<div class="ai-loading">Processing 4-Agent Analysis (Technical, Sentiment, Bull/Bear Debate, Risk Manager)...</div>';
-                    try {
-                        const res = await apiFetch('/api/narasi/multi-agent', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                ticker: s.ticker,
-                                close_price: s.close_price,
-                                target_price: s.target_price,
-                                stop_loss: s.stop_loss,
-                                rsi: s.rsi,
-                                macd_signal: s.macd_signal,
-                                trend: s.trend,
-                                probability: s.probability,
-                                sentiment_status: normSent(s.sentiment_status),
-                                sentiment_impact: normSent(s.sentiment_impact)
-                            })
-                        });
-                        const json = await res.json();
-                        if (res.ok && json.status === 'success' && json.data) {
-                            const d = json.data;
-                            const isBuyVerdict = (d.risk_verdict || '').includes('BELI') || (d.risk_verdict || '').includes('BUY');
-                            const verdictBadgeClass = isBuyVerdict ? 'pill-verdict-buy' : 'pill-verdict-watch';
-
-                            // Defense-in-depth: esc() semua string eksternal walau backend sudah sanitize.
-                            box.innerHTML = `
-                                <div class="ma-header">
-                                    <div class="ma-title">Multi-Agent Framework Consensus</div>
-                                    <span class="risk-pill ${verdictBadgeClass}">${esc(d.risk_verdict)}</span>
-                                </div>
-                                <div class="ma-subcard bull">
-                                    <div class="ma-card-label label-bull">Bull Case (Buyer Analysis)</div>
-                                    <div>${esc(d.bull_case)}</div>
-                                </div>
-                                <div class="ma-subcard bear">
-                                    <div class="ma-card-label label-bear">Bear Case (Seller Caution)</div>
-                                    <div>${esc(d.bear_case)}</div>
-                                </div>
-                                <div class="ma-subcard risk">
-                                    <div class="ma-card-label label-risk">Risk Manager Verdict</div>
-                                    <div class="ma-rr-row">
-                                        <span>Target Risk/Reward Ratio:</span>
-                                        <span class="risk-pill pill-rr">${esc(d.risk_reward_ratio)}x R:R</span>
-                                    </div>
-                                </div>
-                            `;
-
-                            loaded = true;
-                        } else {
-                            box.textContent = `Failed to load agent consensus: ${json.detail || 'Error'}`;
-                        }
-                    } catch (err) {
-                        box.textContent = `Error: ${err.message}`;
-                    }
-
-                }
+                if (!box.dataset.maLoaded) await loadMultiAgent(s, card);
             } else {
                 box.classList.add('hidden');
                 btn.setAttribute('aria-expanded', 'false');
@@ -794,8 +1018,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let isMonthlyExpanded = false;
         let allAuditData = [];
         let isAuditExpanded = false;
-        // Filter tabel audit: default = scan 30 hari terakhir.
-        let auditSourceFilter = 'scan';
+        // Filter tabel audit: default = semua sumber, 30 hari terakhir.
+        let auditSourceFilter = 'all';
         let auditRangeFilter = '30';
         let auditTickerFilter = '';
 
@@ -902,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hasScanResults = tableBody && tableBody.children.length > 0;
                 if (resultsDiv) resultsDiv.classList.toggle('hidden', !hasScanResults);
                 if (emptyState) emptyState.classList.toggle('hidden', hasScanResults);
-                if (auditSec) auditSec.style.display = 'none';
+                if (auditSec) auditSec.classList.add('hidden');
                 if (btnRecom && btnAudit) setActive(btnRecom, btnAudit);
                 try {
                     sessionStorage.setItem('aksa-main-tab', 'recom');
@@ -912,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (tabName === 'audit') {
                 if (resultsDiv) resultsDiv.classList.add('hidden');
                 if (emptyState) emptyState.classList.add('hidden');
-                if (auditSec) auditSec.style.display = 'block';
+                if (auditSec) auditSec.classList.remove('hidden');
                 // Chart equity dibuat saat panel tersembunyi (clientWidth 0) → resize ulang setelah layout tersedia.
                 try {
                     const eqChart = document.getElementById('audit-equity-chart');
@@ -982,19 +1206,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const keys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
             if (!keys.includes(e.key)) return;
             e.preventDefault();
-            const onAudit = document.activeElement && document.activeElement.id === 'tab-btn-audit';
-            let next;
-            if (e.key === 'ArrowRight') next = 'recom';
-            else if (e.key === 'ArrowLeft') next = 'audit';
+            // Roving: Rekomendasi <-> Simulasi; fokus ikut pindah.
+            let next = null;
+            if (e.key === 'ArrowRight') next = 'audit';
+            else if (e.key === 'ArrowLeft') next = 'recom';
             else if (e.key === 'Home') next = 'recom';
-            else next = 'audit';
-            if ((next === 'recom' && !onAudit && (e.key === 'ArrowRight' || e.key === 'Home')) ||
-                (next === 'audit' && onAudit && (e.key === 'ArrowLeft' || e.key === 'End'))) {
-                // Sudah di tab tujuan; tetap pastikan state sinkron tanpa pindah fokus.
-                window.switchMainTab(next, { focus: false });
-                return;
-            }
-            window.switchMainTab(next);
+            else if (e.key === 'End') next = 'audit';
+            window.switchMainTab(next, { scroll: false });
             const btn = document.getElementById(next === 'recom' ? 'tab-btn-recom' : 'tab-btn-audit');
             if (btn) btn.focus();
         };
@@ -1036,7 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     body.innerHTML = `
                         <tr>
                             <td colspan="7" class="table-empty">
-                                No signal history in database. Click <strong>Run 6-Month Performance Simulation</strong> to test.
+                                Belum ada riwayat sinyal di database. Klik <strong>Jalankan Simulasi 6 Bulan (Lab)</strong> untuk menguji.
                             </td>
                         </tr>
                     `;
@@ -1045,7 +1263,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body.innerHTML = `
                     <tr>
                         <td colspan="7" class="table-empty table-empty--err">
-                            Failed to load track record: ${err.message}
+                            Gagal memuat rekam jejak: ${err.message}
                         </td>
                     </tr>
                 `;
@@ -1100,21 +1318,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isFillerAudit = s.is_high_conviction === false;
                 const probFinalAudit = Number(s.probability);
                 const probRawAudit = Number(s.probability_raw);
-                const hasRawDiffAudit = Number.isFinite(probRawAudit) && Number.isFinite(probFinalAudit) && Math.abs(probRawAudit - probFinalAudit) >= 0.05;
-                const scoreLabelAudit = Number.isFinite(probFinalAudit)
-                    ? (hasRawDiffAudit ? probFinalAudit.toFixed(1) + '% (' + probRawAudit.toFixed(1) + ')' : probFinalAudit.toFixed(1) + '%')
-                    : '—';
                 const statusKey = String(s.status || 'PENDING').toUpperCase();
                 const badge = statusKey === 'WIN' ? `<span class="badge bullish">SIM-WIN ${retSign}${retVal.toFixed(1)}%</span>` :
                               (statusKey === 'LOSS' ? `<span class="badge bearish">SIM-LOSS ${retVal.toFixed(1)}%</span>` : `<span class="badge neutral-sent">SIM-PENDING</span>`);
+                const srcKey = String(s.source || 'scan').toLowerCase() === 'seed' ? 'seed' : 'scan';
+                const srcChip = srcKey === 'seed'
+                    ? '<br><span class="badge src-seed">Seed backtest</span>'
+                    : '<br><span class="badge src-scan">Scan harian</span>';
 
                 row.innerHTML = `
-                    <td>${s.trading_date || (s.updated_at || s.created_at).split(' ')[0]}</td>
+                    <td>${s.trading_date || (s.updated_at || s.created_at).split(' ')[0]}${srcChip}</td>
                     <td class="td-ticker-cell">${s.ticker}</td>
                     <td>${fmtPrice(s.entry_price)}</td>
                     <td class="td-win">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
                     <td class="td-loss">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
-                    <td${hasRawDiffAudit ? ` title="Skor mentah model: ${probRawAudit.toFixed(1)}"` : ''}>${scoreLabelAudit}${isFillerAudit ? ' <span class="badge neutral-sent" title="Pengisi Top 10 — keyakinan model rendah, bukan sinyal beli">Pengisi</span>' : ''}</td>
+                    <td>${scoreHtml(probFinalAudit, probRawAudit)}${isFillerAudit ? ' <span class="badge filler" title="Pengisi Top 10 — keyakinan model rendah, bukan sinyal beli">Pengisi, keyakinan rendah</span>' : ''}</td>
                     <td>${badge}</td>
                 `;
                 body.appendChild(row);
@@ -1220,7 +1438,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 monthlyBody.innerHTML = `
                     <tr>
                         <td colspan="6" class="table-empty">
-                            No monthly recap data available yet.
+                            Belum ada data rekap bulanan.
                         </td>
                     </tr>
                 `;
@@ -1272,10 +1490,11 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         window.runAuditSimulationSeed = async function() {
+            if (!window.confirm('Seed menulis data simulasi bervolume besar ke database audit dan terpisah dari data live. Lanjut?')) return;
             const btn = document.getElementById('seed-sim-btn');
             if (btn) {
                 btn.disabled = true;
-                btn.textContent = 'Generating simulation...';
+                btn.textContent = 'Membuat simulasi...';
             }
 
             try {
@@ -1284,14 +1503,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.ok && data.status === 'success') {
                     await runAuditAndLoad();
                 } else {
-                    showError('Failed to generate simulation: ' + (data.message || data.detail || 'Error'));
+                    showError('Gagal membuat simulasi: ' + (data.message || data.detail || 'Error'));
                 }
             } catch (err) {
-                showError('Simulation error: ' + err.message);
+                showError('Error simulasi: ' + err.message);
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Run 6-Month Performance Simulation`;
+                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Jalankan Simulasi 6 Bulan (Lab)`;
                 }
             }
         };
