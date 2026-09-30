@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -61,6 +61,8 @@
             </svg>
             <span>AKSA<span class="accent">.</span></span>
         </a>
+        <span id="session-pill" class="session-pill" aria-live="polite"></span>
+        <span id="data-freshness" class="freshness-badge" aria-live="polite"></span>
         <span id="last-scan-time" class="last-scan" aria-live="polite"></span>
     </div>
 </nav>
@@ -73,7 +75,7 @@
         <div class="hero-left">
             <div class="hero-eyebrow">
                 <span class="pulse-dot" aria-hidden="true"></span>
-                Live Market Analysis
+                Analisis Pasar, BEI
             </div>
             <h1 class="hero-title" id="hero-heading">
                 Discover Top Stocks<br><span class="hero-title-connector">with</span><br><span class="hero-accent">Quantitative Precision</span>
@@ -92,7 +94,7 @@
             <p class="legal-microcopy" style="margin:8px 0 12px">Target model statistik. Bukan jaminan profit. Saham berisiko rugi.</p>
             <button id="scan-btn" class="btn-scan" aria-label="Scan market and get stock recommendations">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                Scan Market Now
+                Pindai Pasar Sekarang
             </button>
         </div>
 
@@ -114,7 +116,7 @@
                     </div>
                 </div>
                 <div class="hisg-desc-wrap">
-                    <p id="ihsg-desc" class="hisg-sub">Scan market to view chart</p>
+                    <p id="ihsg-desc" class="hisg-sub">Pindai pasar untuk melihat grafik</p>
                     <div class="chart-legend" aria-label="Legenda chart IHSG">
                         <span><span class="lg-swatch" style="background:#0051C3"></span>Harga IHSG (area)</span>
                         <span><span class="lg-swatch" style="background:#DE5052"></span>Zona koreksi / tren turun</span>
@@ -234,22 +236,33 @@
         <p id="sample-data-tag" class="legal-microcopy hidden" style="margin:0 0 16px;font-weight:700" role="status"></p>
 
         <!-- Table -->
+        <details class="glossary">
+            <summary>Glosarium istilah <span class="legal-microcopy">(klik untuk buka)</span></summary>
+            <dl>
+                <div><dt>Skor keyakinan</dt><dd>Probabilitas akhir model setelah penyesuaian sentimen; makin tinggi makin layak dipantau.</dd></div>
+                <div><dt>Skor mentah</dt><dd>Output model murni sebelum penyesuaian sentimen; pembanding skor keyakinan.</dd></div>
+                <div><dt>RVOL</dt><dd>Volume relatif vs rata-rata; di atas 1,2x berarti minat beli/jual di atas normal.</dd></div>
+                <div><dt>ADX</dt><dd>Kekuatan tren 0–100; di atas 25 berarti tren cukup kuat untuk diikuti.</dd></div>
+                <div><dt>RSI</dt><dd>Momentum 0–100; di bawah 40 jenuh jual (pantau pantulan), di atas 65 jenuh beli (waspada koreksi).</dd></div>
+                <div><dt>MACD</dt><dd>Sinyal momentum tren; BULLISH berarti momentum menguat, BEARISH berarti melemah.</dd></div>
+                <div><dt>Bobot simulasi</dt><dd>Porsi simulasi generik per ticker, bukan saran alokasi dana pribadi.</dd></div>
+                <div><dt>SIM-WIN / SIM-LOSS / SIM-PENDING</dt><dd>Status hasil simulasi: target model tercapai, stop loss tersentuh, atau masih berjalan.</dd></div>
+                <div><dt>Sesi BEI</dt><dd>Jam dagang Bursa Indonesia: Sesi 1 pukul 09.00–12.00, Sesi 2 pukul 14.00–15.30 WIB.</dd></div>
+            </dl>
+        </details>
         <div class="table-card glass-card">
             <div class="table-scroll" role="region" aria-label="Stock recommendation table" tabindex="0">
                 <table class="stock-table" aria-label="Top 10 kandidat hasil skrining kuantitatif">
                     <thead>
                         <tr>
                             <th scope="col">#</th>
-                            <th scope="col">Stock</th>
-                            <th scope="col">Price</th>
+                            <th scope="col">Saham</th>
+                            <th scope="col">Harga</th>
                             <th scope="col">Target Model</th>
                             <th scope="col">Stop Loss</th>
-                            <th scope="col">RSI (14)</th>
-                            <th scope="col">MACD</th>
-                            <th scope="col">Trend</th>
-                            <th scope="col">Sentiment</th>
-                            <th scope="col">Quant Score</th>
-                            <th scope="col">Signal</th>
+                            <th scope="col">Skor</th>
+                            <th scope="col">Sinyal</th>
+                            <th scope="col">Detail</th>
                         </tr>
                     </thead>
                     <tbody id="table-body"></tbody>
@@ -275,10 +288,13 @@
                 <h3>Simulasi Backtest &amp; Rekap Kumulatif</h3>
                 <p>Statistik harian, grafik equity curve simulasi, dan rekap bulanan</p>
             </div>
-            <button id="seed-sim-btn" class="btn-scan btn-ghost" onclick="runAuditSimulationSeed()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                Run 6-Month Performance Simulation
-            </button>
+            <div class="lab-sim" aria-label="Lab Simulasi — terpisah dari data live">
+                <p class="legal-microcopy" style="margin:0 0 8px"><strong>Lab Simulasi — terpisah dari data live.</strong> Tombol di bawah menulis data simulasi bervolume besar ke database audit.</p>
+                <button id="seed-sim-btn" class="btn-scan btn-ghost" onclick="runAuditSimulationSeed()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+                    Jalankan Simulasi 6 Bulan (Lab)
+                </button>
+            </div>
         </div>
 
         <!-- Audit Summary Cards -->
@@ -339,7 +355,7 @@
                     <tbody id="monthly-recap-body">
                         <tr>
                             <td colspan="6" class="table-empty">
-                                Loading monthly recap...
+                                Memuat rekap bulanan...
                             </td>
                         </tr>
                     </tbody>
@@ -360,8 +376,8 @@
         <div class="audit-filters" role="group" aria-label="Filter tabel audit">
             <label class="audit-filter">Sumber
                 <select id="audit-source-filter" aria-label="Filter sumber sinyal">
-                    <option value="all">Semua</option>
-                    <option value="scan" selected>Scan harian</option>
+                    <option value="all" selected>Semua</option>
+                    <option value="scan">Scan harian</option>
                     <option value="seed">Seed backtest</option>
                 </select>
             </label>
@@ -388,14 +404,14 @@
                             <th scope="col">Entry Price</th>
                             <th scope="col">Target Model (sim)</th>
                             <th scope="col">Stop Loss</th>
-                            <th scope="col">Quant Score</th>
+                            <th scope="col">Skor</th>
                             <th scope="col">Audit Status</th>
                         </tr>
                     </thead>
                     <tbody id="audit-table-body">
                         <tr>
                             <td colspan="7" class="table-empty">
-                                Loading track record data...
+                                Memuat data rekam jejak...
                             </td>
                         </tr>
                     </tbody>
@@ -426,6 +442,28 @@
 <footer class="footer" role="contentinfo">
     <p class="footer-note">Riset kuantitatif untuk edukasi — bukan nasihat investasi. Saham berisiko rugi. Keputusan &amp; risiko milik Anda (DYOR).</p>
 </footer>
+
+<!-- Sizing modal -->
+<div id="sizing-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="sizing-title">
+    <div class="modal-box glass-card" role="document">
+        <div class="modal-backdrop" data-close-sizing aria-hidden="true"></div>
+        <h3 id="sizing-title">Hitung Sizing Posisi (simulasi)</h3>
+        <p class="legal-microcopy" style="margin:0 0 12px">Ticker <strong id="sizing-ticker">—</strong> · Entry <span id="sizing-entry">—</span> · SL <span id="sizing-sl">—</span></p>
+        <label class="audit-filter">Modal (Rp)
+            <input type="number" id="sizing-modal-input" min="0" step="10000" value="10000000" inputmode="numeric">
+        </label>
+        <label class="audit-filter">Risiko per transaksi (%)
+            <input type="number" id="sizing-risk-input" min="0.1" max="100" step="0.1" value="1" inputmode="decimal">
+        </label>
+        <p id="sizing-result" class="legal-microcopy" aria-live="polite"></p>
+        <p class="legal-microcopy" style="margin:0 0 12px">Hasil ini simulasi ukuran posisi, bukan saran beli/jual. Saham berisiko rugi.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" id="sizing-close" class="btn-scan btn-ghost" style="min-height:44px">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast" class="hidden" role="status" aria-live="polite"></div>
 
 <script src="js/app.js?v=27"></script>
 <script>
