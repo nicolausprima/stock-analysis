@@ -303,17 +303,35 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     hc_tickers = set(high_conviction['Ticker'].tolist())
 
     from src.agents.ihsg_macro_agent import get_ticker_sector
+    from src.collector.commodity_cues import get_ticker_commodity_boost
+    from src.features.conformal_gate import evaluate_conformal_candidate
+    from src.guards.ppk_fca_guard import evaluate_ticker_hazard
+
     leading_sectors = macro_eval.get("sector_rotation", {}).get("leading_sectors", [])
+    commodity_cues = macro_eval.get("commodity_cues", {})
 
     candidates = []
     for _, row in candidate_df.iterrows():
+        # 1. PPK & Full Call Auction (FCA) Hazard Guard
+        hazard_check = evaluate_ticker_hazard(row['Ticker'])
+        if hazard_check.get("is_blocked"):
+            print(f"[GUARD] Veto saham FCA/PPK {row['Ticker']}: {','.join(hazard_check.get('reasons', []))}")
+            continue
+
         signals = derive_signals(row)
         sec = get_ticker_sector(row['Ticker'])
         is_leading = sec in leading_sectors
         # Prob mentah model (pra-booster) disimpan terpisah untuk audit jujur.
         raw_model_prob = round(float(row['Probability']), 1)
-        # Sektor Booster: +2.0% probabilitas jika saham berada di sektor leading inflow
-        boosted_prob = min(98.5, raw_model_prob + (2.0 if is_leading else 0.0))
+
+        # 2. Sektor Booster (+2.0% jika saham di sektor inflow)
+        sector_boost = 2.0 if is_leading else 0.0
+
+        # 3. Commodity Transmission Booster (+/- % dari pasar global)
+        comm_boost = get_ticker_commodity_boost(row['Ticker'], commodity_cues)
+
+        boosted_prob = min(98.5, max(10.0, raw_model_prob + sector_boost + comm_boost))
+
         # Tandai apakah kandidat ini lolos high-conviction model murni
         # (Signal==1 & prob>=ambang) atau hanya pengisi fallback Top 10.
         is_hc = bool(row['Ticker'] in hc_tickers)
@@ -323,10 +341,12 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         adj_kelly = round(base_kelly * 0.5, 1) if is_block_mode else base_kelly
 
         base_reason = generate_reason(row)
+        if comm_boost > 0:
+            base_reason = f"[KOMODITAS GLOBAL +{comm_boost:.1f}%] {base_reason}"
         if is_block_mode:
             base_reason = f"[DEFENSIVE] IHSG Downtrend. High-conviction setup only. {base_reason}"
 
-        candidates.append({
+        cand = {
             "ticker": row['Ticker'],
             "sector": sec,
             "is_leading_sector": is_leading,
@@ -346,7 +366,11 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
             "risk_reward_ratio": signals.get('risk_reward_ratio', 2.0),
             "kelly_allocation": adj_kelly,
             "reason": base_reason
-        })
+        }
+
+        # 4. Conformal Prediction Uncertainty Evaluation
+        cand = evaluate_conformal_candidate(cand)
+        candidates.append(cand)
 
     # 3. Jalankan audit sinyal trading hari ini (SEBELUM membuat/menyimpan sinyal esok hari)
     today_audit = {}

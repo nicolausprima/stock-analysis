@@ -34,7 +34,7 @@ Nama AKSA — Analisis Kuantitatif Saham · Autonomous IDX Screener. Voice Indon
 
 ## Evidence on Hand
 
-Kode: `dashboard/backend/main.py`, `dashboard/frontend/dashboard.html`, `src/screener.py`, `src/agents/multi_agent_v2.py`, `src/explainability/shap_explainer.py`, `src/backtest/vectorized_backtest.py`. Dokumen: `README.md`, `AUDIT_REPORT_2026-09-22.md`, `VERIFICATION_REPORT_2026-09-23.md`, `SCHEDULER_REVIEW.md`, `ML_PIPELINE_ROBUSTNESS_REVIEW.md`. Data: `data/latest_recommendations.json` (cache), SQLite audit store. Absen: tidak ada testimoni, pelanggan, benchmark independen, pricing; jangan fabrikasi.
+Kode: `dashboard/backend/main.py`, `dashboard/frontend/dashboard.html`, `src/screener.py`, `src/agents/multi_agent_v2.py`, `src/explainability/shap_explainer.py`, `src/backtest/vectorized_backtest.py`. Dokumen: `README.md`, `docs/reports/AUDIT_REPORT_2026-09-22.md`, `docs/reports/VERIFICATION_REPORT_2026-09-23.md`, `docs/reports/SCHEDULER_REVIEW.md`, `docs/reports/ML_PIPELINE_ROBUSTNESS_REVIEW.md`. Data: `data/latest_recommendations.json` (cache), SQLite audit store. Absen: tidak ada testimoni, pelanggan, benchmark independen, pricing; jangan fabrikasi.
 
 ## Product Principles
 
