@@ -25,7 +25,7 @@ import os
 import re
 import subprocess
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -70,7 +70,7 @@ def _clean_text(text: str) -> str:
 
 def get_wib_now() -> datetime:
     """Mengembalikan datetime saat ini dalam WIB (UTC+7)."""
-    return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7)))
+    return datetime.now(UTC).astimezone(timezone(timedelta(hours=7)))
 
 # Format ticker BEI tanpa suffix: 1-6 huruf/angka (konsisten dengan backend)
 CLI_TICKER_RE = re.compile(r"^[A-Z0-9]{1,6}$")

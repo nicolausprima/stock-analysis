@@ -3,7 +3,7 @@ import os
 import sys
 import threading
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import joblib
@@ -15,7 +15,7 @@ from dashboard.backend.yf_client import download_with_timeout
 
 def _get_wib_now():
     """Mengembalikan datetime saat ini dalam WIB (UTC+7) yang akurat di mana pun server di-deploy."""
-    return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7)))
+    return datetime.now(UTC).astimezone(timezone(timedelta(hours=7)))
 
 
 _ROTATION_PENALTY_PER_HIT = 5.0

@@ -3,7 +3,7 @@ import json
 import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -99,7 +99,7 @@ def _read_cache():
                 return data
             print(f"Cache ditolak: timestamp non-tanggal ({data.get('timestamp')!r})")
             return None
-        age = datetime.now(timezone.utc).astimezone(_WIB) - ts
+        age = datetime.now(UTC).astimezone(_WIB) - ts
         if age > timedelta(hours=24):
             if os.getenv("TESTING") == "true":
                 return data

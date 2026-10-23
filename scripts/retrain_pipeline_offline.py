@@ -15,7 +15,7 @@ Output:
 """
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import joblib
@@ -221,7 +221,7 @@ def main() -> None:
         "test_recall_1": round(float(rep["1"]["recall"]), 4),
         "test_f1_1": round(float(rep["1"]["f1-score"]), 4),
         "test_confusion_matrix": cm,
-        "generated_on": datetime.now(timezone.utc).date().isoformat(),
+        "generated_on": datetime.now(UTC).date().isoformat(),
     }
     (processed / "model_card.json").write_text(json.dumps(card, indent=2), encoding="utf-8")
     (models_dir / "model_card.json").write_text(json.dumps(card, indent=2), encoding="utf-8")

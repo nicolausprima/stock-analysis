@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -12,7 +12,7 @@ from dashboard.backend.yf_client import download_with_timeout
 
 def get_wib_now() -> datetime:
     """Mengembalikan datetime saat ini dalam WIB (Asia/Jakarta, UTC+7) yang akurat di mana pun server di-deploy."""
-    return datetime.now(timezone.utc).astimezone(timezone(timedelta(hours=7)))
+    return datetime.now(UTC).astimezone(timezone(timedelta(hours=7)))
 
 # Konfigurasi path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
