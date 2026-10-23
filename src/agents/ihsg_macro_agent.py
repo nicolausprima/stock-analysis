@@ -211,6 +211,18 @@ class IHSGMacroAgent:
             except Exception as e:
                 logger.warning(f"Failed to evaluate news sentiment: {e}")
 
+        # 6b. Global Commodity Transmission Cues
+        commodity_cues = {"cues": {}, "sector_boosters": {}, "stock_modifiers": {}}
+        try:
+            from src.collector.commodity_cues import get_global_commodity_cues
+            comm_res = get_global_commodity_cues()
+            commodity_cues = comm_res
+            for badge in comm_res.get("summary_badges", []):
+                if "Positive" in badge or "Strong Inflow" in badge or "Correction" in badge:
+                    details.append(f"• Komoditas: {badge}")
+        except Exception as e:
+            logger.warning(f"Failed to evaluate commodity cues: {e}")
+
         # Determine Market Mode
         if score >= 2.0:
             mode = "NORMAL"
@@ -247,5 +259,6 @@ class IHSGMacroAgent:
             "stop_loss_pct": stop_loss_pct,
             "details": details,
             "news_sentiment": news_sentiment,
-            "sector_rotation": sector_rotation
+            "sector_rotation": sector_rotation,
+            "commodity_cues": commodity_cues
         }

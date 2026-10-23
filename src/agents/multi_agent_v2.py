@@ -211,21 +211,44 @@ class RiskManagerAgentV2:
         target = data.get("target_price", 1)
         stop = data.get("stop_loss", 1)
         prob = data.get("probability", 0)
+        ticker = str(data.get("ticker", "")).upper()
+
+        # 1. Cek Proteksi PPK & Full Call Auction (FCA)
+        from src.guards.ppk_fca_guard import evaluate_ticker_hazard
+        hazard = evaluate_ticker_hazard(ticker)
+        if hazard.get("is_blocked"):
+            return {
+                "verdict": "VETO DITOLAK (BAHAYA PPK / FULL CALL AUCTION)",
+                "risk_reward_ratio": 0.0,
+                "max_downside_pct": 100.0,
+                "max_upside_pct": 0.0,
+                "fca_hazard": True,
+                "hazard_reasons": hazard.get("reasons", [])
+            }
+
         reward = max(0, target - close)
         risk = max(1, close - stop)
         rr = reward / risk if risk > 0 else 1.0
         min_prob = 80 if macro_mode == "CAUTIOUS" else 55
+
+        # 2. Cek Conformal Prediction Abstention
+        conf_verdict = data.get("conformal_verdict")
+
         if macro_mode == "BLOCK":
             verdict = "TAHAN POSISI (RISK-OFF / BLOCK)"
+        elif conf_verdict == "ABSTAIN":
+            verdict = "PERTIMBANGKAN WAIT & SEE (CONFORMAL ABSTAIN)"
         elif rr >= 1.5 and prob >= min_prob:
             verdict = "REKOMENDASI BELI (BUY)"
         else:
             verdict = "PERTIMBANGKAN WAIT & SEE"
+
         return {
             "verdict": verdict,
             "risk_reward_ratio": round(rr, 2),
             "max_downside_pct": round(((close - stop) / close * 100), 2) if close > 0 else 0,
-            "max_upside_pct": round(((target - close) / close * 100), 2) if close > 0 else 0
+            "max_upside_pct": round(((target - close) / close * 100), 2) if close > 0 else 0,
+            "fca_hazard": False
         }
 
 

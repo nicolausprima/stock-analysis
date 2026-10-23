@@ -222,27 +222,29 @@ stock-analysis/
 │   └── workflows/
 │       ├── ci.yml                     # GitHub Actions CI test workflow (pytest)
 │       └── daily_scan.yml             # 4-Phase Cron Scheduler Workflow
+├── dags/
+│   └── stock_pipeline_dag.py          # Apache Airflow scheduled pipeline DAG
 ├── dashboard/
 │   ├── backend/
 │   │   ├── main.py                    # FastAPI application entrypoint (Lifespan management)
-│   │   └── routes/
-│   │       ├── audit.py               # Signal Audit Track Record & Performance Engine
-│   │       ├── chart.py               # TradingView Lightweight Charts endpoint (Multi-tier fallback)
-│   │       ├── features.py            # Signal derivation, ATR Dynamic TP/SL, Kelly Sizing, AI Reasons
-│   │       ├── narasi.py              # AI Narrative synthesis layer
-│   │       ├── news_agent.py          # News & Sentiment API
-│   │       ├── predict.py             # Top recommendations API endpoint
-│   │       ├── sentiment_filter.py    # Asymmetric risk filter & sentiment booster
-│   │       └── telegram.py            # Telegram status & health check endpoint
+│   │   ├── rate_limit.py              # In-memory IP rate limiter
+│   │   ├── security.py                # Security headers, CSP & API auth
+│   │   ├── yf_client.py               # Robust Yahoo Finance client with timeouts
+│   │   └── routes/                    # API endpoints (audit, chart, features, narasi, predict, etc.)
 │   └── frontend/
+│       ├── components/ui/             # Frontend UI design system components
 │       ├── css/style.css              # Glassmorphism design system & responsive layout
 │       ├── dashboard.html             # Interactive day trading dashboard
 │       ├── index.html                 # Hero landing page
-│       └── js/app.js                  # Frontend UI logic, TradingView charts & API sync
+│       └── js/                        # Frontend UI logic, TradingView charts & API sync
 ├── data/
 │   ├── stock_market.db                # SQLite database storing 700+ BEI daily prices
 │   ├── signals_audit.db               # SQLite database storing audit signals track record
+│   ├── latest_recommendations.json    # Cached recommendations payload
 │   └── tickers.txt                    # Active BEI stock ticker universe (700+ tickers)
+├── docs/
+│   ├── PRODUCT.md                     # Product philosophy & functional specifications
+│   └── reports/                       # Architecture audits, robustness reviews & verification reports
 ├── models/
 │   ├── best_xgboost_optuna.pkl        # Trained XGBoost classifier
 │   └── standard_scaler.pkl            # Feature scaler
@@ -252,29 +254,28 @@ stock-analysis/
 │   └── 03_Modelling.ipynb             # XGBoost model training & performance evaluation
 ├── scripts/
 │   ├── clean_ticker_universe.py       # Prunes suspended & delisted tickers
-│   ├── train_real_embedding_model.py  # Production training pipeline on 5-year historical data
+│   ├── retrain_pipeline_offline.py    # Offline model retraining pipeline
+│   ├── train_real_embedding_model.py  # Production training pipeline on historical data
 │   └── update_notebooks.py            # Utility to synchronize Jupyter Notebooks with codebase
+├── src/
+│   ├── agents/                        # Autonomous macro & multi-agent consensus system
+│   ├── backtest/                      # Vectorized IDX backtesting engine
+│   ├── collector/                     # Rate-limit safe collectors & OpenBB provider
+│   ├── database/                      # SQLite & DuckDB storage interfaces
+│   ├── explainability/                # SHAP AI TreeExplainer feature importance
+│   ├── features/                      # Technical indicators & feature embeddings
+│   ├── notifications/                 # 4-Phase Telegram broadcaster & interactive listener
+│   ├── scheduler/                     # Daily market scheduler (08:30, 12:00, 15:30, 16:05 WIB)
+│   ├── sentiment/                     # Financial sentiment engine & lexicon analyzer
+│   ├── utils/                         # Path helpers and core utilities
+│   ├── config.py                      # Project configurations & paths
+│   └── screener.py                    # Central quantitative screener pipeline
+├── tests/                             # Pytest automated test suite
 ├── cli.py                             # Interactive CLI launcher wrapper
 ├── main_cli.py                        # Interactive Quant Terminal Shell with slash commands
-├── src/
-│   ├── agents/
-│   │   ├── ihsg_macro_agent.py        # IHSG Macro Intelligence & IDX 11-Sector Rotation Tracker
-│   │   ├── multi_agent_system.py      # 5-Agent Trading Consensus Framework
-│   │   └── news_macro_agent.py        # Economic news RSS feed parser & sentiment analyzer
-│   ├── collector/
-│   │   ├── batch_collector.py         # Rate-limit safe batch downloader (50 tickers/chunk)
-│   │   └── openbb_provider.py         # OpenBB Platform SDK integration layer
-│   ├── database/
-│   │   └── market_db.py               # SQLite market DB interface
-│   ├── features/
-│   │   ├── build_features.py          # Feature pipeline builder
-│   │   ├── embedding.py               # Dense feature embeddings generator (ADX, RVOL, Volume Z)
-│   │   └── technical_indicators.py    # RSI, MACD, BB, ATR, ADX, RVOL, Volume Z indicators
-│   ├── notifications/
-│   │   └── telegram_bot.py            # 4-Phase Telegram broadcaster & interactive polling listener
-│   └── scheduler/
-│       └── daily_scheduler.py         # 4-Phase Background Scheduler (08:30, 12:00, 15:30, 16:05 WIB)
-└── tests/                             # Pytest automated test suite (23/23 passed, 100% CI pass)
+├── Dockerfile                         # Container definition
+├── docker-compose.yml                 # Docker Compose multi-service config
+└── requirements.txt                   # Pinned production dependencies
 ```
 
 ---
