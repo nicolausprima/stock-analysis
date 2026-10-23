@@ -8,7 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><path d='M15.2 3.5L3 28H13V20.5L10.5 20.5L15.2 11.5V3.5Z' fill='%23111111'/><path d='M16.8 3.5V11.5L21.5 20.5L19 20.5V28H29L16.8 3.5Z' fill='%230051C3'/></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
     <script src="js/lightweight-charts.js"></script>
     <link rel="stylesheet" href="css/style.css?v=25">
     <style>
@@ -48,7 +48,7 @@
 <!-- NAVBAR -->
 <nav class="navbar" role="navigation" aria-label="Main navigation">
     <div class="nav-inner">
-        <a href="/" class="logo" aria-label="AKSA Home" style="display: flex; align-items: center; gap: 8px;">
+        <a href="/" class="logo" aria-label="AKSA Home">
             <svg class="aksa-logo-mark" viewBox="0 0 32 32" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <defs>
                     <linearGradient id="aksaCobaltGradDash" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -61,9 +61,11 @@
             </svg>
             <span>AKSA<span class="accent">.</span></span>
         </a>
-        <span id="session-pill" class="session-pill" aria-live="polite"></span>
-        <span id="data-freshness" class="freshness-badge" aria-live="polite"></span>
-        <span id="last-scan-time" class="last-scan" aria-live="polite"></span>
+        <div class="nav-meta">
+            <span id="session-pill" class="session-pill" aria-live="polite"></span>
+            <span id="data-freshness" class="freshness-badge" aria-live="polite"></span>
+            <span id="last-scan-time" class="last-scan" aria-live="polite"></span>
+        </div>
     </div>
 </nav>
 
@@ -445,9 +447,12 @@
 
 <!-- Sizing modal -->
 <div id="sizing-modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="sizing-title">
+    <div class="modal-backdrop" data-close-sizing aria-hidden="true"></div>
     <div class="modal-box glass-card" role="document">
-        <div class="modal-backdrop" data-close-sizing aria-hidden="true"></div>
-        <h3 id="sizing-title">Hitung Sizing Posisi (simulasi)</h3>
+        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <h3 id="sizing-title" style="margin:0;">Hitung Sizing Posisi (simulasi)</h3>
+            <button type="button" class="modal-close-btn" data-close-sizing aria-label="Tutup modal" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--c-medium-gray);line-height:1;padding:4px 8px;min-width:32px;min-height:32px;">&times;</button>
+        </div>
         <p class="legal-microcopy" style="margin:0 0 12px">Ticker <strong id="sizing-ticker">—</strong> · Entry <span id="sizing-entry">—</span> · SL <span id="sizing-sl">—</span></p>
         <label class="audit-filter">Modal (Rp)
             <input type="number" id="sizing-modal-input" min="0" step="10000" value="10000000" inputmode="numeric">

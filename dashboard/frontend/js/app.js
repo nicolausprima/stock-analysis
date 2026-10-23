@@ -60,6 +60,8 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (mins < 14 * 60) label = 'ISTIRAHAT';
             else if (mins <= 15 * 60 + 30) label = 'SESI 2';
             sessionPill.textContent = `${label} · ${hh}:${mm} WIB`;
+            const isOpen = (mins >= 9 * 60 && mins < 12 * 60) || (mins >= 14 * 60 && mins <= 15 * 60 + 30);
+            sessionPill.classList.toggle('live', isOpen);
         } catch (_) {
             sessionPill.textContent = 'SESI BEI';
         }
@@ -89,6 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const isSample = !!(data && (data.is_sample || data.stale));
             if (isSample) {
                 freshnessBadge.textContent = 'DATA CONTOH';
+                freshnessBadge.classList.remove('fresh');
+                freshnessBadge.classList.add('stale');
                 return;
             }
             const tsRaw = data && data.timestamp;
@@ -102,15 +106,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hh = String(ts.getHours()).padStart(2, '0');
                 const mm = String(ts.getMinutes()).padStart(2, '0');
                 freshnessBadge.textContent = `CACHE ${hh}:${mm} WIB`;
+                freshnessBadge.classList.remove('fresh');
+                freshnessBadge.classList.add('stale');
                 return;
             }
             if (ts && !isFreshScan) {
                 const hh = String(ts.getHours()).padStart(2, '0');
                 const mm = String(ts.getMinutes()).padStart(2, '0');
                 freshnessBadge.textContent = `CACHE ${hh}:${mm} WIB`;
+                freshnessBadge.classList.remove('fresh');
+                freshnessBadge.classList.add('stale');
                 return;
             }
             freshnessBadge.textContent = 'SEGERA';
+            freshnessBadge.classList.remove('stale');
+            freshnessBadge.classList.add('fresh');
         } catch (_) { /* noop */ }
     }
 
@@ -641,6 +651,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div class="dc-badges">
+                    ${(s.conformal_verdict === 'CONFIDENT_BUY' || (showBuy && s.is_high_conviction !== false)) ? '<span class="badge conformal" title="Conformal Prediction: 90% Confidence Decision Gate">CONFIDENT BUY</span>' : (s.conformal_verdict === 'ABSTAIN' ? '<span class="badge conformal-abstain" title="Conformal Gate: Abstain due to uncertainty">ABSTAIN</span>' : '')}
+                    ${s.is_ppk_blocked ? '<span class="badge hazard-veto" title="Papan Pemantauan Khusus (FCA Hazard Veto)">PPK: VETO</span>' : '<span class="badge hazard-safe" title="Passed PPK & FCA Hazard Guard">PPK: AMAN</span>'}
+                    ${s.commodity_cue ? `<span class="badge commodity-cue" title="Katalis Komoditas Global Overnight">${esc(s.commodity_cue)}</span>` : ''}
                     ${s.is_leading_sector ? '<span class="badge booster">Leading Sector</span>' : ''}
                     ${s.rvol ? `<span class="badge ${s.rvol >= 1.2 ? 'booster' : 'neutral-sent'}">RVOL ${esc(s.rvol)}x</span>` : ''}
                     ${s.adx ? `<span class="badge ${s.adx >= 25 ? 'bullish' : 'neutral-sent'}">ADX ${esc(s.adx)}</span>` : ''}
@@ -1329,7 +1342,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.innerHTML = `
                     <td>${s.trading_date || (s.updated_at || s.created_at).split(' ')[0]}${srcChip}</td>
                     <td class="td-ticker-cell">${s.ticker}</td>
-                    <td>${fmtPrice(s.entry_price)}</td>
+                    <td class="td-price">${fmtPrice(s.entry_price)}</td>
                     <td class="td-win">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
                     <td class="td-loss">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
                     <td>${scoreHtml(probFinalAudit, probRawAudit)}${isFillerAudit ? ' <span class="badge filler" title="Pengisi Top 10 — keyakinan model rendah, bukan sinyal beli">Pengisi, keyakinan rendah</span>' : ''}</td>

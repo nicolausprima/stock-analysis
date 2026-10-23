@@ -36,7 +36,7 @@
     --font-primary: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     --font-accent: 'Instrument Serif', Georgia, "Times New Roman", serif;
     --font-ui: 'Montserrat', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Courier, monospace;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
     /* Depth & Elevation (Helin elevation shadows, same as index) */
     --shadow-ground: none;
@@ -47,7 +47,7 @@
     /* Radius Tokens */
     --radius-sharp: 6px;
     --radius-card: 16px;
-    --radius-pill: 3.36e+07px;
+    --radius-pill: 9999px;
 
     /* Motion */
     --ease-inout: cubic-bezier(0.16, 1, 0.3, 1);
@@ -157,6 +157,13 @@ strong {
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+
+.nav-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    margin-left: auto;
 }
 
 .logo {
@@ -977,16 +984,17 @@ strong {
 
 /* Index .sig-ticker */
 .td-ticker .t-name {
-    font-family: var(--font-primary);
-    font-weight: 600;
+    font-family: var(--font-mono);
+    font-weight: 700;
     color: var(--c-charcoal);
-    font-size: 14px;
+    font-size: 13.5px;
+    letter-spacing: 0.02em;
     text-transform: uppercase;
 }
 
 .td-ticker .t-code {
-    font-family: var(--font-primary);
-    font-size: 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
     font-weight: 500;
     color: var(--c-medium-gray);
     margin-top: 2px;
@@ -995,11 +1003,15 @@ strong {
 .td-price {
     font-family: var(--font-mono);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
 .td-target, .td-sl {
+    font-family: var(--font-mono);
+    font-size: 13px;
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
 .td-target { color: var(--c-blue); }
@@ -1127,11 +1139,11 @@ strong {
 }
 
 .dc-ticker {
-    font-family: var(--font-primary);
+    font-family: var(--font-mono);
     font-size: 16px;
     font-weight: 700;
     line-height: 1.3;
-    letter-spacing: 0;
+    letter-spacing: 0.02em;
     color: var(--c-charcoal);
     text-transform: uppercase;
 }
@@ -1195,9 +1207,11 @@ strong {
 }
 
 .dc-pval {
+    font-family: var(--font-mono);
     font-size: 15px;
     font-weight: 600;
     line-height: 24px;
+    font-variant-numeric: tabular-nums;
 }
 
 .dc-pval.primary { color: var(--c-charcoal); }
@@ -1215,6 +1229,7 @@ strong {
 .dc-badges {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: var(--sp-2);
     margin-bottom: var(--sp-4);
 }
@@ -1251,16 +1266,15 @@ strong {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 8px;
-    min-height: 44px;
-    min-width: 44px;
+    padding: 3px 10px;
+    min-height: 26px;
     border-radius: var(--radius-pill);
     border: 1px solid var(--c-border);
     background: var(--c-surface);
     color: var(--c-medium-gray);
     font-family: var(--font-primary);
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 11px;
+    font-weight: 600;
     letter-spacing: 0.5px;
     text-transform: uppercase;
     cursor: pointer;
@@ -1413,6 +1427,7 @@ strong {
     box-shadow: none;
 }
 
+.risk-body h3,
 .risk-body h4 {
     font-family: var(--font-primary);
     font-size: 16px;
@@ -1502,12 +1517,15 @@ strong {
     .hero {
         padding: var(--sp-10) 0;
     }
+}
+
+@media (max-width: 768px) {
     .hero-inner {
         grid-template-columns: 1fr;
         gap: var(--sp-8);
         text-align: center;
     }
-    /* Kolom teks rata tengah + kartu chart ikut center di tablet */
+    /* Kolom teks rata tengah + kartu chart ikut center di mobile/tablet portrait */
     .hero-left {
         display: flex;
         flex-direction: column;
@@ -1820,7 +1838,7 @@ strong {
     height: 12px;
     border-radius: 3px;
     margin-right: 6px;
-    vertical-align: baseline;
+    vertical-align: -1px;
 }
 .sim-watermark {
     position: relative;
@@ -1861,9 +1879,11 @@ strong {
 }
 
 /* Tabular figures for data-heavy displays */
-.hstat-n, .hisg-price, .td-price, .td-target, .td-sl,
-.rsi-val, .score-val, .dc-score, .dc-pval, .stat-val {
+.hstat-n, .hisg-price, .td-price, .td-target, .td-sl, .td-pct, .dc-pct,
+.rsi-val, .score-val, .score-raw, .dc-score, .dc-pval, .stat-val,
+.last-scan, #session-pill, #data-freshness, .td-profit, .td-win, .td-loss, .risk-pill {
     font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
 }
 
 /* Main view switcher tabs (index pill tabs) — scrollable di HP */
@@ -2227,14 +2247,15 @@ strong {
 
 .audit-filter select,
 .audit-filter input[type="text"] {
-    min-height: 40px;
+    min-height: 44px;
     font-size: 13px;
     font-family: var(--font-ui);
     color: var(--c-charcoal);
     border: 1px solid var(--c-border);
     border-radius: var(--radius-sharp);
     background: var(--c-surface);
-    padding: 8px 12px;
+    padding: 10px 12px;
+    box-sizing: border-box;
 }
 
 .audit-filter select:focus-visible,
@@ -2698,6 +2719,82 @@ summary.dc-summary::marker {
 }
 details.dc-details[open] summary.dc-summary {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20'%3E%3Ccircle cx='10' cy='10' r='9' fill='none' stroke='%230051C3' stroke-width='1.5'/%3E%3Cpath d='M6 10h8' stroke='%230051C3' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+.dc-sum-ticker {
+    font-family: var(--font-mono);
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--c-charcoal);
+    letter-spacing: 0.02em;
+}
+
+.dc-sum-score {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--c-charcoal);
+}
+
+summary.dc-summary .sig-pill {
+    margin-left: auto;
+}
+
+.btn-gloss {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: transparent;
+    border: 1px solid var(--c-medium-gray);
+    color: var(--c-medium-gray);
+    font-family: var(--font-primary);
+    font-size: 9.5px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    margin-left: 4px;
+    vertical-align: middle;
+    transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-gloss:hover {
+    border-color: var(--c-blue);
+    color: var(--c-blue);
+}
+
+/* Badge Quant Styles (Conformal Prediction, PPK/FCA Hazard Guard, Commodity) */
+.badge.conformal {
+    background-color: rgba(0, 81, 195, 0.08);
+    color: var(--c-blue);
+    border: 1px solid rgba(0, 81, 195, 0.25);
+}
+
+.badge.conformal-abstain {
+    background-color: #F5F5F5;
+    color: var(--c-medium-gray);
+    border: 1px solid var(--c-border);
+}
+
+.badge.hazard-safe {
+    background-color: rgba(20, 107, 69, 0.08);
+    color: var(--c-green);
+    border: 1px solid rgba(20, 107, 69, 0.25);
+}
+
+.badge.hazard-veto {
+    background-color: var(--c-red-lt);
+    color: var(--c-red);
+    border: 1px solid rgba(222, 80, 82, 0.3);
+}
+
+.badge.commodity-cue {
+    background-color: #FFF8E6;
+    color: #996B00;
+    border: 1px solid rgba(229, 193, 88, 0.4);
 }
 .dc-body {
     padding: 4px 4px 12px;
