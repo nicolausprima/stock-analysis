@@ -436,6 +436,16 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
         _rotate_snapshot(CACHE_FILE, CACHE_PREV_FILE)
         write_json_atomic(CACHE_FILE, payload)
 
+    # Backup harian DB audit (VACUUM INTO + retensi 7 file). Kegagalan backup
+    # dicatat saja: sinyal hari ini tetap tersimpan di DB utama.
+    if save_to_db:
+        try:
+            from src.utils.db_backup import DEFAULT_DB_PATH, backup_sqlite_db
+
+            backup_sqlite_db(DEFAULT_DB_PATH)
+        except Exception as be:
+            print(f"[BACKUP] Warning: backup DB audit gagal: {be!s}")
+
     # Chart di-cache per worker; setelah scan selesai cache lama harus dibuang
     # agar candle dan rekomendasi tidak saling bertentangan (audit 2026-10-30, C-07).
     try:
@@ -548,6 +558,7 @@ def start_background_scheduler():
 
     def loop():
         last_run = {}
+        last_freshness_check = None
         while True:
             wib_now = _get_wib_now()
             today_str = wib_now.strftime("%Y-%m-%d")
@@ -569,7 +580,30 @@ def start_background_scheduler():
                     try:
                         job_fn()
                     except Exception as e:
+                        # Job gagal tidak boleh hanya jadi baris log yang tak
+                        # terbaca: kirim alert (maksimal sekali per hari).
                         print(f"[SCHEDULER] Error running {sched_time} job: {e!s}")
+                        try:
+                            from src.observability.alerts import send_ops_alert_once
+
+                            send_ops_alert_once(
+                                f"Job terjadwal {sched_time} WIB gagal: {type(e).__name__}: {e!s}",
+                                kind=f"job-fail-{sched_time}",
+                            )
+                        except Exception as alert_exc:
+                            print(f"[ALERT] Gagal mengirim alert job: {alert_exc!s}")
+
+            # Setelah jendela 16:05 lewat, pastikan snapshot benar-benar segar.
+            # Ini menangkap kasus job "sukses" tapi cache tidak pernah diperbarui.
+            if now_time >= "16:20" and last_freshness_check != today_str:
+                last_freshness_check = today_str
+                try:
+                    from src.observability.alerts import check_daily_freshness
+
+                    if check_daily_freshness().get("stale"):
+                        print("[SCHEDULER] Snapshot rekomendasi basi — alert dikirim.")
+                except Exception as fe:
+                    print(f"[ALERT] Pemeriksaan kesegaran data gagal: {fe!s}")
 
             time.sleep(20)
             

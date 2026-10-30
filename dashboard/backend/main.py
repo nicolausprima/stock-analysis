@@ -35,6 +35,7 @@ RATE_LIMIT_PER_MINUTE = 120
 RATE_BUCKET_MAX_IPS = 10000
 _rate_buckets = {}
 _rate_lock = threading.Lock()
+_expensive_guard_reported = False
 
 # Di belakang reverse proxy (Render/nginx/Cloudflare) request.client.host adalah
 # IP proxy, sehingga SEMUA pengguna berbagi satu bucket (audit 2026-10-30, B-03).
@@ -85,6 +86,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     for old_ip in oldest_ips:
                         _rate_buckets.pop(old_ip, None)
             # Lapisan kedua: batas ketat untuk endpoint mahal (LLM/scan/broadcast).
+            # Kegagalan di sini dulu ditelan `except Exception: pass`, sehingga
+            # guard bisa mati tanpa jejak (audit 2026-10-30, B-08). Sekarang
+            # fail-open tetap terjadi, tapi dicatat sekali per proses.
             try:
                 from dashboard.backend.rate_limit import check_expensive_limit
                 query = str(request.url.query or "")
@@ -95,8 +99,14 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                         status_code=429,
                         headers={"Retry-After": str(retry)},
                     )
-            except Exception:
-                pass
+            except Exception as exc:
+                global _expensive_guard_reported
+                if not _expensive_guard_reported:
+                    _expensive_guard_reported = True
+                    print(
+                        "[RATE-LIMIT] PERINGATAN: penjaga endpoint mahal gagal "
+                        f"({exc!s}). Request dilanjutkan tanpa batas ketat."
+                    )
         return await call_next(request)
 
 
@@ -232,6 +242,31 @@ app.include_router(telegram_router, prefix="/api", tags=["Telegram"])
 async def healthz():
     """Liveness murni: tidak menyentuh DB, model, atau jaringan (audit B-10)."""
     return {"status": "ok"}
+
+
+@app.get("/readyz")
+async def readyz():
+    """Readiness: snapshot rekomendasi masih segar dan DB audit terbaca.
+
+    Dipakai monitoring eksternal (uptime check). 503 bila snapshot lebih tua
+    dari 24 jam / belum ada, sehingga "scan tidak jalan" jadi alarm, bukan
+    temuan manual (audit 2026-10-30).
+    """
+    from src.observability.alerts import snapshot_status
+
+    status = snapshot_status(max_age_hours=24.0)
+    checks = {"snapshot": status["stale"] is False}
+    try:
+        from dashboard.backend.routes.audit import db_session
+
+        with db_session() as conn:
+            conn.execute("SELECT 1 FROM signals LIMIT 1").fetchone()
+        checks["audit_db"] = True
+    except Exception as exc:
+        checks["audit_db"] = False
+        status["db_error"] = str(exc)
+    ok = all(checks.values())
+    return JSONResponse({"status": "ok" if ok else "degraded", **status, "checks": checks}, status_code=200 if ok else 503)
 
 
 # Serve static frontend

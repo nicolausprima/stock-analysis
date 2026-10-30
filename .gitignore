@@ -77,3 +77,6 @@ memory/
 # ── Lightweight Charts (file besar, pakai CDN atau ambil manual) ─
 # Uncomment baris di bawah jika ingin exclude library lokal:
 # dashboard/frontend/js/lightweight-charts.js
+
+# Backup harian DB audit (VACUUM INTO) hidup di volume, bukan di git.
+data/backups/
