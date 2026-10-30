@@ -188,6 +188,46 @@ def test_security_headers_present():
     assert "default-src 'self'" in csp
     assert "frame-ancestors 'none'" in csp
 
+def test_api_recommendations_serves_old_snapshot_without_scanning(monkeypatch):
+    """Kontrak kunci audit C-01: endpoint baca TIDAK memindai ulang.
+
+    Snapshot fixture bertanggal 2026-07-20 (jauh lebih tua dari expiry 24 jam
+    versi lama) harus tetap disajikan apa adanya + umurnya jujur, dan scan
+    tidak boleh dipanggil sama sekali.
+    """
+    import src.scheduler.daily_scheduler as scheduler
+
+    called = {"scan": 0}
+
+    def _boom(*args, **kwargs):
+        called["scan"] += 1
+        raise AssertionError("GET /api/recommendations tidak boleh memicu scan")
+
+    monkeypatch.setattr(scheduler, "run_daily_after_market_job", _boom)
+
+    first = client.get("/api/recommendations")
+    second = client.get("/api/recommendations")
+    assert first.status_code == 200 and second.status_code == 200
+    assert called["scan"] == 0
+
+    body = first.json()
+    assert body.get("is_sample") is not True
+    assert body["data"][0]["ticker"] == "BBCA.JK"
+    # Umur data dilaporkan, bukan menolak cache lalu jatuh ke data contoh.
+    assert body["data_age_hours"] > 24
+    assert int(first.headers["X-Data-Age"]) > 24 * 3600
+
+
+def test_cache_control_headers_by_path():
+    """Setiap kelas path punya kebijakan cache eksplisit (audit C-04)."""
+    assert client.get("/api/recommendations").headers["Cache-Control"] == "no-store"
+    assert client.get("/api/audit/recap").headers["Cache-Control"] == "no-store"
+    assert "no-cache" in client.get("/dashboard").headers["Cache-Control"]
+    assert "no-cache" in client.get("/").headers["Cache-Control"]
+    assert "no-cache" in client.get("/css/style.css").headers["Cache-Control"]
+    assert "no-cache" in client.get("/js/app.js").headers["Cache-Control"]
+
+
 def test_api_chart_rejects_invalid_ticker():
     # Catatan: path traversal (../) dinormalisasi server -> 404, bukan sampai ke handler
     for bad in ["BBCA;DROP TABLE signals", "$$$", "a b c", "BBCA.JK.JK"]:

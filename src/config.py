@@ -2,6 +2,7 @@ import os
 
 from src.utils.paths import (
     CACHE_FILE,
+    CACHE_PREV_FILE,
     DATA_DIR,
     DB_PATH,
     PRICE_DATA_DIR,
@@ -15,6 +16,7 @@ __all__ = [
     "BATCH_DELAY_SECONDS",
     "BATCH_SIZE",
     "CACHE_FILE",
+    "CACHE_PREV_FILE",
     "DATA_DIR",
     "DB_PATH",
     "PRICE_DATA_DIR",

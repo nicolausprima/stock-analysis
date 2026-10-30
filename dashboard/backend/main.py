@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 
 # Hanya redam warning noisy pihak ketiga; jangan sembunyikan warning data/model sendiri.
 warnings.filterwarnings("ignore", category=FutureWarning, module=r"yfinance.*")
@@ -35,11 +36,40 @@ RATE_BUCKET_MAX_IPS = 10000
 _rate_buckets = {}
 _rate_lock = threading.Lock()
 
+# Di belakang reverse proxy (Render/nginx/Cloudflare) request.client.host adalah
+# IP proxy, sehingga SEMUA pengguna berbagi satu bucket (audit 2026-10-30, B-03).
+# Header klien hanya dipercaya bila TRUST_PROXY_HEADERS=true, atau otomatis saat
+# terdeteksi berjalan di platform PaaS yang memang selalu menaruh proxy di depan.
+_PAAS_MARKERS = ("RENDER", "RAILWAY_ENVIRONMENT", "FLY_APP_NAME", "HEROKU_APP_NAME")
+
+
+def _trust_proxy_headers() -> bool:
+    raw = os.getenv("TRUST_PROXY_HEADERS")
+    if raw is not None:
+        return raw.strip().lower() in ("1", "true", "yes", "on")
+    return any(os.getenv(var) for var in _PAAS_MARKERS)
+
+
+def client_ip(request) -> str:
+    """Identitas klien untuk rate limit: IP nyata bila di belakang proxy tepercaya."""
+    if _trust_proxy_headers():
+        for header in ("cf-connecting-ip", "x-real-ip"):
+            value = (request.headers.get(header) or "").strip()
+            if value:
+                return value
+        forwarded = request.headers.get("x-forwarded-for") or ""
+        hops = [part.strip() for part in forwarded.split(",") if part.strip()]
+        if hops:
+            # Hop terakhir ditambahkan proxy kita sendiri; entri di kirinya bisa
+            # dipalsukan klien sehingga tidak dipakai sebagai kunci bucket.
+            return hops[-1]
+    return request.client.host if request.client else "unknown"
+
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request, call_next):
         if request.url.path.startswith("/api/"):
-            ip = request.client.host if request.client else "unknown"
+            ip = client_ip(request)
             now = time.time()
             with _rate_lock:
                 bucket = [t for t in _rate_buckets.get(ip, []) if now - t < 60]
@@ -68,6 +98,39 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             except Exception:
                 pass
         return await call_next(request)
+
+
+class CacheHeadersMiddleware(BaseHTTPMiddleware):
+    """Kebijakan cache eksplisit per kelas path (audit 2026-10-30, C-04/C-05).
+
+    Tanpa header ini browser memakai heuristic caching: HTML lama bisa dipakai
+    berhari-hari sementara API sudah mengembalikan data baru. Aturannya:
+
+    - ``/api/*``           -> ``no-store`` (data pasar berubah; jangan pernah
+      disajikan dari cache tanpa validasi).
+    - halaman HTML         -> ``no-cache, must-revalidate`` (selalu validasi,
+      ETag membuat revalidasi murah 304).
+    - CSS/JS               -> ``no-cache`` dan TANPA query ``?v=`` manual, jadi
+      versi aset tidak bisa lagi tidak sinkron antar file.
+    - gambar/font          -> ``public, max-age=86400``.
+    """
+
+    _IMMUTABLE_EXT = (".png", ".jpg", ".jpeg", ".svg", ".webp", ".ico", ".woff", ".woff2")
+
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+        if "cache-control" in response.headers:
+            return response
+        path = request.url.path or "/"
+        if path.startswith("/api/") or path == "/api":
+            response.headers["Cache-Control"] = "no-store"
+        elif path.endswith(self._IMMUTABLE_EXT):
+            response.headers["Cache-Control"] = "public, max-age=86400"
+        elif path == "/" or path == "/dashboard" or path.endswith(("/", ".html")):
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        elif path.endswith((".css", ".js", ".json")):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -147,10 +210,14 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="AI Screener Backend", lifespan=lifespan)
+# Kompresi response besar (payload rekomendasi + chart) hemat bandwidth (audit B-09).
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(RateLimitMiddleware)
 # Didaftarkan setelah rate limit -> menjadi middleware paling luar,
 # sehingga header keamanan tetap menempel pada response 429 rate limiter.
 app.add_middleware(SecurityHeadersMiddleware)
+# Paling luar: header cache juga menempel pada response 429/500.
+app.add_middleware(CacheHeadersMiddleware)
 
 # Include routers
 app.include_router(predict_router, prefix="/api", tags=["Predict"])
@@ -159,6 +226,12 @@ app.include_router(news_router, prefix="/api", tags=["News"])
 app.include_router(audit_router, prefix="/api", tags=["Audit"])
 app.include_router(narasi_router, prefix="/api", tags=["Narasi"])
 app.include_router(telegram_router, prefix="/api", tags=["Telegram"])
+
+
+@app.get("/healthz")
+async def healthz():
+    """Liveness murni: tidak menyentuh DB, model, atau jaringan (audit B-10)."""
+    return {"status": "ok"}
 
 
 # Serve static frontend

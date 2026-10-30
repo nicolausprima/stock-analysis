@@ -19,3 +19,6 @@ PRICE_DATA_DIR = RAW_DATA_DIR / "price"
 TICKER_LIST_FILE = DATA_DIR / "tickers.txt"
 DB_PATH = DATA_DIR / "stock_market.db"
 CACHE_FILE = DATA_DIR / "latest_recommendations.json"
+# Snapshot cadangan terakhir: dipakai bila CACHE_FILE hilang/rusak agar UI
+# tidak langsung jatuh ke data contoh (audit 2026-10-30, C-01).
+CACHE_PREV_FILE = DATA_DIR / "latest_recommendations.prev.json"

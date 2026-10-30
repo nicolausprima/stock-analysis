@@ -19,7 +19,9 @@ services:
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
-    command: uvicorn dashboard.backend.main:app --host 0.0.0.0 --port 8000 --workers 2 --timeout-keep-alive 30 --limit-concurrency 100
+    # 1 worker: cache chart, rate-limit bucket, dan semaphore scan ada di memori
+    # proses; multi-worker membuat tiap worker menyajikan data berbeda (C-06).
+    command: uvicorn dashboard.backend.main:app --host 0.0.0.0 --port 8000 --workers 1 --timeout-keep-alive 30 --limit-concurrency 100
     user: "10001:10001"
     read_only: true
     tmpfs:
@@ -38,7 +40,7 @@ services:
           memory: 512M
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/telegram/status', timeout=4).status==200 else 1)"]
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=4).status==200 else 1)"]
       interval: 30s
       timeout: 5s
       retries: 3

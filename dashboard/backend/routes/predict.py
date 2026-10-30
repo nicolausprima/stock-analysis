@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 
 # Konfigurasi path untuk absolute import
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
@@ -14,7 +14,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 from dashboard.backend.security import require_api_key
-from src.config import CACHE_FILE
+from src.config import CACHE_FILE, CACHE_PREV_FILE
 
 DISCLAIMER_F4 = (
     "Konten ini riset kuantitatif untuk edukasi — BUKAN nasihat/rekomendasi investasi. "
@@ -26,31 +26,59 @@ router = APIRouter()
 _executor = ThreadPoolExecutor(max_workers=2)
 
 @router.get("/recommendations")
-async def get_recommendations(request: Request, force: bool = False):
+async def get_recommendations(request: Request, response: Response, force: bool = False):
+    """Mengembalikan rekomendasi Top 10 dari snapshot terakhir (read-only).
+
+    Kontrak baru (audit 2026-10-30, C-01): endpoint BACA tidak pernah memicu
+    scan dan tidak pernah menolak snapshot karena umur. Umur data dikirim
+    eksplisit lewat body ``data_age_hours`` + header ``X-Data-Age`` agar UI
+    bisa jujur, bukan menyulap data nyata menjadi data contoh.
+
+    - Default: snapshot terbaru; bila rusak/hilang -> snapshot sebelumnya.
+    - ``?force=true``: scan ulang (wajib API key, dibatasi semaphore scan).
     """
-    Mengembalikan rekomendasi Top 10.
-    - Default (force=false): baca dari cache JSON untuk load instan.
-    - ?force=true: jalankan ulang scheduler untuk scan fresh (wajib API key).
-    - Cache miss anonim: JANGAN jalankan scan berat tanpa auth (anti-DoS);
-      kembalikan fallback transparan murah.
-    """
-    # Mode fresh scan: bypass cache (operasi berat -> butuh otorisasi)
+    response.headers["Cache-Control"] = "no-store"
+
     if force:
         require_api_key(request)
-        return await asyncio.get_event_loop().run_in_executor(_executor, _run_fresh_scan)
+        result = await _run_scan_guarded()
+        response.headers["X-Data-Age"] = "0"
+        return result
 
-    # Mode instan: baca cache jika ada dan valid
-    cache = _read_cache()
-    if cache is not None:
-        return cache
-
-    # Cache tidak tersedia: fail-closed untuk anonim, scan hanya bila authorized.
-    from dashboard.backend.security import is_authorized
-    if not is_authorized(request):
+    snapshot, age_seconds = _load_snapshot_with_fallback()
+    if snapshot is None:
         resp = _fallback_response()
-        resp["fallback_reason"] = "cache-miss-unauthorized"
+        resp["fallback_reason"] = "no-snapshot-available"
+        response.headers["X-Data-Age"] = "unknown"
         return resp
-    return await asyncio.get_event_loop().run_in_executor(_executor, _run_fresh_scan)
+
+    if age_seconds is not None:
+        snapshot = dict(snapshot)
+        snapshot["data_age_hours"] = round(age_seconds / 3600, 2)
+        response.headers["X-Data-Age"] = str(int(age_seconds))
+    return snapshot
+
+
+async def _run_scan_guarded(worker=None):
+    """Jalankan scan di executor dengan penjaga konkurensi "satu scan global".
+
+    Tanpa ini dua request bersamaan menjalankan dua scan penuh pada DB/model
+    yang sama dan saling menimpa snapshot (audit 2026-10-30, B-02).
+    """
+    from dashboard.backend.rate_limit import SCAN_SEMAPHORE
+
+    if not SCAN_SEMAPHORE.acquire(blocking=False):
+        raise HTTPException(
+            status_code=409,
+            detail="Scan lain sedang berjalan. Coba lagi setelah selesai.",
+            headers={"Retry-After": "30"},
+        )
+    try:
+        return await asyncio.get_running_loop().run_in_executor(
+            _executor, worker or _run_fresh_scan
+        )
+    finally:
+        SCAN_SEMAPHORE.release()
 
 
 _WIB = timezone(timedelta(hours=7))
@@ -79,36 +107,61 @@ def _parse_cache_timestamp(raw) -> datetime | None:
     return dt.astimezone(_WIB)
 
 
-def _read_cache():
-    """Baca cache JSON, return None jika tidak valid / basi >24 jam.
+def _load_snapshot(path: Path) -> tuple[dict | None, float | None]:
+    """Baca satu snapshot JSON -> ``(payload, age_seconds)``.
 
-    Cache basi atau timestamp non-tanggal (mis. sample) ditolak agar
-    pemanggil fallback ke fresh-scan, kecuali mode TESTING agar uji
-    deterministik dengan cache dummy tidak gagal.
+    Umur TIDAK dipakai untuk menolak data: snapshot tua tetap lebih jujur
+    daripada data contoh. Yang divalidasi hanya bentuk payload.
     """
-    if not CACHE_FILE.exists():
-        return None
+    if not path.exists():
+        return None, None
     try:
-        with open(CACHE_FILE, 'r') as f:
+        with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        if not (isinstance(data, dict) and data.get("status") == "success" and (len(data.get("data", [])) >= 1 or data.get("macro_mode") == "BLOCK")):
-            return None
-        ts = _parse_cache_timestamp(data.get("timestamp"))
-        if ts is None:
-            if os.getenv("TESTING") == "true":
-                return data
-            print(f"Cache ditolak: timestamp non-tanggal ({data.get('timestamp')!r})")
-            return None
-        age = datetime.now(UTC).astimezone(_WIB) - ts
-        if age > timedelta(hours=24):
-            if os.getenv("TESTING") == "true":
-                return data
-            print(f"Cache basi >24 jam (umur {age}, ts {data.get('timestamp')!r})")
-            return None
-        return data
     except Exception as e:
-        print(f"Gagal membaca cache JSON: {e!s}")
-    return None
+        print(f"Snapshot tidak terbaca ({path.name}): {e!s}")
+        return None, None
+
+    if not (
+        isinstance(data, dict)
+        and data.get("status") == "success"
+        and (len(data.get("data", [])) >= 1 or data.get("macro_mode") == "BLOCK")
+    ):
+        print(f"Snapshot tidak valid skema ({path.name})")
+        return None, None
+
+    # Snapshot dari versi lama belum punya scan_id: beri id stabil turunan
+    # timestamp supaya kontrak "dua request -> scan_id sama" tetap terpenuhi.
+    if not data.get("scan_id"):
+        data["scan_id"] = f"legacy-{data.get('timestamp') or 'unknown'}"
+
+    ts = _parse_cache_timestamp(data.get("timestamp"))
+    if ts is None:
+        # Timestamp non-tanggal (mis. sample): hanya diterima di mode TESTING.
+        if os.getenv("TESTING") == "true":
+            return data, None
+        print(f"Snapshot tanpa timestamp valid ({path.name}): {data.get('timestamp')!r}")
+        return None, None
+
+    age_seconds = max(
+        0.0, (datetime.now(UTC).astimezone(_WIB) - ts).total_seconds()
+    )
+    return data, age_seconds
+
+
+def _load_snapshot_with_fallback() -> tuple[dict | None, float | None]:
+    """Snapshot terbaru; bila hilang/rusak pakai snapshot sebelumnya."""
+    data, age = _load_snapshot(CACHE_FILE)
+    if data is not None:
+        return data, age
+
+    data, age = _load_snapshot(CACHE_PREV_FILE)
+    if data is not None:
+        out = dict(data)
+        out["fallback_reason"] = "previous-snapshot"
+        out["is_sample"] = False
+        return out, age
+    return None, None
 
 
 def _run_fresh_scan():
@@ -370,9 +423,14 @@ async def sync_market_data(request: Request):
     require_api_key(request)
     try:
         from src.scheduler.daily_scheduler import run_daily_after_market_job
-        res = await asyncio.get_event_loop().run_in_executor(_executor, run_daily_after_market_job)
+
+        res = await _run_scan_guarded(run_daily_after_market_job)
         return {"status": "success", "message": "Sinkronisasi data 700+ saham selesai.", "data": res}
 
+    except HTTPException:
+        # 409 "scan sedang berjalan" harus sampai ke klien apa adanya,
+        # bukan dibungkus jadi 500.
+        raise
     except Exception as err:
         print(f"[SYNC] Gagal melakukan sinkronisasi data pasar: {err!s}")
         raise HTTPException(

@@ -12,9 +12,21 @@ router = APIRouter()
 
 # In-memory TTL Cache untuk chart data
 _chart_cache = {}
+_cache_epoch = 0
 CACHE_TTL_INTRADAY = 60    # 1 menit
 CACHE_TTL_DAILY = 300      # 5 menit
 CACHE_MAX_ENTRIES = 500    # Batasi ukuran cache agar memori tidak bocor
+
+
+def invalidate_chart_cache() -> None:
+    """Buang seluruh cache chart setelah scan selesai.
+
+    Tanpa ini chart masih menyajikan candle lama sampai TTL habis sehingga
+    tidak cocok dengan rekomendasi yang baru ditulis (audit 2026-10-30, C-07).
+    """
+    global _cache_epoch
+    _cache_epoch += 1
+    _chart_cache.clear()
 
 @router.get("/chart/{ticker}")
 def get_chart_data(ticker: str, days: int = 60):
@@ -27,7 +39,7 @@ def get_chart_data(ticker: str, days: int = 60):
     clean_ticker = validate_ticker(ticker, allow_chart_specials=True)
     if not 1 <= days <= 365:
         raise HTTPException(status_code=400, detail="Parameter days harus 1-365.")
-    cache_key = f"{clean_ticker}_{days}"
+    cache_key = f"{_cache_epoch}:{clean_ticker}_{days}"
     now = time.time()
     ttl = CACHE_TTL_INTRADAY if days == 1 else CACHE_TTL_DAILY
 

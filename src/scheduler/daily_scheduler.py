@@ -3,6 +3,7 @@ import os
 import sys
 import threading
 import time
+import uuid
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -107,10 +108,29 @@ from dashboard.backend.routes.audit import save_signals_to_db
 from dashboard.backend.routes.features import derive_signals, generate_reason
 from dashboard.backend.routes.sentiment_filter import apply_asymmetric_sentiment_filter
 from src.collector.batch_collector import download_universe_in_batches
-from src.config import CACHE_FILE, PROJECT_ROOT, TICKERS
+from src.config import CACHE_FILE, CACHE_PREV_FILE, PROJECT_ROOT, TICKERS
 from src.database.market_db import get_all_histories_from_db, get_ticker_history_from_db
 from src.features.embedding import extract_chart_feature_embeddings
 from src.features.technical_indicators import add_technical_indicators
+from src.utils.atomic_json import write_json_atomic
+
+SNAPSHOT_SCHEMA_VERSION = 2
+
+
+def _rotate_snapshot(current: Path, previous: Path) -> None:
+    """Simpan snapshot valid terakhir sebagai cadangan sebelum ditimpa.
+
+    Dipakai saat CACHE_FILE hilang/rusak agar UI tetap menampilkan data nyata
+    terakhir, bukan data contoh (audit 2026-10-30, C-01).
+    """
+    try:
+        if not current.exists():
+            return
+        with open(current, encoding="utf-8") as handle:
+            payload = json.load(handle)
+        write_json_atomic(previous, payload)
+    except Exception as exc:
+        print(f"[CACHE] Rotasi snapshot sebelumnya dilewati: {exc!s}")
 
 
 def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, save_to_json=True, save_to_db=True):
@@ -398,18 +418,32 @@ def run_daily_after_market_job(skip_download=False, broadcast_telegram=True, sav
     if save_to_db:
         save_signals_to_db(results)
 
+    now_wib = _get_wib_now()
     payload = {
         "status": "success",
-        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "schema_version": SNAPSHOT_SCHEMA_VERSION,
+        "scan_id": uuid.uuid4().hex,
+        "generated_at": now_wib.isoformat(timespec="seconds"),
+        "timestamp": now_wib.strftime("%Y-%m-%d %H:%M:%S"),
+        "data_date": now_wib.strftime("%Y-%m-%d"),
         "total_scanned": len(combined_df),
         "macro_eval": macro_eval,
         "macro_mode": macro_eval.get("mode", "NORMAL"),
         "data": results
     }
-    
+
     if save_to_json:
-        with open(CACHE_FILE, 'w') as f:
-            json.dump(payload, f, indent=2)
+        _rotate_snapshot(CACHE_FILE, CACHE_PREV_FILE)
+        write_json_atomic(CACHE_FILE, payload)
+
+    # Chart di-cache per worker; setelah scan selesai cache lama harus dibuang
+    # agar candle dan rekomendasi tidak saling bertentangan (audit 2026-10-30, C-07).
+    try:
+        from dashboard.backend.routes.chart import invalidate_chart_cache
+
+        invalidate_chart_cache()
+    except Exception as exc:
+        print(f"[CACHE] Gagal invalidasi cache chart: {exc!s}")
 
     # 5. Kirim siaran otomatis ke Telegram Bot (After-Market Audit & Sync)
     if broadcast_telegram:
@@ -541,5 +575,17 @@ def start_background_scheduler():
             
     thread = threading.Thread(target=loop, daemon=True)
     thread.start()
+
+
+if __name__ == "__main__":
+    # Entry point worker terjadwal (docker-compose profile "worker").
+    # Tanpa loop join, proses langsung keluar dan daemon thread ikut mati
+    # sehingga perintah worker tampak "sukses" tetapi tidak melakukan apa pun.
+    start_background_scheduler()
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        print("[SCHEDULER] Dihentikan oleh pengguna.")
 
 

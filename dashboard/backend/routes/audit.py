@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from pydantic import BaseModel
 
 from dashboard.backend.security import require_api_key
 from dashboard.backend.yf_client import download_with_timeout
+from src.utils.sqlite_guard import quarantine_if_not_sqlite
 
 
 def get_wib_now() -> datetime:
@@ -24,21 +26,12 @@ DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 router = APIRouter()
 
 def _ensure_valid_db(db_file: Path):
-    """Pastikan file SQLite valid. Jika pointer LFS / corrupt, hapus agar re-created."""
-    if db_file.exists():
-        invalid = False
-        try:
-            with open(db_file, 'rb') as f:
-                header = f.read(16)
-                if header and not header.startswith(b'SQLite format 3'):
-                    invalid = True
-        except Exception:
-            pass
-        if invalid:
-            try:
-                db_file.unlink()
-            except Exception:
-                pass
+    """Karantina file non-SQLite (pointer LFS / terpotong), JANGAN dihapus.
+
+    Versi lama memanggil ``unlink()`` sehingga riwayat audit hilang permanen
+    saat file rusak (audit 2026-10-30, B-05).
+    """
+    quarantine_if_not_sqlite(db_file)
 
 import threading
 
@@ -53,9 +46,47 @@ def get_db_connection(timeout: float = 60.0) -> sqlite3.Connection:
     conn.execute("PRAGMA synchronous=NORMAL;")
     return conn
 
+
+@contextmanager
+def db_session(timeout: float = 60.0):
+    """Koneksi yang SELALU ditutup.
+
+    ``with sqlite3.connect(...) as conn:`` hanya commit/rollback, tidak
+    menutup koneksi. Tanpa close eksplisit, handle menumpuk dan memicu
+    "database is locked"/"too many open files" (audit 2026-10-30, B-04).
+    """
+    conn = get_db_connection(timeout)
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
+_WIB = timezone(timedelta(hours=7))
+
+
+def _realized_return_pct(row) -> float:
+    """P&L (%) dari data tersimpan, bukan konstanta -1.5.
+
+    Stop loss dihitung ATR-based (clamp -1.2%..-2.0%), jadi semua LOSS yang
+    ditulis -1.5% membuat win rate & total profit tidak akurat
+    (audit 2026-10-30, D-01).
+    """
+    stored = row["realized_return"]
+    if stored is not None:
+        return round(float(stored), 1)
+    entry = float(row["entry_price"] or 0)
+    if entry <= 0:
+        return 0.0
+    is_loss = str(row["status"]).upper() == "LOSS"
+    exit_price = float((row["stop_loss"] if is_loss else row["target_price"]) or 0)
+    if exit_price <= 0:
+        return 0.0
+    return round((exit_price - entry) / entry * 100, 1)
+
 def init_db():
     """Menginisialisasi database SQLite dan membuat tabel signals jika belum ada."""
-    with _db_lock, get_db_connection() as conn:
+    with _db_lock, db_session() as conn:
         cursor = conn.cursor()
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS signals (
@@ -82,6 +113,10 @@ def init_db():
             cursor.execute("ALTER TABLE signals ADD COLUMN is_high_conviction INTEGER DEFAULT 1")
         if "source" not in cols:
             cursor.execute("ALTER TABLE signals ADD COLUMN source TEXT DEFAULT 'scan'")
+        if "exit_price" not in cols:
+            cursor.execute("ALTER TABLE signals ADD COLUMN exit_price REAL")
+        if "score_kind" not in cols:
+            cursor.execute("ALTER TABLE signals ADD COLUMN score_kind TEXT DEFAULT 'model'")
         conn.commit()
 
 # Database initialization is handled inside request handlers via init_db()
@@ -98,7 +133,7 @@ def save_signals_to_db(signals: list[dict]):
     init_db()
     today_str = get_wib_now().strftime("%Y-%m-%d")
 
-    with _db_lock, get_db_connection() as conn:
+    with _db_lock, db_session() as conn:
         cursor = conn.cursor()
         for s in signals:
             ticker = s["ticker"]
@@ -119,59 +154,48 @@ def save_signals_to_db(signals: list[dict]):
                 hc = s.get("is_high_conviction")
                 hc_int = 1 if hc is None else (1 if hc else 0)
                 cursor.execute("""
-                    INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, probability_raw, is_high_conviction, source, status, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'scan', 'PENDING', datetime('now', 'localtime'), datetime('now', 'localtime'))
+                    INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, probability_raw, is_high_conviction, source, status, score_kind, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, 'scan', 'PENDING', 'model', datetime('now', 'localtime'), datetime('now', 'localtime'))
                 """, (clean_ticker, s["close_price"], s["target_price"], s["stop_loss"], s["probability"], raw_prob, hc_int))
         conn.commit()
 
 @router.get("/audit/track-record")
-def get_track_record():
-    """Mengambil riwayat semua sinyal yang tersimpan dari database. Auto-seed HANYA jika DB kosong."""
+def get_track_record(limit: int = 2000, offset: int = 0):
+    """Riwayat sinyal (READ-ONLY, berpaginasi).
+
+    Endpoint ini tidak lagi menjalankan audit jaringan atau seed backtest.
+    Sebelumnya setiap page-load memicu ``run_audit()`` (unduh harga per sinyal
+    PENDING) dan bisa men-seed 6 bulan backtest tanpa auth
+    (audit 2026-10-30, B-01). Audit hanya lewat ``/api/audit/run`` (ber-auth)
+    atau job terjadwal.
+    """
     init_db()
 
-    with get_db_connection() as conn:
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) as cnt FROM signals")
-        count_row = cursor.fetchone()
-        is_empty = (not count_row) or (count_row["cnt"] == 0)
-
-    # Seed hanya saat DB benar-benar kosong (install pertama).
-    # Sinyal real user TIDAK PERNAH dihapus/di-reset oleh endpoint baca ini.
-    if is_empty:
-        try:
-            print("[AUDIT] DB kosong, menjalankan seed awal...")
-            seed_simulation_audit()
-            run_audit()
-        except Exception as e:
-            print(f"[AUDIT] Seed awal warning: {e}")
-    else:
-        try:
-            run_audit()
-        except Exception as e:
-            print(f"[AUDIT] Auto run_audit warning: {e}")
+    limit = max(1, min(int(limit), 5000))
+    offset = max(0, int(offset))
 
     now_local = get_wib_now()
     today_str = now_local.strftime("%Y-%m-%d")
     market_open = now_local.hour < 16  # Bursa BEI tutup sekitar 16:00 WIB
-    
-    with _db_lock, get_db_connection() as conn:
+
+    with db_session() as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) AS cnt FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING')")
+        total = int(cursor.fetchone()["cnt"] or 0)
         # Sinyal hari ini dibiarkan apa adanya — endpoint baca tidak boleh
         # menghapus atau me-reset status audit yang sudah diputus.
-        cursor.execute("SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') ORDER BY COALESCE(updated_at, created_at) DESC, id DESC")
+        cursor.execute(
+            "SELECT * FROM signals WHERE status IN ('WIN', 'LOSS', 'PENDING') "
+            "ORDER BY COALESCE(updated_at, created_at) DESC, id DESC LIMIT ? OFFSET ?",
+            (limit, offset),
+        )
         rows = cursor.fetchall()
     
     result = []
     for r in rows:
         st = r["status"]
-        real_ret = r["realized_return"]
-
-        if st == "LOSS":
-            real_ret = -1.5
-        elif st == "PENDING" or real_ret is None:
-            real_ret = 0.0
+        real_ret = _realized_return_pct(r) if st in ("WIN", "LOSS") else 0.0
 
         c_at = r["created_at"] or ""
         try:
@@ -209,6 +233,8 @@ def get_track_record():
             "probability_raw": r["probability_raw"] if r["probability_raw"] is not None else r["probability"],
             "is_high_conviction": r["is_high_conviction"] if r["is_high_conviction"] is not None else 1,
             "source": dict(r).get("source") or "scan",
+            "score_kind": dict(r).get("score_kind") or "model",
+            "exit_price": dict(r).get("exit_price"),
             "status": display_status,
             "return_pct": display_ret,
             "realized_return": display_ret,
@@ -216,13 +242,18 @@ def get_track_record():
             "updated_at": r["updated_at"],
             "trading_date": trade_date_str
         })
-        
-    conn.close()
 
     # Sort strictly by trading_date DESC, created_at DESC, id DESC
     result.sort(key=lambda x: (x["trading_date"], x["created_at"] or "", x["id"]), reverse=True)
 
-    return {"status": "success", "data": result}
+    return {
+        "status": "success",
+        "data": result,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "truncated": offset + len(result) < total,
+    }
 
 @router.get("/audit/run")
 def audit_run_endpoint(request: Request):
@@ -237,7 +268,7 @@ def run_audit():
     import io
 
     init_db()
-    with get_db_connection() as conn:
+    with db_session() as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM signals WHERE status = 'PENDING'")
@@ -256,6 +287,9 @@ def run_audit():
         entry_price = float(sig["entry_price"])
         target_price = float(sig["target_price"])
         stop_loss = float(sig["stop_loss"])
+        # P&L aktual per sinyal, bukan konstanta (SL ATR-based -1.2%..-2.0%).
+        tp_pct = round((target_price - entry_price) / entry_price * 100, 1) if entry_price > 0 else 3.0
+        sl_pct = round((stop_loss - entry_price) / entry_price * 100, 1) if entry_price > 0 else -1.5
         created_at_str = sig["created_at"]
         
         try:
@@ -306,6 +340,7 @@ def run_audit():
 
         new_status = "PENDING"
         real_ret = None
+        exit_price = None
         has_future_candles = False
 
         now_audit = get_wib_now()
@@ -336,18 +371,22 @@ def run_audit():
             if is_tp and is_sl:
                 if open_p >= entry_price:
                     new_status = "WIN"
-                    real_ret = round(((target_price - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 3.0
+                    real_ret = tp_pct
+                    exit_price = target_price
                 else:
                     new_status = "LOSS"
-                    real_ret = -1.5
+                    real_ret = sl_pct
+                    exit_price = stop_loss
                 break
             elif is_tp:
                 new_status = "WIN"
-                real_ret = round(((target_price - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 3.0
+                real_ret = tp_pct
+                exit_price = target_price
                 break
             elif is_sl:
                 new_status = "LOSS"
-                real_ret = -1.5
+                real_ret = sl_pct
+                exit_price = stop_loss
                 break
 
             # Batasi jendela evaluasi maksimal 5 hari bursa (swing holding period)
@@ -359,28 +398,31 @@ def run_audit():
         # Menang kecil tanpa sentuh target bukan bukti model benar.
         if new_status == "PENDING" and has_future_candles and candle_count >= 5:
             ret_pct = round(((last_candle_close - entry_price) / entry_price) * 100, 1) if entry_price > 0 else 0.0
-            if ret_pct >= 3.0:
+            if ret_pct >= tp_pct:
                 new_status = "WIN"
                 real_ret = ret_pct
-            elif ret_pct <= -1.5:
+                exit_price = last_candle_close
+            elif ret_pct <= sl_pct:
                 new_status = "LOSS"
-                real_ret = max(-1.5, ret_pct)
+                real_ret = ret_pct
+                exit_price = last_candle_close
             else:
                 new_status = "PENDING"
                 real_ret = 0.0
 
         if new_status != "PENDING":
-            updates_to_apply.append((new_status, real_ret, sig_id))
+            updates_to_apply.append((new_status, real_ret, exit_price, sig_id))
 
     if updates_to_apply:
-        with _db_lock, get_db_connection() as conn:
+        with _db_lock, db_session() as conn:
             cursor = conn.cursor()
-            for new_status, real_ret, sig_id in updates_to_apply:
+            for new_status, real_ret, exit_price, sig_id in updates_to_apply:
                 cursor.execute("""
-                    UPDATE signals 
-                    SET status = ?, realized_return = ?, updated_at = datetime('now', 'localtime') 
+                    UPDATE signals
+                    SET status = ?, realized_return = ?, exit_price = ?,
+                        updated_at = datetime('now', 'localtime')
                     WHERE id = ?
-                """, (new_status, real_ret, sig_id))
+                """, (new_status, real_ret, exit_price, sig_id))
             conn.commit()
 
     return {"status": "success", "updated_count": len(updates_to_apply)}
@@ -395,7 +437,7 @@ def get_audit_recap():
     - Data kurva ekuitas kumulatif (Equity Curve Chart)
     """
     init_db()
-    with get_db_connection() as conn:
+    with db_session() as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM signals ORDER BY created_at ASC")
@@ -411,19 +453,8 @@ def get_audit_recap():
 
     total_profit_pct = 0.0
     for r in rows:
-        st = r["status"]
-        if st in ["WIN", "LOSS"]:
-            ret = r["realized_return"]
-            if st == "LOSS":
-                ret = -1.5
-            elif ret is None:
-                r_entry = r["entry_price"]
-                r_target = r["target_price"]
-                if st == "WIN" and r_entry and r_target and r_entry > 0:
-                    ret = round(((r_target - r_entry) / r_entry) * 100, 1)
-                else:
-                    ret = 0.0
-            total_profit_pct += ret
+        if r["status"] in ("WIN", "LOSS"):
+            total_profit_pct += _realized_return_pct(r)
     total_profit_pct = round(total_profit_pct, 1)
 
     # Monthly Grouping
@@ -458,26 +489,17 @@ def get_audit_recap():
         m_data = monthly_dict[month_key]
         m_data["total_signals"] += 1
         st = r["status"]
-        real_ret = r["realized_return"]
 
         if st == "WIN":
             m_data["win_count"] += 1
-            if real_ret is not None:
-                m_data["monthly_profit_pct"] += real_ret
-                cum_return += real_ret
-            else:
-                r_entry = r["entry_price"]
-                r_target = r["target_price"]
-                if r_entry and r_target and r_entry > 0:
-                    ret = round(((r_target - r_entry) / r_entry) * 100, 1)
-                else:
-                    ret = 3.0
-                m_data["monthly_profit_pct"] += ret
-                cum_return += ret
+            ret = _realized_return_pct(r)
+            m_data["monthly_profit_pct"] += ret
+            cum_return += ret
         elif st == "LOSS":
             m_data["loss_count"] += 1
-            m_data["monthly_profit_pct"] += -1.5
-            cum_return += -1.5
+            ret = _realized_return_pct(r)
+            m_data["monthly_profit_pct"] += ret
+            cum_return += ret
         elif st == "PENDING":
             m_data["pending_count"] += 1
 
@@ -526,7 +548,7 @@ def get_today_audit_summary():
     init_db()
     today_str = get_wib_now().strftime("%Y-%m-%d")
 
-    with get_db_connection() as conn:
+    with db_session() as conn:
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         cursor.execute("""
@@ -564,12 +586,7 @@ def get_today_audit_summary():
 
     for r in rows:
         st = r["status"]
-        real_ret = r["realized_return"]
-
-        if st == "LOSS":
-            real_ret = -1.5
-        elif st == "PENDING" or real_ret is None:
-            real_ret = 0.0
+        real_ret = _realized_return_pct(r) if st in ("WIN", "LOSS") else 0.0
 
         if st == "WIN":
             win_cnt += 1
@@ -626,7 +643,7 @@ def seed_simulation_audit():
     4. Penyelarasan teknikal MACD + posisi harga vs SMA20
     """
     init_db()
-    with _db_lock, get_db_connection() as conn:
+    with _db_lock, db_session() as conn:
         cursor = conn.cursor()
         # Hapus HANYA data seed agar sinyal scan user tidak pernah hilang.
         cursor.execute("DELETE FROM signals WHERE source = 'seed'")
@@ -776,9 +793,17 @@ def seed_simulation_audit():
                                     status = "PENDING"
                                     real_ret = 0.0
 
+                        # exit_price: TP/SL nyata yang tersentuh (PENDING = None),
+                        # supaya realized_return tidak lagi bergantung pada
+                        # asumsi -1.5% yang dipakai versi lama.
+                        exit_price = (None if status == "PENDING"
+                                      else target_price if status == "WIN"
+                                      else stop_loss)
+
                         real_records.append((
                             clean_ticker, entry_price, target_price, stop_loss,
-                            prob, prob, 1, "seed", status, real_ret, created_str, created_str
+                            exit_price, prob, prob, 1, "seed", status, real_ret,
+                            created_str, created_str
                         ))
 
             except Exception as se:
@@ -788,11 +813,11 @@ def seed_simulation_audit():
         print(f"[BACKTEST] Error downloading historical data: {e!s}")
 
     if real_records:
-        with _db_lock, get_db_connection() as conn:
+        with _db_lock, db_session() as conn:
             cursor = conn.cursor()
             cursor.executemany("""
-                INSERT INTO signals (ticker, entry_price, target_price, stop_loss, probability, probability_raw, is_high_conviction, source, status, realized_return, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO signals (ticker, entry_price, target_price, stop_loss, exit_price, probability, probability_raw, is_high_conviction, source, status, realized_return, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, real_records)
             conn.commit()
 
