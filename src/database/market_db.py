@@ -10,24 +10,12 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 from src.config import DB_PATH
+from src.utils.sqlite_guard import quarantine_if_not_sqlite
 
 
 def _ensure_valid_db(db_file: Path):
-    """Pastikan file SQLite valid. Jika pointer LFS / corrupt, hapus agar re-created."""
-    if db_file.exists():
-        invalid = False
-        try:
-            with open(db_file, 'rb') as f:
-                header = f.read(16)
-                if header and not header.startswith(b'SQLite format 3'):
-                    invalid = True
-        except Exception:
-            pass
-        if invalid:
-            try:
-                db_file.unlink()
-            except Exception:
-                pass
+    """Karantina file non-SQLite (pointer LFS / terpotong), JANGAN dihapus."""
+    quarantine_if_not_sqlite(db_file)
 
 def get_market_db_connection(timeout: float = 60.0) -> sqlite3.Connection:
     """Mengembalikan koneksi SQLite thread-safe dengan WAL mode & 60s busy timeout."""

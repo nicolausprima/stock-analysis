@@ -1,3 +1,8 @@
 *.png filter=lfs diff=lfs merge=lfs -text
 *.pkl filter=lfs diff=lfs merge=lfs -text
 data/stock_market.db filter=lfs diff=lfs merge=lfs -text
+# DB SQLite runtime bukan objek LFS: pernah membuat conflict stage berisi
+# pointer 131 byte yang lalu dianggap "DB rusak" (audit 2026-10-30, C-03).
+data/*.db binary
+data/*.db-wal binary
+data/*.db-shm binary

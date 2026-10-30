@@ -26,7 +26,15 @@ data/stock_market.db*
 data/*.duckdb
 data/*.json
 !data/latest_recommendations.json
-!data/signals_audit.db
+# Snapshot sebelumnya: fallback baca bila snapshot terbaru rusak (C-01).
+# JSON kecil & bisa di-merge, aman untuk di-commit (beda dengan DB biner).
+!data/latest_recommendations.prev.json
+# SQLite runtime state: JANGAN di-track (DB + WAL/SHM + backup).
+# Riwayat audit hidup di volume/backup, bukan di git (audit 2026-10-30, C-03).
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.db-journal
 # models/*.pkl   # Dikecualikan supaya bisa dipakai GitHub Actions
 # models/*.joblib
 models/*.model
