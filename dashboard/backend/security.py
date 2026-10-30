@@ -4,8 +4,10 @@ API authentication (X-API-Key), input validation & output sanitization helpers.
 - API_AUTH_TOKEN  : jika diset, semua operasi sensitif (sync, force scan, telegram,
                     audit write) wajib membawa header `X-API-Key` yang cocok.
 - validate_ticker : memfilter input user agar hanya simbol saham valid.
-- sanitize_text   : escape HTML pada teks hasil LLM/konten eksternal sebelum
-                    dikirim ke frontend (frontend me-render via innerHTML).
+- sanitize_text   : escape HTML untuk field API yang akan dirender sebagai
+                    HTML mentah. Endpoint /api/narasi TIDAK memakainya: teks
+                    dikirim plain text (frontend pakai textContent / esc()),
+                    karena escape ganda membuat '<' tampil sebagai '&lt;'.
 """
 import hmac
 import html

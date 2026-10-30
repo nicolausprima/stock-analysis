@@ -9,8 +9,6 @@ from pydantic import BaseModel, field_validator
 
 from dashboard.backend.security import (
     require_api_key,
-    sanitize_mapping,
-    sanitize_text,
     validate_ticker,
 )
 
@@ -163,7 +161,7 @@ Jangan tambahkan kata pembuka atau penutup.
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=120)
         if response.status_code == 200:
-            narrative = sanitize_text(parse_and_clean_response(response.text))
+            narrative = parse_and_clean_response(response.text)
             narrative = f"{narrative}\n\n{DISCLAIMER_F4}"
             return {"status": "success", "narasi": narrative, "source": "llm", "is_sample": False, "stale": False, "disclaimer": DISCLAIMER_F4}
 
@@ -172,7 +170,7 @@ Jangan tambahkan kata pembuka atau penutup.
             fallback_url = url.replace("host.docker.internal", "127.0.0.1")
             response = requests.post(fallback_url, json=payload, headers=headers, timeout=120)
             if response.status_code == 200:
-                narrative = sanitize_text(parse_and_clean_response(response.text))
+                narrative = parse_and_clean_response(response.text)
                 narrative = f"{narrative}\n\n{DISCLAIMER_F4}"
                 return {"status": "success", "narasi": narrative, "source": "llm", "is_sample": False, "stale": False, "disclaimer": DISCLAIMER_F4}
 
@@ -196,7 +194,7 @@ Jangan tambahkan kata pembuka atau penutup.
                 fallback_url = url.replace("host.docker.internal", "127.0.0.1")
                 response = requests.post(fallback_url, json=payload, headers=headers, timeout=120)
                 if response.status_code == 200:
-                    narrative = sanitize_text(parse_and_clean_response(response.text))
+                    narrative = parse_and_clean_response(response.text)
                     return {"status": "success", "narasi": narrative, "source": "llm", "is_sample": False, "stale": False}
             except Exception:  # network/proxy down -> fallback narasi kuantitatif
                 pass
@@ -244,11 +242,9 @@ def generate_multi_agent_consensus(request: Request, req: NarasiRequest):
                 pass
         agent_system = MultiAgentSystemV2()
         consensus = agent_system.generate_consensus(req_dict, macro_info=macro_info)
-        # Output agent mengandung teks turunan headline berita (konten eksternal)
-        # -> escape SEMUA field string sebelum dirender frontend.
-        if isinstance(consensus, dict):
-            str_fields = [k for k, v in consensus.items() if isinstance(v, str)]
-            consensus = sanitize_mapping(consensus, str_fields)
+        # Teks turunan headline berita dikembalikan APA ADANYA (plain text).
+        # Frontend sudah meng-escape via esc() sebelum innerHTML; meng-escape di
+        # sini juga membuat "&"/"<" tampil sebagai "&amp;"/"&lt;" (audit D-05).
         return {"status": "success", "data": consensus, "source": "multi-agent-v2"}
     except Exception as e:
         print(f"[NARASI] Gagal menjalankan sistem Multi-Agent: {e!s}")
