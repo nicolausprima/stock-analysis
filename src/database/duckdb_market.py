@@ -125,8 +125,14 @@ def save_daily_prices_polars(df: pl.DataFrame):
 
     conn = get_duckdb_connection()
 
+    # cast(String -> Date) sudah deprecated di Polars 1.44 dan dihapus di 2.0.
+    date_expr = (
+        pl.col("date").str.to_date()
+        if df.schema["date"] == pl.Utf8
+        else pl.col("date").cast(pl.Date)
+    )
     df_write = df.with_columns([
-        pl.col("date").cast(pl.Date),
+        date_expr,
         pl.col("ticker").cast(pl.Utf8).str.strip_chars()
     ]).filter(pl.col("close") > 0)
 

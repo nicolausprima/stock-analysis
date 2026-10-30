@@ -16,6 +16,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
 from src.database.duckdb_market import get_all_histories_polars
+from src.database.sync_market import data_lag_days
 
 LOT_SIZE = 100
 # IDX tick-size / liquidity guard: never take more than 10% of bar volume.
@@ -138,6 +139,14 @@ def run_vectorized_idx_backtest(initial_capital: float = 100_000_000.0, commissi
     them as model performance.
     """
     print("[BACKTEST] Mengambil semua riwayat harga dari DuckDB...")
+    # SQLite adalah sumber kanonik; DuckDB hanya mirror. Tanpa guard ini backtest
+    # diam-diam memakai harga lebih tua dari sinyal harian (audit 2026-10-30, D-03).
+    lag = data_lag_days()
+    if lag is not None and lag > 0:
+        print(
+            f"[BACKTEST] PERINGATAN: mirror DuckDB tertinggal {lag} hari dari SQLite. "
+            "Jalankan: python scripts/sync_duckdb_from_sqlite.py"
+        )
     histories = get_all_histories_polars(limit_days=500)
 
     if not histories:
