@@ -119,6 +119,32 @@ def init_db():
             cursor.execute("ALTER TABLE signals ADD COLUMN score_kind TEXT DEFAULT 'model'")
         conn.commit()
 
+        # Auto-seed dari data/audit_seed_snapshot.json bila DB kosong (misal di deploy baru)
+        cursor.execute("SELECT COUNT(*) FROM signals")
+        if cursor.fetchone()[0] == 0:
+            snapshot_path = PROJECT_ROOT / "data" / "audit_seed_snapshot.json"
+            if snapshot_path.exists():
+                try:
+                    import json
+                    with open(snapshot_path, "r", encoding="utf-8") as f:
+                        records = json.load(f)
+                    if isinstance(records, list) and records:
+                        cols_to_insert = [
+                            "ticker", "entry_price", "target_price", "stop_loss",
+                            "probability", "status", "created_at", "updated_at",
+                            "realized_return", "probability_raw", "is_high_conviction",
+                            "source", "exit_price", "score_kind"
+                        ]
+                        cols_str = ", ".join(cols_to_insert)
+                        placeholders = ", ".join(["?"] * len(cols_to_insert))
+                        sql = f"INSERT INTO signals ({cols_str}) VALUES ({placeholders})"
+                        batch = [[r.get(c) for c in cols_to_insert] for r in records]
+                        cursor.executemany(sql, batch)
+                        conn.commit()
+                        print(f"[AUDIT] Berhasil auto-seed {len(batch)} sinyal dari snapshot.")
+                except Exception as exc:
+                    print(f"[AUDIT WARNING] Gagal auto-seed snapshot: {exc}")
+
 # Database initialization is handled inside request handlers via init_db()
 
 class SignalInsert(BaseModel):

@@ -29,6 +29,7 @@ data/*.json
 # Snapshot sebelumnya: fallback baca bila snapshot terbaru rusak (C-01).
 # JSON kecil & bisa di-merge, aman untuk di-commit (beda dengan DB biner).
 !data/latest_recommendations.prev.json
+!data/audit_seed_snapshot.json
 # SQLite runtime state: JANGAN di-track (DB + WAL/SHM + backup).
 # Riwayat audit hidup di volume/backup, bukan di git (audit 2026-10-30, C-03).
 data/*.db
