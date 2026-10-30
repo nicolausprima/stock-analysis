@@ -1658,9 +1658,23 @@ strong {
         scroll-snap-align: start;
         flex: 0 0 auto;
     }
-    .ihsg-chart-container { height: 160px; min-height: 140px; }
+    .ihsg-chart-container { height: auto; min-height: 160px; }
     .mini-chart-container { height: 72px; min-height: 64px; }
-    .panel-chart { height: 180px; min-height: 160px; }
+    .panel-chart { height: auto; min-height: 180px; }
+    .sim-watermark::after {
+        content: "SIMULASI" !important;
+        font-size: 10px !important;
+        padding: 2px 6px !important;
+        letter-spacing: 0.08em !important;
+        opacity: 0.75;
+    }
+    .nav-meta .last-scan {
+        display: none;
+    }
+    .modal-close-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
     .hd-split { flex-direction: column; align-items: stretch; }
     .hd-split .btn-scan, .hd-split .btn-ghost, .hd-split .btn-toggle {
         width: 100%;
@@ -2414,10 +2428,10 @@ canvas {
     }
     /* Tab scroll mulai dari kiri — center+scroll potong tab awal tak terjangkau */
     .main-tabs-wrap {
-        justify-content: flex-start;
+        justify-content: flex-start !important;
     }
     .main-tabs-bar {
-        justify-content: flex-start;
+        justify-content: flex-start !important;
     }
     .feat-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -2425,12 +2439,6 @@ canvas {
     .cards-grid {
         grid-template-columns: 1fr;
         gap: var(--sp-4);
-    }
-    .main-tabs-wrap {
-        justify-content: center;
-    }
-    .main-tabs-bar {
-        justify-content: center;
     }
     .audit-stats-grid {
         grid-template-columns: repeat(2, 1fr);
@@ -2459,10 +2467,28 @@ canvas {
         align-items: flex-start;
     }
     .panel-chart {
-        height: 180px;
+        height: auto;
+        min-height: 180px;
     }
     .ihsg-chart-container {
-        height: 170px;
+        height: auto;
+        min-height: 170px;
+    }
+    /* Cegah iOS Safari auto-zoom saat fokus ke input */
+    #sizing-modal input,
+    #sizing-modal select,
+    .audit-filter select,
+    .audit-filter input[type="text"] {
+        font-size: 16px !important;
+    }
+    /* Sticky freeze ticker column on horizontal swipe */
+    .stock-table th:nth-child(2),
+    .stock-table td:nth-child(2) {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background-color: var(--c-surface);
+        box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
     }
 }
 
@@ -3019,12 +3045,17 @@ details.glossary dd {
     transform: translate(-50%, 0);
     pointer-events: auto;
 }
-@media (max-width: 360px) {
+@media (max-width: 480px) {
     .dc-actions {
         flex-direction: column;
+        gap: 8px;
     }
     .dc-actions .btn-copy-watch,
     .dc-actions .btn-sizing {
         width: 100%;
+    }
+    summary.dc-summary {
+        flex-wrap: wrap;
+        gap: 6px;
     }
 }

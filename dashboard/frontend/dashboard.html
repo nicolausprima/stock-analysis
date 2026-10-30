@@ -9,8 +9,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&display=swap" rel="stylesheet">
-    <script src="js/lightweight-charts.js"></script>
-    <link rel="stylesheet" href="css/style.css?v=25">
+    <script defer src="js/lightweight-charts.js"></script>
+    <!-- Tanpa ?v= manual: versi aset tidak bisa lagi tidak sinkron antar file.
+         Cache-Control + ETag dari backend yang menangani invalidasi (C-04/C-05). -->
+    <link rel="stylesheet" href="css/style.css">
     <style>
     /* Page in/out transition — synced with index.html */
     body {
@@ -451,7 +453,7 @@
     <div class="modal-box glass-card" role="document">
         <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <h3 id="sizing-title" style="margin:0;">Hitung Sizing Posisi (simulasi)</h3>
-            <button type="button" class="modal-close-btn" data-close-sizing aria-label="Tutup modal" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--c-medium-gray);line-height:1;padding:4px 8px;min-width:32px;min-height:32px;">&times;</button>
+            <button type="button" class="modal-close-btn" data-close-sizing aria-label="Tutup modal" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--c-medium-gray);line-height:1;padding:8px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;">&times;</button>
         </div>
         <p class="legal-microcopy" style="margin:0 0 12px">Ticker <strong id="sizing-ticker">—</strong> · Entry <span id="sizing-entry">—</span> · SL <span id="sizing-sl">—</span></p>
         <label class="audit-filter">Modal (Rp)
@@ -470,7 +472,7 @@
 
 <div id="toast" class="hidden" role="status" aria-live="polite"></div>
 
-<script src="js/app.js?v=27"></script>
+<script src="js/app.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     requestAnimationFrame(function() {

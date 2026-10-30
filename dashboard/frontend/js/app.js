@@ -84,7 +84,35 @@ document.addEventListener('DOMContentLoaded', () => {
     window.updateSessionPill = updateSessionPill;
     window.updateFreshness = updateFreshness;
 
-    // --- Badge freshness data: DATA CONTOH / CACHE HH:mm WIB / SEGERA ---
+    // --- Waktu: timestamp server dalam WIB, ditampilkan dalam WIB ---
+    // Tanpa penanda zona, `new Date('2026-10-30 11:34')` dibaca sebagai waktu
+    // LOKAL browser sehingga umur data meleset untuk pengguna non-WIB (C-08).
+    function parseWibTs(raw) {
+        const s = String(raw || '').trim();
+        if (!s || !/^\d{4}-\d{2}-\d{2}/.test(s)) return null;
+        const iso = s.includes('T') ? s : s.replace(' ', 'T');
+        const hasOffset = /(?:z|[+-]\d{2}:?\d{2})$/i.test(iso);
+        const d = new Date(hasOffset ? iso : iso + '+07:00');
+        return isNaN(d) ? null : d;
+    }
+
+    function wibClock(data) {
+        const ts = parseWibTs(data && (data.generated_at || data.timestamp));
+        if (!ts) return '';
+        return ts.toLocaleTimeString('id-ID', {
+            hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'
+        });
+    }
+
+    function ageLabel(hours) {
+        if (!Number.isFinite(hours) || hours < 0) return '';
+        if (hours < 1) return `${Math.max(1, Math.round(hours * 60))}m lalu`;
+        const h = Math.floor(hours);
+        const m = Math.round((hours - h) * 60);
+        return `${h}j${m ? ' ' + m + 'm' : ''} lalu`;
+    }
+
+    // --- Badge freshness data: DATA CONTOH / CACHE HH:mm WIB · umur / SEGERA ---
     function updateFreshness(data, isFreshScan) {
         if (!freshnessBadge) return;
         try {
@@ -95,25 +123,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 freshnessBadge.classList.add('stale');
                 return;
             }
-            const tsRaw = data && data.timestamp;
-            let ts = null;
-            if (tsRaw && /^\d{4}-\d{2}-\d{2}/.test(String(tsRaw))) {
-                const p = new Date(String(tsRaw).replace(' ', 'T'));
-                if (!isNaN(p)) ts = p;
-            }
-            // Cache scheduler bisa berumur jam-an: umur >30 mnt = CACHE, baru = SEGERA.
-            if (ts && (Date.now() - ts.getTime() > 30 * 60 * 1000)) {
-                const hh = String(ts.getHours()).padStart(2, '0');
-                const mm = String(ts.getMinutes()).padStart(2, '0');
-                freshnessBadge.textContent = `CACHE ${hh}:${mm} WIB`;
-                freshnessBadge.classList.remove('fresh');
-                freshnessBadge.classList.add('stale');
-                return;
-            }
-            if (ts && !isFreshScan) {
-                const hh = String(ts.getHours()).padStart(2, '0');
-                const mm = String(ts.getMinutes()).padStart(2, '0');
-                freshnessBadge.textContent = `CACHE ${hh}:${mm} WIB`;
+            // Umur dihitung backend (WIB) -> konsisten untuk semua zona waktu.
+            let ageHours = Number(data && data.data_age_hours);
+            if (!Number.isFinite(ageHours) || ageHours < 0) ageHours = NaN;
+
+            const clock = wibClock(data);
+            const age = Number.isFinite(ageHours) ? ageLabel(ageHours) : '';
+            // Snapshot scheduler bisa berumur jam-an: >30 mnt = CACHE, baru = SEGERA.
+            const isStale = Number.isFinite(ageHours)
+                ? ageHours * 60 > 30
+                : !isFreshScan;
+
+            if (isStale) {
+                freshnessBadge.textContent = [clock ? `CACHE ${clock} WIB` : 'CACHE', age]
+                    .filter(Boolean).join(' · ');
                 freshnessBadge.classList.remove('fresh');
                 freshnessBadge.classList.add('stale');
                 return;
@@ -421,9 +444,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await res.json();
 
             if (!res.ok) throw new Error(data.detail || 'Server error');
-            if (!data.data?.length) throw new Error(
-                'No buy signals found. Current market conditions are not conducive.'
-            );
+
+            // Tidak ada sinyal BUKAN error server: itu hasil sah (macro BLOCK /
+            // pasar tidak kondusif). Tampilkan sebagai empty state yang jujur
+            // (audit 2026-10-30, F-04).
+            if (!data.data?.length) {
+                const reason = data.macro_mode === 'BLOCK'
+                    ? 'Macro filter aktif (pasar bearish) — sistem menahan sinyal beli.'
+                    : 'Tidak ada sinyal beli yang lolos filter hari ini.';
+                showToast(`${reason} Ini bukan kegagalan sistem.`);
+                emptyState.classList.remove('hidden');
+                try { updateFreshness(data, false); } catch (_) { /* noop */ }
+                loadTrackRecord();
+                return;
+            }
 
             buildTable(data.data);
             buildCards(data.data);
@@ -455,24 +489,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             if (lastScan) {
-                const tsRaw = data && data.timestamp;
+                const ts = parseWibTs(data && (data.generated_at || data.timestamp));
                 let scanLabel = '';
-                if (tsRaw && /^\d{4}-\d{2}-\d{2}/.test(String(tsRaw))) {
-                    const parsed = new Date(String(tsRaw).replace(' ', 'T'));
-                    if (!isNaN(parsed)) {
-                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                        const dd = String(parsed.getDate()).padStart(2, '0');
-                        const mmm = months[parsed.getMonth()];
-                        const yyyy = parsed.getFullYear();
-                        const hh = String(parsed.getHours()).padStart(2, '0');
-                        const mm = String(parsed.getMinutes()).padStart(2, '0');
-                        scanLabel = `Data scan ${dd} ${mmm} ${yyyy} ${hh}:${mm} WIB`;
-                    }
+                if (ts) {
+                    // Format dalam WIB, bukan zona waktu browser: label "WIB"
+                    // harus benar juga untuk pengguna di luar Indonesia.
+                    scanLabel = 'Data scan ' + ts.toLocaleString('id-ID', {
+                        day: '2-digit', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta'
+                    }) + ' WIB';
+                    const age = ageLabel(Number(data && data.data_age_hours));
+                    if (age) scanLabel += ` · ${age}`;
                 }
-                if (!scanLabel) {
-                    scanLabel = 'Data scan ' + new Date().toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WIB';
-                }
-                lastScan.textContent = scanLabel;
+                lastScan.textContent = scanLabel || 'Waktu scan tidak diketahui';
             }
             loadTrackRecord();
 
@@ -536,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>
                     <div class="score-cell">
                         <div class="score-track">
-                            <div class="score-fill" style="width:${s.probability}%"></div>
+                            <div class="score-fill" style="width:${Math.max(0, Math.min(100, Number(s.probability) || 0))}%"></div>
                         </div>
                         ${scoreHtml(probFinal, probRaw)}
                     </div>
@@ -1326,7 +1355,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? (((s.stop_loss - s.entry_price) / s.entry_price) * 100).toFixed(1)
                     : '-1.5';
 
-                const retVal = s.status === 'LOSS' ? -1.5 : (s.return_pct != null ? s.return_pct : 0);
+                // return_pct/realized_return datang dari DB (SL ATR-based per
+                // sinyal), bukan konstanta -1.5 lagi (audit 2026-10-30, D-01).
+                const retVal = Number(s.return_pct != null ? s.return_pct : (s.realized_return ?? 0)) || 0;
                 const retSign = retVal >= 0 ? '+' : '';
                 const isFillerAudit = s.is_high_conviction === false;
                 const probFinalAudit = Number(s.probability);
@@ -1340,8 +1371,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     : '<br><span class="badge src-scan">Scan harian</span>';
 
                 row.innerHTML = `
-                    <td>${s.trading_date || (s.updated_at || s.created_at).split(' ')[0]}${srcChip}</td>
-                    <td class="td-ticker-cell">${s.ticker}</td>
+                    <td>${esc(s.trading_date || String(s.updated_at || s.created_at || '').split(' ')[0])}${srcChip}</td>
+                    <td class="td-ticker-cell">${esc(s.ticker)}</td>
                     <td class="td-price">${fmtPrice(s.entry_price)}</td>
                     <td class="td-win">${fmtPrice(s.target_price)} <span class="td-pct">(+${tpPct}%)</span></td>
                     <td class="td-loss">${fmtPrice(s.stop_loss)} <span class="td-pct">(${slPct}%)</span></td>
