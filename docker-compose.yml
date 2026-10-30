@@ -46,15 +46,31 @@ services:
       retries: 3
       start_period: 20s
 
-  # Contoh worker terpisah (jalankan manual: docker compose --profile worker up scheduler):
-  # scheduler:
-  #   build: .
-  #   profiles: ["worker"]
-  #   env_file: [.env]
-  #   environment:
-  #     - ENABLE_SCHEDULER=true
-  #     - ENABLE_TELEGRAM_LISTENER=false
-  #   volumes: [./data:/app/data, ./logs:/app/logs]
-  #   command: python -m src.scheduler.daily_scheduler
-  #   user: "10001:10001"
-  #   restart: unless-stopped
+  # Worker scheduler terjadwal (08:30, 12:00, 15:30, 16:05 WIB)
+  # Menulis snapshot rekomendasi harian & mengupdate data/signals_audit.db secara otonom di server.
+  scheduler:
+    build: .
+    container_name: stock-ai-scheduler
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - APP_ENV=${APP_ENV:-production}
+      - ENABLE_SCHEDULER=true
+      - ENABLE_TELEGRAM_LISTENER=${ENABLE_TELEGRAM_LISTENER:-false}
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    command: python -m src.scheduler.daily_scheduler
+    user: "10001:10001"
+    restart: unless-stopped
+    depends_on:
+      - dashboard
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.2"
+          memory: 256M

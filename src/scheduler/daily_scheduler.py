@@ -612,9 +612,19 @@ def start_background_scheduler():
 
 
 if __name__ == "__main__":
-    # Entry point worker terjadwal (docker-compose profile "worker").
+    # Entry point worker terjadwal (docker-compose service "scheduler").
     # Tanpa loop join, proses langsung keluar dan daemon thread ikut mati
     # sehingga perintah worker tampak "sukses" tetapi tidak melakukan apa pun.
+    import argparse
+
+    parser = argparse.ArgumentParser(description="AKSA Daily Scheduler Worker")
+    parser.add_argument("--now", action="store_true", help="Jalankan scan harian 16:05 WIB segera")
+    args = parser.parse_args()
+
+    if args.now:
+        print("[SCHEDULER] Menjalankan scan harian segera (--now)...")
+        run_daily_after_market_job()
+
     start_background_scheduler()
     try:
         while True:

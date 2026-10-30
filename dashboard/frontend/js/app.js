@@ -1183,6 +1183,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 try {
                     const eqChart = document.getElementById('audit-equity-chart');
                     if (eqChart) {
+                        if (eqChart._pendingEquityBuild) {
+                            eqChart._pendingEquityBuild();
+                            delete eqChart._pendingEquityBuild;
+                        }
                         requestAnimationFrame(() => {
                             requestAnimationFrame(() => {
                                 try {
@@ -1492,10 +1496,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (chartDiv.clientWidth > 0) {
                             buildEquityChart();
                         } else {
-                            requestAnimationFrame(function retryEquityChart() {
-                                if (chartDiv.clientWidth > 0) buildEquityChart();
-                                else requestAnimationFrame(retryEquityChart);
-                            });
+                            chartDiv._pendingEquityBuild = buildEquityChart;
                         }
                     }
                 }
@@ -1528,7 +1529,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const row = document.createElement('tr');
                 const isPos = m.monthly_profit_pct >= 0;
                 row.innerHTML = `
-                    <td class="td-month-cell">${m.month_name}</td>
+                    <td class="td-month-cell">${esc(m.month_name)}</td>
                     <td>${m.total_signals} Sinyal (sim)</td>
                     <td class="td-win">${m.win_count} WIN</td>
                     <td class="td-loss">${m.loss_count} SIM-LOSS</td>
