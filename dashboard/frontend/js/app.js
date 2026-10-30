@@ -1566,7 +1566,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         window.runAuditSimulationSeed = async function() {
-            if (!window.confirm('Seed menulis data simulasi bervolume besar ke database audit dan terpisah dari data live. Lanjut?')) return;
+            if (!window.confirm('PERHATIAN: Data simulasi backtest 6 bulan sudah otomatis aktif di bawah. Tombol ini khusus Admin untuk download ulang data dari Yahoo Finance ke database. Lanjut?')) return;
             const btn = document.getElementById('seed-sim-btn');
             if (btn) {
                 btn.disabled = true;
@@ -1575,6 +1575,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const res = await apiFetch('/api/audit/seed-simulation');
+                if (res.status === 401) {
+                    const key = window.prompt('Fitur generate data ini diproteksi khusus Admin/Developer.\n\nMasukkan API Key Developer:');
+                    if (key && key.trim()) {
+                        window.setStockAIApiKey(key.trim());
+                        const retryRes = await apiFetch('/api/audit/seed-simulation');
+                        const retryData = await retryRes.json();
+                        if (retryRes.ok && retryData.status === 'success') {
+                            await runAuditAndLoad();
+                            return;
+                        }
+                    }
+                    showError('Akses Dibatasi: Fitur generate data khusus Admin. Data simulasi 6 bulan sudah aktif di bawah tanpa perlu menekan tombol ini.');
+                    return;
+                }
                 const data = await res.json();
                 if (res.ok && data.status === 'success') {
                     await runAuditAndLoad();
@@ -1586,7 +1600,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 if (btn) {
                     btn.disabled = false;
-                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Jalankan Simulasi 6 Bulan (Lab)`;
+                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg> Generate Ulang Data (Admin)`;
                 }
             }
         };

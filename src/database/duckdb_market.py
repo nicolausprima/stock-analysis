@@ -164,8 +164,8 @@ def save_daily_prices_polars(df: pl.DataFrame):
 
 def get_ticker_history_polars(ticker: str, limit_days: int = 100) -> pl.DataFrame:
     """Get ticker history from DuckDB as Polars DataFrame (vectorized)."""
-    if limit_days is not None and (limit_days < 1 or limit_days > 365):
-        raise ValueError("limit_days harus 1-365")
+    if limit_days is not None and (limit_days < 1 or limit_days > 3650):
+        raise ValueError("limit_days harus 1-3650")
     conn = get_duckdb_connection()
     query = """
         SELECT date, open, high, low, close, volume
@@ -188,8 +188,8 @@ def _locked_execute(query, params=None):
 
 def get_all_histories_polars(limit_days: int = 100) -> dict[str, pl.DataFrame]:
     """Get all ticker histories in one bulk query, return as dict of Polars DataFrames."""
-    if limit_days is not None and (limit_days < 1 or limit_days > 365):
-        raise ValueError("limit_days harus 1-365")
+    if limit_days is not None and (limit_days < 1 or limit_days > 3650):
+        raise ValueError("limit_days harus 1-3650")
     conn = get_duckdb_connection()
     query = """
         SELECT ticker, date, open, high, low, close, volume
