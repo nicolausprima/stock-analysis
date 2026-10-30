@@ -304,19 +304,26 @@
         <!-- Audit Summary Cards -->
         <div class="audit-stats-grid" id="audit-stats-grid">
             <div class="glass-card stat-card">
-                <div class="stat-lbl">Overall Win Rate</div>
+                <div class="stat-lbl">Win Rate Gabungan (simulasi + scan)</div>
                 <div id="stat-win-rate" class="stat-val">—</div>
-                <div class="stat-sub stat-sub--pos">Target model +3.0% / SL -1.5% (asumsi simulasi)</div>
+                <div class="stat-sub stat-sub--pos">Target +3.0% / SL mengikuti ATR per sinyal (bukan -1.5% tetap)</div>
             </div>
             <div class="glass-card stat-card">
                 <div class="stat-lbl">Total WIN / LOSS</div>
                 <div id="stat-win-loss" class="stat-val stat-val--sm">—</div>
-                <div class="stat-sub">Sinyal Simulasi Terkonfirmasi</div>
+                <div id="stat-source-split" class="stat-sub">Rincian per sumber tidak tersedia</div>
             </div>
             <div class="glass-card stat-card">
-                <div class="stat-lbl">Cumulative Profit (%)</div>
+                <div class="stat-lbl">Jumlah Return Terealisasi (%)</div>
                 <div id="stat-total-profit" class="stat-val stat-val--pos">—</div>
-                <div class="stat-sub">Without Compound Multiplier</div>
+                <div class="stat-sub">Tanpa compounding — penjumlahan return per sinyal</div>
+            </div>
+            <!-- Sinyal harian nyata dipisah dari backtest seed: angka gabungan
+                 tidak boleh dibaca sebagai performa live (audit D-02/D-04). -->
+            <div class="glass-card stat-card">
+                <div class="stat-lbl">Scan Harian Nyata</div>
+                <div id="stat-scan-win-rate" class="stat-val">—</div>
+                <div id="stat-scan-detail" class="stat-sub">Hanya sinyal source=scan</div>
             </div>
         </div>
 

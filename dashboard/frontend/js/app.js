@@ -1305,7 +1305,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 body.innerHTML = `
                     <tr>
                         <td colspan="7" class="table-empty table-empty--err">
-                            Gagal memuat rekam jejak: ${err.message}
+                            Gagal memuat rekam jejak: ${esc(err && err.message)}
                         </td>
                     </tr>
                 `;
@@ -1363,9 +1363,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const probFinalAudit = Number(s.probability);
                 const probRawAudit = Number(s.probability_raw);
                 const statusKey = String(s.status || 'PENDING').toUpperCase();
-                const badge = statusKey === 'WIN' ? `<span class="badge bullish">SIM-WIN ${retSign}${retVal.toFixed(1)}%</span>` :
-                              (statusKey === 'LOSS' ? `<span class="badge bearish">SIM-LOSS ${retVal.toFixed(1)}%</span>` : `<span class="badge neutral-sent">SIM-PENDING</span>`);
                 const srcKey = String(s.source || 'scan').toLowerCase() === 'seed' ? 'seed' : 'scan';
+                // Awalan SIM- hanya untuk baris backtest seed; sinyal scan murni
+                // tidak boleh terlihat seperti hasil simulasi (audit D-02/D-04).
+                const prefix = srcKey === 'seed' ? 'SIM-' : '';
+                const badge = statusKey === 'WIN' ? `<span class="badge bullish">${prefix}WIN ${retSign}${retVal.toFixed(1)}%</span>` :
+                              (statusKey === 'LOSS' ? `<span class="badge bearish">${prefix}LOSS ${retVal.toFixed(1)}%</span>` : `<span class="badge neutral-sent">${prefix}PENDING</span>`);
                 const srcChip = srcKey === 'seed'
                     ? '<br><span class="badge src-seed">Seed backtest</span>'
                     : '<br><span class="badge src-scan">Scan harian</span>';
@@ -1410,12 +1413,40 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.ok && data.status === 'success') {
                     const s = data.summary;
                     winRateEl.textContent = s.win_rate > 0 ? `${s.win_rate.toFixed(1)}%` : '0.0%';
-                    winLossEl.textContent = `${s.win_count} SIM-WIN / ${s.loss_count} SIM-LOSS`;
+                    winLossEl.textContent = `${s.win_count} WIN / ${s.loss_count} LOSS`;
                     profitEl.textContent = `${s.total_profit_pct >= 0 ? '+' : ''}${s.total_profit_pct.toFixed(1)}%`;
                     profitEl.classList.toggle('stat-val--neg', s.total_profit_pct < 0);
+
+                    // Pisahkan backtest seed dari sinyal harian nyata (D-02/D-04).
+                    const bySrc = data.by_source || {};
+                    const seed = bySrc.seed || { win: 0, loss: 0, total: 0 };
+                    const live = bySrc.scan || { win: 0, loss: 0, total: 0 };
+                    const splitEl = document.getElementById('stat-source-split');
+                    if (splitEl) {
+                        // Tanpa baris seed, bisa jadi riwayat lama masih berlabel
+                        // 'scan' (hasil simulasi sebelum kolom source konsisten).
+                        const unclassified = !seed.total && live.total
+                            ? ' · Riwayat lama belum terklasifikasi, bisa jadi hasil simulasi'
+                            : '';
+                        splitEl.textContent = `Backtest seed: ${seed.win} WIN / ${seed.loss} LOSS · Scan harian: ${live.win} WIN / ${live.loss} LOSS${unclassified}`;
+                    }
+                    const scanRateEl = document.getElementById('stat-scan-win-rate');
+                    const scanDetailEl = document.getElementById('stat-scan-detail');
+                    const liveDecided = Number(live.win || 0) + Number(live.loss || 0);
+                    if (scanRateEl) {
+                        scanRateEl.textContent = liveDecided > 0 ? `${Number(live.win_rate || 0).toFixed(1)}%` : '—';
+                        scanRateEl.classList.toggle('stat-val--neg', liveDecided > 0 && Number(live.profit_pct || 0) < 0);
+                    }
+                    if (scanDetailEl) {
+                        scanDetailEl.textContent = live.total
+                            ? (liveDecided > 0
+                                ? `${live.win} WIN / ${live.loss} LOSS dari ${live.total} sinyal scan`
+                                : `${live.total} sinyal scan, belum ada yang diputus`)
+                            : 'Belum ada sinyal scan tercatat';
+                    }
                     // Ringkasan tekstual equity (UX-04): SR dengar angka tanpa baca chart.
                     const eqSum = document.getElementById('equity-summary');
-                    if (eqSum) eqSum.textContent = `Hasil simulasi: win rate ${Number(s.win_rate || 0).toFixed(1)} persen, ${s.win_count} SIM-WIN / ${s.loss_count} SIM-LOSS, kumulatif ${profitEl.textContent}. Bukan hasil nyata.`;
+                    if (eqSum) eqSum.textContent = `Rekap gabungan simulasi dan scan: win rate ${Number(s.win_rate || 0).toFixed(1)} persen, ${s.win_count} WIN / ${s.loss_count} LOSS, jumlah return ${profitEl.textContent}.`;
 
                     // Save monthly data & render table
                     allMonthlyData = data.monthly_breakdown || [];
@@ -1499,7 +1530,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 row.innerHTML = `
                     <td class="td-month-cell">${m.month_name}</td>
                     <td>${m.total_signals} Sinyal (sim)</td>
-                    <td class="td-win">${m.win_count} SIM-WIN</td>
+                    <td class="td-win">${m.win_count} WIN</td>
                     <td class="td-loss">${m.loss_count} SIM-LOSS</td>
                     <td><span class="badge ${m.win_rate >= 60 ? 'uptrend' : 'bearish'}">${m.win_rate.toFixed(1)}%</span></td>
                     <td class="td-profit ${isPos ? 'pos' : 'neg'}">${isPos ? '+' : ''}${m.monthly_profit_pct.toFixed(1)}%</td>

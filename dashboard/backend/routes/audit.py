@@ -428,6 +428,34 @@ def run_audit():
     return {"status": "success", "updated_count": len(updates_to_apply)}
 
 
+def _recap_by_source(rows) -> dict:
+    """Ringkas performa per `source`: 'seed' (backtest simulasi) vs 'scan' (nyata)."""
+    buckets: dict[str, dict] = {}
+    for r in rows:
+        src = (dict(r).get("source") or "scan").strip().lower()
+        bucket = buckets.setdefault(
+            src,
+            {"total": 0, "win": 0, "loss": 0, "pending": 0, "profit_pct": 0.0},
+        )
+        bucket["total"] += 1
+        status = str(r["status"] or "").upper()
+        if status == "WIN":
+            bucket["win"] += 1
+            bucket["profit_pct"] += _realized_return_pct(r)
+        elif status == "LOSS":
+            bucket["loss"] += 1
+            bucket["profit_pct"] += _realized_return_pct(r)
+        else:
+            bucket["pending"] += 1
+
+    for bucket in buckets.values():
+        decided = bucket["win"] + bucket["loss"]
+        bucket["decided"] = decided
+        bucket["win_rate"] = round(bucket["win"] / decided * 100, 1) if decided else 0.0
+        bucket["profit_pct"] = round(bucket["profit_pct"], 1)
+    return buckets
+
+
 @router.get("/audit/recap")
 def get_audit_recap():
     """
@@ -538,6 +566,9 @@ def get_audit_recap():
             "win_rate": win_rate,
             "total_profit_pct": total_profit_pct
         },
+        # Pisahkan backtest simulasi (seed) dari sinyal harian nyata (scan) supaya
+        # angka gabungan tidak dibaca sebagai performa live (audit D-02/D-04).
+        "by_source": _recap_by_source(rows),
         "monthly_breakdown": monthly_breakdown,
         "equity_curve": clean_equity_curve
     }
