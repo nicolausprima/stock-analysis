@@ -1,10 +1,10 @@
 {
   "status": "success",
   "schema_version": 2,
-  "scan_id": "c36ce61b9760424cacabe94e0153ce44",
-  "generated_at": "2026-10-30T22:51:41+07:00",
-  "timestamp": "2026-10-30 22:51:41",
-  "data_date": "2026-10-30",
+  "scan_id": "4582a72ca21a428fad5b29348113f346",
+  "generated_at": "2026-11-03T02:29:47+07:00",
+  "timestamp": "2026-11-03 02:29:47",
+  "data_date": "2026-11-03",
   "total_scanned": 564,
   "macro_eval": {
     "status": "success",
@@ -14,31 +14,33 @@
     "prob_threshold": 0.85,
     "stop_loss_pct": 0.01,
     "details": [
-      "\u2022 USD/IDR: Rp 18,138 (+0.40% Melemah) \u26a0\ufe0f",
-      "\u2022 Bursa Asia (Nikkei/HSI/STI): Rata-rata +0.74% \u2705",
-      "\u2022 Bursa Wall St (S&P500/NASDAQ): Rata-rata -2.05% \u26a0\ufe0f",
+      "\u2022 USD/IDR: Rp 18,161 (+0.50% Melemah) \u26a0\ufe0f",
+      "\u2022 Bursa Asia (Nikkei/HSI/STI): Rata-rata -0.34% \u26a0\ufe0f",
       "\u2022 Teknikal IHSG: 5057.0 < SMA20 5597.3 (Downtrend) \u26a0\ufe0f",
-      "\u2022 Sentimen Berita Makro: NEGATIF (-0.21) \u26a0\ufe0f",
-      "\u2022 Komoditas: \u26a0\ufe0f Nikel & Tembaga (Metals): -1.5% (Mild Correction Drag)",
-      "\u2022 Komoditas: \u26a0\ufe0f Emas Dunia (COMEX Gold): -3.0% (Mild Correction Drag)",
-      "\u2022 Sektor Terkuat (Inflow): Konsumer Non-Primer, Finansial, Kesehatan \u26a1"
+      "\u2022 Sentimen Berita Makro: NETRAL (0.0) \u2796",
+      "\u2022 Komoditas: \ud83d\udd34 Batubara (Coal Proxy): -3.2% (Sharp Correction Warning)",
+      "\u2022 Komoditas: \u26a0\ufe0f Nikel & Tembaga (Metals): -1.3% (Mild Correction Drag)",
+      "\u2022 Komoditas: \u26a0\ufe0f Minyak Nabati / CPO (CBOT Soyoil): -1.4% (Mild Correction Drag)",
+      "\u2022 Komoditas: \ud83d\udfe2 Emas Dunia (COMEX Gold): +1.6% (Positive Momentum)",
+      "\u2022 Komoditas: \ud83d\udd34 Minyak Mentah (WTI / Brent): -9.2% (Sharp Correction Warning)",
+      "\u2022 Sektor Terkuat (Inflow): Energi, Finansial, Bahan Baku \u26a1"
     ],
     "news_sentiment": {
-      "score": -0.21,
-      "label": "NEGATIF",
-      "reason": "Analisis sentimen AI dari 7 berita makroekonomi (Tekanan (-1.2), Stabilitas (+1.2), Melemah (-1.2)).",
+      "score": 0.04,
+      "label": "NETRAL",
+      "reason": "Analisis sentimen AI dari 7 berita makroekonomi (Melemah (-1.2), Naik (+1.0), Stabilitas (+1.2)).",
       "headlines": [
         {
-          "title": "Istana Ingatkan Imbas Keputusan MSCI, BI Terus Fokus Jaga Stabilitas Rupiah - InfoPublik",
-          "source": "InfoPublik",
-          "sentiment": "POSITIF \u2705",
-          "score": 0.343
+          "title": "Rupiah Indonesia Melemah Menyusul Data Ekonomi yang Beragam - FXStreet",
+          "source": "FXStreet",
+          "sentiment": "NEGATIF \u26a0\ufe0f",
+          "score": -0.343
         },
         {
-          "title": "IHSG Anjlok, Apakah Ini Efek Rupiah Melemah? - Maybank Trade ID",
-          "source": "Maybank Trade ID",
-          "sentiment": "NEGATIF \u26a0\ufe0f",
-          "score": -0.914
+          "title": "Video: Jika Bunga The Fed Naik Akhir 2026, Apa Efeknya ke Rupiah-IHSG? - CNBC Indonesia",
+          "source": "CNBC Indonesia",
+          "sentiment": "POSITIF \u2705",
+          "score": 0.286
         },
         {
           "title": "Pemerintah Perkuat Stabilitas Rupiah dan Pasar Modal di Tengah Tekanan Global - beritanasionalupdate.com",
@@ -47,43 +49,43 @@
           "score": 0.0
         },
         {
-          "title": "Rupiah Balik Arah, Ikuti IHSG ke Zona Merah - Bloomberg Technoz",
-          "source": "Bloomberg Technoz",
-          "sentiment": "NETRAL \u2796",
-          "score": 0.0
+          "title": "Istana Ingatkan Imbas Keputusan MSCI, BI Terus Fokus Jaga Stabilitas Rupiah - InfoPublik",
+          "source": "InfoPublik",
+          "sentiment": "POSITIF \u2705",
+          "score": 0.343
         },
         {
-          "title": "Rupiah bergerak fluktuatif seiring fokus pasar ke arah kebijakan BI - Antara News jatim",
-          "source": "Antara News jatim",
+          "title": "Rupiah Tutup Perdagangan Hari Ini di Posisi Rp18.150/US$ - Bloomberg Technoz",
+          "source": "Bloomberg Technoz",
           "sentiment": "NETRAL \u2796",
           "score": 0.0
         }
       ],
       "highlights": [
-        "Anjlok (-2.0)",
         "Melemah (-1.2)",
+        "Naik (+1.0)",
         "Stabilitas (+1.2)",
         "Tekanan (-1.2)"
       ]
     },
     "sector_rotation": {
       "leading_sectors": [
-        "Konsumer Non-Primer",
+        "Energi",
         "Finansial",
-        "Kesehatan"
+        "Bahan Baku"
       ],
       "sector_rankings": {
-        "Konsumer Non-Primer": 5.26,
-        "Finansial": 0.81,
-        "Kesehatan": 0.69,
-        "Energi": -2.04,
-        "Properti & Real Estate": -2.42,
-        "Perindustrian": -3.2,
-        "Teknologi": -4.0,
-        "Transportasi & Logistik": -7.81,
-        "Konsumer Primer": -8.37,
-        "Bahan Baku": -9.95,
-        "Infrastruktur": -12.0
+        "Energi": NaN,
+        "Finansial": NaN,
+        "Bahan Baku": NaN,
+        "Infrastruktur": NaN,
+        "Konsumer Primer": NaN,
+        "Konsumer Non-Primer": NaN,
+        "Kesehatan": NaN,
+        "Teknologi": NaN,
+        "Properti & Real Estate": NaN,
+        "Perindustrian": NaN,
+        "Transportasi & Logistik": NaN
       }
     },
     "commodity_cues": {
@@ -91,76 +93,76 @@
       "cues": {
         "COAL": {
           "name": "Batubara (Coal Proxy)",
-          "avg_return_pct": -0.27,
-          "status": "NEUTRAL",
-          "booster": 0.0
+          "avg_return_pct": -3.24,
+          "status": "BEARISH_DRAG",
+          "booster": -3.0
         },
         "NICKEL_COPPER": {
           "name": "Nikel & Tembaga (Metals)",
-          "avg_return_pct": -1.5,
-          "status": "BEARISH_DRAG",
+          "avg_return_pct": -1.31,
+          "status": "NEUTRAL",
           "booster": -1.5
         },
         "CPO": {
           "name": "Minyak Nabati / CPO (CBOT Soyoil)",
-          "avg_return_pct": 0.91,
+          "avg_return_pct": -1.35,
           "status": "NEUTRAL",
-          "booster": 0.0
+          "booster": -1.5
         },
         "GOLD": {
           "name": "Emas Dunia (COMEX Gold)",
-          "avg_return_pct": -2.99,
-          "status": "BEARISH_DRAG",
-          "booster": -1.5
+          "avg_return_pct": 1.6,
+          "status": "BULLISH_BOOST",
+          "booster": 1.5
         },
         "OIL": {
           "name": "Minyak Mentah (WTI / Brent)",
-          "avg_return_pct": 0.33,
-          "status": "NEUTRAL",
-          "booster": 0.0
+          "avg_return_pct": -9.2,
+          "status": "BEARISH_DRAG",
+          "booster": -3.0
         }
       },
       "sector_boosters": {
         "Energi": 0.0,
-        "Bahan Baku": 0.0,
+        "Bahan Baku": 1.5,
         "Konsumer Primer": 0.0
       },
       "stock_modifiers": {
-        "ADRO": 0.0,
-        "PTBA": 0.0,
-        "ITMG": 0.0,
-        "BUMI": 0.0,
-        "INDY": 0.0,
-        "DOID": 0.0,
-        "BYAN": 0.0,
-        "MBMA": 0.0,
+        "ADRO": -3.0,
+        "PTBA": -3.0,
+        "ITMG": -3.0,
+        "BUMI": -3.0,
+        "INDY": -3.0,
+        "DOID": -3.0,
+        "BYAN": -3.0,
+        "MBMA": -3.0,
         "INCO": -1.5,
-        "ANTM": -3.0,
-        "MDKA": -3.0,
-        "BRMS": -3.0,
+        "ANTM": 0.0,
+        "MDKA": 0.0,
+        "BRMS": 0.0,
         "NCKL": -1.5,
         "TINS": -1.5,
         "AMMN": -1.5,
-        "AALI": 0.0,
-        "TAPG": 0.0,
-        "LSIP": 0.0,
-        "DSNG": 0.0,
-        "SIMP": 0.0,
-        "BWPT": 0.0,
-        "PSAB": -1.5,
-        "ARCI": -1.5,
-        "MEDC": 0.0,
-        "ELSA": 0.0,
-        "AKRA": 0.0,
-        "PGAS": 0.0,
-        "ENRG": 0.0
+        "AALI": -1.5,
+        "TAPG": -1.5,
+        "LSIP": -1.5,
+        "DSNG": -1.5,
+        "SIMP": -1.5,
+        "BWPT": -1.5,
+        "PSAB": 1.5,
+        "ARCI": 1.5,
+        "MEDC": -3.0,
+        "ELSA": -3.0,
+        "AKRA": -3.0,
+        "PGAS": -3.0,
+        "ENRG": -3.0
       },
       "summary_badges": [
-        "\u2796 Batubara (Coal Proxy): -0.3% (Neutral)",
-        "\u26a0\ufe0f Nikel & Tembaga (Metals): -1.5% (Mild Correction Drag)",
-        "\u2796 Minyak Nabati / CPO (CBOT Soyoil): +0.9% (Neutral)",
-        "\u26a0\ufe0f Emas Dunia (COMEX Gold): -3.0% (Mild Correction Drag)",
-        "\u2796 Minyak Mentah (WTI / Brent): +0.3% (Neutral)"
+        "\ud83d\udd34 Batubara (Coal Proxy): -3.2% (Sharp Correction Warning)",
+        "\u26a0\ufe0f Nikel & Tembaga (Metals): -1.3% (Mild Correction Drag)",
+        "\u26a0\ufe0f Minyak Nabati / CPO (CBOT Soyoil): -1.4% (Mild Correction Drag)",
+        "\ud83d\udfe2 Emas Dunia (COMEX Gold): +1.6% (Positive Momentum)",
+        "\ud83d\udd34 Minyak Mentah (WTI / Brent): -9.2% (Sharp Correction Warning)"
       ]
     }
   },
@@ -214,7 +216,7 @@
       "rsi_signal": "Oversold",
       "macd_signal": "Bearish",
       "trend": "Downtrend",
-      "adx": 53.6,
+      "adx": 53.5,
       "rvol": 1.19,
       "risk_reward_ratio": 2.4,
       "kelly_allocation": 12.5,
@@ -247,7 +249,7 @@
       "rsi_signal": "Oversold",
       "macd_signal": "Bearish",
       "trend": "Downtrend",
-      "adx": 40.3,
+      "adx": 40.2,
       "rvol": 1.0,
       "risk_reward_ratio": 2.75,
       "kelly_allocation": 12.5,
